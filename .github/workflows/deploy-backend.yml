@@ -35,26 +35,50 @@ jobs:
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
 
-          # Expand literal \n if pasted with escaped newlines and strip Windows CRLF \r
-          printf '%b\n' "$EC2_KEY" | tr -d '\r' > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
+          python3 - << 'PYEOF'
+          import os, base64, subprocess
 
-          # Check if the key is valid OpenSSH / RSA key
-          if ! ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null 2>&1; then
-            echo "Key validation warning; checking if key was base64 encoded..."
-            printf '%b\n' "$EC2_KEY" | base64 -d 2>/dev/null > ~/.ssh/deploy_key_b64 || true
-            chmod 600 ~/.ssh/deploy_key_b64
-            if ssh-keygen -y -f ~/.ssh/deploy_key_b64 > /dev/null 2>&1; then
-              cp ~/.ssh/deploy_key_b64 ~/.ssh/deploy_key
-              chmod 600 ~/.ssh/deploy_key
-              echo "✅ Restored base64-encoded SSH key"
-            else
-              echo "::warning::deploy_key failed ssh-keygen validation. Attempting connection anyway..."
-            fi
-          fi
+          raw = os.environ.get("EC2_KEY", "").strip()
+          print(f"Key loaded: {len(raw)} chars, {len(raw.splitlines())} lines")
 
-          echo "🔑 Deploy key fingerprint:"
-          ssh-keygen -l -f ~/.ssh/deploy_key || echo "::warning::Could not read key fingerprint"
+          # 1. Check if base64 encoded
+          try:
+              decoded = base64.b64decode(raw).decode('utf-8', errors='ignore')
+              if "PRIVATE KEY" in decoded:
+                  raw = decoded.strip()
+                  print("✅ Decoded base64-wrapped private key")
+          except Exception:
+              pass
+
+          # 2. Check if literal \n was pasted
+          if "\\n" in raw and "\n" not in raw:
+              raw = raw.replace("\\n", "\n")
+              print("✅ Replaced literal \\n escape characters")
+
+          # 3. Strip Windows CRLF
+          raw = raw.replace("\r", "").strip()
+
+          # 4. Check PEM headers
+          if "BEGIN" not in raw:
+              raw = f"-----BEGIN RSA PRIVATE KEY-----\n{raw}\n-----END RSA PRIVATE KEY-----"
+              print("ℹ️ Added missing PEM header and footer")
+
+          if not raw.endswith("\n"):
+              raw += "\n"
+
+          key_path = os.path.expanduser("~/.ssh/deploy_key")
+          with open(key_path, "w", newline="\n") as f:
+              f.write(raw)
+          os.chmod(key_path, 0o600)
+
+          res = subprocess.run(["ssh-keygen", "-l", "-f", key_path], capture_output=True, text=True)
+          if res.returncode == 0:
+              print(f"✅ Valid Key Fingerprint: {res.stdout.strip()}")
+          else:
+              print(f"❌ Key validation error: {res.stderr.strip()}")
+              print(f"First 25 chars: {repr(raw[:25])}")
+              print(f"Last 25 chars: {repr(raw[-25:])}")
+          PYEOF
 
           TARGET_USER="${EC2_USER:-ubuntu}"
           TARGET_DIR="${APP_DIR:-$HOME/IQ_trial}"
