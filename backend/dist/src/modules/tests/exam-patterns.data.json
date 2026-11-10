@@ -1,0 +1,93 @@
+{
+  "_about": "Official paper blueprints (backend/src/modules/tests/exam-patterns.data.json). THE single source of truth for question counts, sections and marking. Identical copies live in frontend/src/utils/examPatterns.json and exam/frontend/src/lib/examPatterns.json (a backend test fails if they drift). Section kinds: single = one correct option (single_correct, assertion, matching-list MCQs); multi = one or more correct (multi_correct); numerical = typed value (numerical). Sections are filled in order, per subject, by kind. Re-verify JEE Advanced every year: it is set by the organising IIT, not NTA, and changes.",
+  "jee_main": {
+    "label": "JEE Main",
+    "authority": "NTA",
+    "edition": "2025-2026 (unchanged in the 2026 information bulletin)",
+    "durationMinutes": 180,
+    "numericAnswer": "integer",
+    "subjects": {
+      "Physics": [
+        { "id": "A", "label": "Section A — Single correct MCQ", "kind": "single", "count": 20, "marks": 4, "negative": 1 },
+        { "id": "B", "label": "Section B — Numerical value", "kind": "numerical", "count": 5, "marks": 4, "negative": 1 }
+      ],
+      "Chemistry": [
+        { "id": "A", "label": "Section A — Single correct MCQ", "kind": "single", "count": 20, "marks": 4, "negative": 1 },
+        { "id": "B", "label": "Section B — Numerical value", "kind": "numerical", "count": 5, "marks": 4, "negative": 1 }
+      ],
+      "Mathematics": [
+        { "id": "A", "label": "Section A — Single correct MCQ", "kind": "single", "count": 20, "marks": 4, "negative": 1 },
+        { "id": "B", "label": "Section B — Numerical value", "kind": "numerical", "count": 5, "marks": 4, "negative": 1 }
+      ]
+    }
+  },
+  "jee_advanced": {
+    "label": "JEE Advanced — Paper 1",
+    "authority": "IIT (Joint Admission Board)",
+    "edition": "2025 Paper 1 (IIT Kanpur)",
+    "durationMinutes": 180,
+    "numericAnswer": "decimal2",
+    "subjects": {
+      "Physics": [
+        { "id": "1", "label": "Section 1 — Single correct MCQ", "kind": "single", "count": 4, "marks": 3, "negative": 1 },
+        { "id": "2", "label": "Section 2 — One or more correct", "kind": "multi", "count": 3, "marks": 4, "negative": 2, "partial": true },
+        { "id": "3", "label": "Section 3 — Numerical value", "kind": "numerical", "count": 6, "marks": 4, "negative": 0 },
+        { "id": "4", "label": "Section 4 — Matching list sets", "kind": "single", "count": 3, "marks": 4, "negative": 1 }
+      ],
+      "Chemistry": [
+        { "id": "1", "label": "Section 1 — Single correct MCQ", "kind": "single", "count": 4, "marks": 3, "negative": 1 },
+        { "id": "2", "label": "Section 2 — One or more correct", "kind": "multi", "count": 3, "marks": 4, "negative": 2, "partial": true },
+        { "id": "3", "label": "Section 3 — Numerical value", "kind": "numerical", "count": 6, "marks": 4, "negative": 0 },
+        { "id": "4", "label": "Section 4 — Matching list sets", "kind": "single", "count": 3, "marks": 4, "negative": 1 }
+      ],
+      "Mathematics": [
+        { "id": "1", "label": "Section 1 — Single correct MCQ", "kind": "single", "count": 4, "marks": 3, "negative": 1 },
+        { "id": "2", "label": "Section 2 — One or more correct", "kind": "multi", "count": 3, "marks": 4, "negative": 2, "partial": true },
+        { "id": "3", "label": "Section 3 — Numerical value", "kind": "numerical", "count": 6, "marks": 4, "negative": 0 },
+        { "id": "4", "label": "Section 4 — Matching list sets", "kind": "single", "count": 4, "marks": 3, "negative": 1 }
+      ]
+    }
+  },
+  "jee_advanced_p2": {
+    "label": "JEE Advanced — Paper 2",
+    "authority": "IIT (Joint Admission Board)",
+    "edition": "2025 Paper 2 (IIT Kanpur)",
+    "durationMinutes": 180,
+    "numericAnswer": "decimal2",
+    "subjects": {
+      "Physics": [
+        { "id": "1", "label": "Section 1 — Single correct MCQ", "kind": "single", "count": 4, "marks": 3, "negative": 1 },
+        { "id": "2", "label": "Section 2 — One or more correct", "kind": "multi", "count": 4, "marks": 4, "negative": 2, "partial": true },
+        { "id": "3", "label": "Section 3 — Numerical value", "kind": "numerical", "count": 8, "marks": 4, "negative": 0 }
+      ],
+      "Chemistry": [
+        { "id": "1", "label": "Section 1 — Single correct MCQ", "kind": "single", "count": 4, "marks": 3, "negative": 1 },
+        { "id": "2", "label": "Section 2 — One or more correct", "kind": "multi", "count": 4, "marks": 4, "negative": 2, "partial": true },
+        { "id": "3", "label": "Section 3 — Numerical value", "kind": "numerical", "count": 8, "marks": 4, "negative": 0 }
+      ],
+      "Mathematics": [
+        { "id": "1", "label": "Section 1 — Single correct MCQ", "kind": "single", "count": 4, "marks": 3, "negative": 1 },
+        { "id": "2", "label": "Section 2 — One or more correct", "kind": "multi", "count": 4, "marks": 4, "negative": 2, "partial": true },
+        { "id": "3", "label": "Section 3 — Numerical value", "kind": "numerical", "count": 8, "marks": 4, "negative": 0 }
+      ]
+    }
+  },
+  "neet": {
+    "label": "NEET (UG)",
+    "authority": "NTA",
+    "edition": "2025 onward (180 compulsory questions, no optional Section B)",
+    "durationMinutes": 180,
+    "numericAnswer": "integer",
+    "subjects": {
+      "Physics": [
+        { "id": "A", "label": "Single correct MCQ", "kind": "single", "count": 45, "marks": 4, "negative": 1 }
+      ],
+      "Chemistry": [
+        { "id": "A", "label": "Single correct MCQ", "kind": "single", "count": 45, "marks": 4, "negative": 1 }
+      ],
+      "Biology": [
+        { "id": "A", "label": "Single correct MCQ (Botany 45 + Zoology 45)", "kind": "single", "count": 90, "marks": 4, "negative": 1 }
+      ]
+    }
+  }
+}

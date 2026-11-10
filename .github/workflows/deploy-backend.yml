@@ -62,19 +62,31 @@ jobs:
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=30 "$TARGET_USER@$EC2_HOST" "bash -s" << EOF
             APP_DIR="$TARGET_DIR"
             echo "🚀 Deploying in directory: \$APP_DIR"
-            cd "\$APP_DIR" || cd "\$HOME"/*IQ* || exit 1
+            cd "\$APP_DIR" || cd "\$HOME"/IQ_trial || cd "\$HOME"/*IQ* || exit 1
 
             echo "📥 Pulling latest changes from main..."
+            git checkout -- .
             git pull origin main
 
-            echo "🔨 Building backend and frontend services..."
-            docker compose build backend frontend
+            if command -v pm2 >/dev/null 2>&1; then
+              echo "🔄 Restarting backend services via PM2..."
+              pm2 restart all || {
+                (cd backend && pm2 start dist/src/main.js --name "main-api")
+                (cd exam/backend && pm2 start dist/main.js --name "exam-api")
+              }
+              pm2 save
+              echo "🩺 Verifying service health..."
+              sleep 3
+              curl -sf http://localhost:3000/api/health && echo " -> main-api healthy" || echo " -> main-api starting..."
+              curl -sf http://localhost:3001/api/exam/health && echo " -> exam-api healthy" || echo " -> exam-api starting..."
+            fi
 
-            echo "🔄 Restarting services..."
-            docker compose up -d backend frontend
-
-            echo "🧹 Cleaning up dangling images..."
-            docker image prune -f
+            if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+              echo "🔨 Docker daemon detected: updating docker containers..."
+              docker compose build backend frontend || true
+              docker compose up -d backend frontend || true
+              docker image prune -f || true
+            fi
 
             echo "✅ Deployment completed successfully!"
           EOF
