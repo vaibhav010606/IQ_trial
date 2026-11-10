@@ -30,7 +30,9 @@ let HttpExceptionFilter = HttpExceptionFilter_1 = class HttpExceptionFilter {
         }
         else {
             errorId = (0, crypto_1.randomUUID)();
-            const detail = exception instanceof Error ? exception.stack || exception.message : String(exception);
+            const detail = exception instanceof Error
+                ? exception.stack || exception.message
+                : String(exception);
             this.logger.error(`${request.method} ${request.url} → 500 [${errorId}]: ${detail}`);
             message = 'Something went wrong on our end. Please try again.';
         }

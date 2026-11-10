@@ -232,7 +232,7 @@ const DoubtChatRoom = () => {
 
   return (
     <div className="doubt-chat-room">
-      {toast && <div className="toast-notification" style={{position:'fixed',top:'20px',right:'20px',background:'#1e293b',color:'#f1f5f9',padding:'12px 20px',borderRadius:'8px',zIndex:9999,boxShadow:'0 4px 12px rgba(0,0,0,.3)'}}>{toast}</div>}
+      {toast && <div className="toast-notification" style={{position:'fixed',top:'20px',right:'20px',background:'#2a2722',color:'#ebe3d3',padding:'12px 20px',borderRadius:'8px',zIndex:9999,boxShadow:'0 4px 12px rgba(0,0,0,.3)'}}>{toast}</div>}
       <header className="chat-header">
         <button className="back-btn" onClick={() => navigate('/teacher/doubt-queue')}>
           <ArrowLeft size={20} /> Back to Queue
@@ -245,8 +245,8 @@ const DoubtChatRoom = () => {
 
       {questionText ? (
         <div className="pinned-question-card">
-          <div className="pinned-icon-wrap" style={{display:'flex',alignItems:'center',justifyContent:'center',width:'48px',height:'48px',borderRadius:'12px',background:'#eef2ff',flexShrink:0}}>
-            <HelpCircle size={24} style={{color:'var(--color-teacher-accent, #6366f1)'}} />
+          <div className="pinned-icon-wrap" style={{display:'flex',alignItems:'center',justifyContent:'center',width:'48px',height:'48px',borderRadius:'12px',background:'var(--accent-soft)',flexShrink:0}}>
+            <HelpCircle size={24} style={{color:'var(--color-teacher-accent, #2b44a6)'}} />
           </div>
           <div className="pinned-content">
             <div className="pinned-meta">
@@ -261,12 +261,12 @@ const DoubtChatRoom = () => {
         </div>
       ) : (
         <div className="pinned-question-card">
-          <div className="pinned-icon-wrap" style={{display:'flex',alignItems:'center',justifyContent:'center',width:'48px',height:'48px',borderRadius:'12px',background:'#eef2ff',flexShrink:0}}>
-            <MessageSquare size={24} style={{color:'var(--color-teacher-accent, #6366f1)'}} />
+          <div className="pinned-icon-wrap" style={{display:'flex',alignItems:'center',justifyContent:'center',width:'48px',height:'48px',borderRadius:'12px',background:'var(--accent-soft)',flexShrink:0}}>
+            <MessageSquare size={24} style={{color:'var(--color-teacher-accent, #2b44a6)'}} />
           </div>
           <div className="pinned-content">
             <div className="pinned-meta">
-              <span className="subject-tag" style={{background:'#f1f5f9',color:'#475569'}}>Freeform Doubt</span>
+              <span className="subject-tag" style={{background:'#ebe3d3',color:'#56504a'}}>Freeform doubt</span>
             </div>
             <h3>Direct conversation with {studentName}</h3>
             <span className="student-name">No specific question attached</span>

@@ -10,12 +10,23 @@ import { SpacedRepetitionService } from '../analytics/spaced-repetition.service'
 import { CacheService } from '../../common/cache/cache.service';
 import { chunk, fetchAll } from '../../common/db/query.util';
 import { isTestResultsPublished } from '../tests/tests.service';
+import {
+  getPattern,
+  patternIdOf,
+  PatternSpec,
+  resolveSections,
+  scoreInSection,
+} from '../tests/exam-patterns';
 
 /** Clock skew allowance so a student whose machine is a few seconds fast is not punished. */
 const CLOCK_GRACE_SECONDS = 30;
 
 /** Three strikes and the attempt is finalised. Mirrors the exam UI's warning counter. */
 const VIOLATION_LIMIT = 3;
+
+/** Each test can be taken once. Shown whenever a second attempt is refused. */
+const ALREADY_SUBMITTED =
+  'You have already submitted this test. Each test can be taken only once.';
 
 /** Palette states the exam UI tracks per question. Anything else is rejected. */
 const ANSWER_STATUSES = [
@@ -49,6 +60,8 @@ interface MarkingScheme {
   negativeMarking: boolean;
   negativeMarks: number;
   resultsPublished: boolean;
+  /** The official pattern the paper follows (JEE Main / Advanced / NEET), if any. */
+  pattern: PatternSpec | null;
 }
 
 @Injectable()
@@ -66,7 +79,7 @@ export class AttemptsService {
   constructor(
     private readonly srsService: SpacedRepetitionService,
     private readonly cache: CacheService,
-  ) { }
+  ) {}
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -74,7 +87,12 @@ export class AttemptsService {
   private isMissingSchema(error: any): boolean {
     if (!error) return false;
     const code = String(error.code || '');
-    if (code === 'PGRST204' || code === 'PGRST205' || code === '42703' || code === '42P01') {
+    if (
+      code === 'PGRST204' ||
+      code === 'PGRST205' ||
+      code === '42703' ||
+      code === '42P01'
+    ) {
       return true;
     }
     return /does not exist|schema cache/i.test(String(error.message || ''));
@@ -83,13 +101,16 @@ export class AttemptsService {
   /** True for a unique-constraint violation — two requests racing the same insert. */
   private isUniqueViolation(error: any): boolean {
     if (!error) return false;
-    return String(error.code || '') === '23505' || /duplicate key value/i.test(String(error.message || ''));
+    return (
+      String(error.code || '') === '23505' ||
+      /duplicate key value/i.test(String(error.message || ''))
+    );
   }
 
   private warnMigrationMissing(what: string) {
     this.logger.warn(
       `${what} is missing — run backend/migrations/005_exam_session_sync.sql. ` +
-      'Running degraded until then.',
+        'Running degraded until then.',
     );
   }
 
@@ -98,7 +119,10 @@ export class AttemptsService {
    * The deadline is always computed server-side from `started_at` — the client
    * never gets to say how much time is left.
    */
-  private async loadWindow(attemptId: string, studentId: string): Promise<AttemptWindow> {
+  private async loadWindow(
+    attemptId: string,
+    studentId: string,
+  ): Promise<AttemptWindow> {
     const { data: attempt } = await supabase
       .from('attempts')
       .select('id, test_id, status, started_at')
@@ -116,7 +140,9 @@ export class AttemptsService {
 
     const durationMinutes = test?.duration_minutes || 60;
     const startedAt = new Date(attempt.started_at || Date.now());
-    const expiresAt = new Date(startedAt.getTime() + durationMinutes * 60 * 1000);
+    const expiresAt = new Date(
+      startedAt.getTime() + durationMinutes * 60 * 1000,
+    );
 
     return {
       attemptId: attempt.id,
@@ -135,13 +161,18 @@ export class AttemptsService {
 
   /** Reads the marking scheme defensively — the columns may not exist on older schemas. */
   private async getMarkingScheme(testId: string): Promise<MarkingScheme> {
-    const { data } = await supabase.from('tests').select('*').eq('id', testId).single();
+    const { data } = await supabase
+      .from('tests')
+      .select('*')
+      .eq('id', testId)
+      .single();
 
     const row: any = data || {};
     return {
       negativeMarking: row.negative_marking === true,
       negativeMarks: Number(row.negative_marks) || 0,
       resultsPublished: isTestResultsPublished(row),
+      pattern: getPattern(patternIdOf(row)),
     };
   }
 
@@ -156,7 +187,10 @@ export class AttemptsService {
   private async resolveAssignmentWindow(
     testId: string,
     studentId: string,
-  ): Promise<{ scheduled_start: string | null; scheduled_end: string | null } | null> {
+  ): Promise<{
+    scheduled_start: string | null;
+    scheduled_end: string | null;
+  } | null> {
     const { data: rows, error } = await supabase
       .from('test_assignments')
       .select('id, scheduled_start, scheduled_end')
@@ -186,8 +220,10 @@ export class AttemptsService {
     }
 
     return {
-      scheduled_start: unboundedStart || start === null ? null : new Date(start).toISOString(),
-      scheduled_end: unboundedEnd || end === null ? null : new Date(end).toISOString(),
+      scheduled_start:
+        unboundedStart || start === null ? null : new Date(start).toISOString(),
+      scheduled_end:
+        unboundedEnd || end === null ? null : new Date(end).toISOString(),
     };
   }
 
@@ -204,6 +240,36 @@ export class AttemptsService {
   }
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────
+
+  /**
+   * Every attempt a student has on a test, oldest first (ties broken by id, so
+   * concurrent callers agree on the order). Normally zero or one row.
+   */
+  private async attemptsFor(
+    testId: string,
+    studentId: string,
+  ): Promise<{ id: string; status: string; started_at: string }[]> {
+    const { data, error } = await supabase
+      .from('attempts')
+      .select('id, status, started_at')
+      .eq('test_id', testId)
+      .eq('student_id', studentId)
+      .order('started_at', { ascending: true })
+      .order('id', { ascending: true });
+    if (error) throw new Error(error.message);
+    if (!data) return [];
+    return Array.isArray(data) ? data : [data];
+  }
+
+  /** True when this student already has a different, submitted attempt on the test. */
+  private async hasOtherSubmittedAttempt(attempt: {
+    id: string;
+    test_id: string;
+    student_id: string;
+  }): Promise<boolean> {
+    const all = await this.attemptsFor(attempt.test_id, attempt.student_id);
+    return all.some((a) => a.id !== attempt.id && a.status === 'submitted');
+  }
 
   /**
    * START: Student begins an exam.
@@ -237,38 +303,48 @@ export class AttemptsService {
       }
     }
 
-    // Check if already attempted. `maybeSingle` — a first-time student has no
-    // row at all, and that is not an error.
-    const { data: existing } = await supabase
-      .from('attempts')
-      .select('id, status, started_at')
-      .eq('test_id', testId)
-      .eq('student_id', studentId)
-      .order('started_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // One attempt per student per test. Read EVERY attempt this student has on
+    // the test, not just the newest: if a stray duplicate ever exists, checking
+    // only the latest row let a student who had submitted the older attempt
+    // reopen the newer one and sit the test a second time.
+    const priorAttempts = await this.attemptsFor(testId, studentId);
 
-    // If already submitted, reject
-    if (existing?.status === 'submitted') {
-      throw new BadRequestException('You have already submitted this test');
+    if (priorAttempts.some((a) => a.status === 'submitted')) {
+      throw new BadRequestException(ALREADY_SUBMITTED);
     }
+
+    // Resume, never restart: an unfinished attempt is the same attempt.
+    const existing = priorAttempts.find((a) => a.status === 'in_progress');
 
     const { data: test } = await supabase
       .from('tests')
-      .select('duration_minutes')
+      .select('duration_minutes, status')
       .eq('id', testId)
       .single();
 
     if (!test) throw new NotFoundException('Test not found');
+    // An admin can schedule batches on a draft before publishing it. The
+    // dashboard hides drafts, but the start endpoint itself must refuse them
+    // too, or a student with the test id could sit an unfinished paper.
+    if (test.status !== 'published') {
+      throw new ForbiddenException('This test is not available yet.');
+    }
 
     // If in progress, resume it — and hand back everything needed to rehydrate the UI.
     if (existing?.status === 'in_progress') {
-      return this.resumeAttempt(existing, testId, test.duration_minutes || 60, studentId);
+      return this.resumeAttempt(
+        existing,
+        testId,
+        test.duration_minutes || 60,
+        studentId,
+      );
     }
 
     // Create new attempt
     const startedAt = new Date();
-    const expiresAt = new Date(startedAt.getTime() + test.duration_minutes * 60 * 1000);
+    const expiresAt = new Date(
+      startedAt.getTime() + test.duration_minutes * 60 * 1000,
+    );
 
     const { data: attempt, error } = await supabase
       .from('attempts')
@@ -294,11 +370,34 @@ export class AttemptsService {
           .maybeSingle();
 
         if (raced?.status === 'in_progress') {
-          return this.resumeAttempt(raced, testId, test.duration_minutes || 60, studentId);
+          return this.resumeAttempt(
+            raced,
+            testId,
+            test.duration_minutes || 60,
+            studentId,
+          );
         }
-        throw new BadRequestException('You have already submitted this test');
+        throw new BadRequestException(ALREADY_SUBMITTED);
       }
       throw new Error(error.message);
+    }
+
+    // The unique key on (student_id, test_id) is what normally stops a second
+    // row. A database that has not run migration 001/010 lacks it, and then two
+    // simultaneous starts (double-click, two tabs) both insert. Every racer
+    // settles on the same row — the earliest — and the losers delete their own
+    // just-created, still-empty row, so the student is left with one attempt.
+    const all = await this.attemptsFor(testId, studentId);
+    const canonical = all[0];
+    if (canonical && canonical.id !== attempt.id) {
+      await supabase.from('attempts').delete().eq('id', attempt.id).eq('status', 'in_progress');
+      this.logger.warn(
+        `Duplicate start for test ${testId} by ${studentId}; kept attempt ${canonical.id}.`,
+      );
+      if (canonical.status === 'submitted') {
+        throw new BadRequestException(ALREADY_SUBMITTED);
+      }
+      return this.resumeAttempt(canonical, testId, test.duration_minutes || 60, studentId);
     }
 
     return {
@@ -320,11 +419,15 @@ export class AttemptsService {
     studentId: string,
   ) {
     const startedAt = new Date(existing.started_at || Date.now());
-    const expiresAt = new Date(startedAt.getTime() + durationMinutes * 60 * 1000);
+    const expiresAt = new Date(
+      startedAt.getTime() + durationMinutes * 60 * 1000,
+    );
 
     // The deadline may have passed while the student was away — finalise instead of resuming.
     if (Date.now() > expiresAt.getTime() + CLOCK_GRACE_SECONDS * 1000) {
-      await this.submitAttempt(existing.id, studentId, true).catch(() => undefined);
+      await this.submitAttempt(existing.id, studentId, true).catch(
+        () => undefined,
+      );
       throw new BadRequestException(
         'Your time for this test had already expired. The attempt was submitted automatically.',
       );
@@ -336,14 +439,18 @@ export class AttemptsService {
       resumed: true,
       startedAt: startedAt.toISOString(),
       expiresAt: expiresAt.toISOString(),
-      timeLeftSeconds: Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000)),
+      timeLeftSeconds: Math.max(
+        0,
+        Math.floor((expiresAt.getTime() - Date.now()) / 1000),
+      ),
       savedAnswers: await this.getSavedAnswers(existing.id),
     };
   }
 
   /** Answers already saved for an attempt, so a resumed exam can restore its state. */
   async getSavedAnswers(attemptId: string): Promise<any[]> {
-    const columns = 'question_id, selected_answer, flagged_for_doubt, time_spent_seconds';
+    const columns =
+      'question_id, selected_answer, flagged_for_doubt, time_spent_seconds';
 
     if (this.hasAnswerStatus !== false) {
       const { data, error } = await supabase
@@ -362,7 +469,10 @@ export class AttemptsService {
     }
 
     // Migration 005 not applied: resume the answers, just not the palette state.
-    const { data, error } = await supabase.from('answers').select(columns).eq('attempt_id', attemptId);
+    const { data, error } = await supabase
+      .from('answers')
+      .select(columns)
+      .eq('attempt_id', attemptId);
     if (error) throw new Error(error.message);
     return data || [];
   }
@@ -442,7 +552,11 @@ export class AttemptsService {
 
     // A violation after submission is noise, not a strike.
     if (attempt.status === 'submitted') {
-      return { terminated: true, strikes: VIOLATION_LIMIT, limit: VIOLATION_LIMIT };
+      return {
+        terminated: true,
+        strikes: VIOLATION_LIMIT,
+        limit: VIOLATION_LIMIT,
+      };
     }
 
     const { error } = await supabase.from('attempt_violations').insert({
@@ -460,7 +574,12 @@ export class AttemptsService {
           this.hasViolationsTable = false;
           this.warnMigrationMissing('attempt_violations');
         }
-        return { terminated: false, strikes: 0, limit: VIOLATION_LIMIT, degraded: true };
+        return {
+          terminated: false,
+          strikes: 0,
+          limit: VIOLATION_LIMIT,
+          degraded: true,
+        };
       }
       throw new Error(error.message);
     }
@@ -476,10 +595,18 @@ export class AttemptsService {
     const terminated = strikes >= VIOLATION_LIMIT;
 
     if (terminated) {
-      this.logger.warn(`Attempt ${attemptId} terminated after ${strikes} violations.`);
-      // Grade what they have rather than leaving the attempt dangling open.
+      this.logger.warn(
+        `Attempt ${attemptId} terminated after ${strikes} violations.`,
+      );
+      // Grade what they have rather than leaving the attempt dangling open —
+      // unless the student already has a submitted attempt on this test, in
+      // which case this is a stray duplicate and must not become a second result.
+      const duplicate = await this.hasOtherSubmittedAttempt(attempt).catch(() => false);
+      if (duplicate) return { terminated, strikes, limit: VIOLATION_LIMIT };
       await this.gradeAndFinalise(attempt as any, true).catch((e) =>
-        this.logger.error(`Failed to finalise terminated attempt ${attemptId}: ${e?.message}`),
+        this.logger.error(
+          `Failed to finalise terminated attempt ${attemptId}: ${e?.message}`,
+        ),
       );
     }
 
@@ -490,7 +617,12 @@ export class AttemptsService {
    * TOGGLE FLAG: Mark/unmark a question for doubt review.
    * Ownership is verified — a student can only flag their own attempt.
    */
-  async toggleFlag(attemptId: string, studentId: string, questionId: string, flagged: boolean) {
+  async toggleFlag(
+    attemptId: string,
+    studentId: string,
+    questionId: string,
+    flagged: boolean,
+  ) {
     const window = await this.loadWindow(attemptId, studentId);
     this.assertWritable(window);
 
@@ -512,7 +644,11 @@ export class AttemptsService {
    * SUBMIT: Grade the exam and finalize the attempt.
    * The score is calculated entirely on the backend from the stored answer key.
    */
-  async submitAttempt(attemptId: string, studentId: string, autoSubmitted = false) {
+  async submitAttempt(
+    attemptId: string,
+    studentId: string,
+    autoSubmitted = false,
+  ) {
     const { data: attempt } = await supabase
       .from('attempts')
       .select('id, test_id, status, started_at, student_id')
@@ -521,7 +657,15 @@ export class AttemptsService {
       .single();
 
     if (!attempt) throw new NotFoundException('Attempt not found');
-    if (attempt.status === 'submitted') throw new BadRequestException('Already submitted');
+    if (attempt.status === 'submitted')
+      throw new BadRequestException('Already submitted');
+
+    // The last line of defence for "one attempt per test": even if a duplicate
+    // attempt row exists (two tabs racing the start on a database without the
+    // unique key), only one of them can ever be submitted and counted.
+    if (await this.hasOtherSubmittedAttempt(attempt)) {
+      throw new BadRequestException(ALREADY_SUBMITTED);
+    }
 
     return this.gradeAndFinalise(attempt, autoSubmitted);
   }
@@ -531,7 +675,12 @@ export class AttemptsService {
    * `attempt` must already be known to exist and be in progress.
    */
   private async gradeAndFinalise(
-    attempt: { id: string; test_id: string; started_at: string; student_id: string },
+    attempt: {
+      id: string;
+      test_id: string;
+      started_at: string;
+      student_id: string;
+    },
     autoSubmitted: boolean,
   ) {
     const attemptId = attempt.id;
@@ -544,10 +693,13 @@ export class AttemptsService {
 
     const durationMinutes = test?.duration_minutes || 60;
     const startedAt = new Date(attempt.started_at || Date.now());
-    const expiresAt = new Date(startedAt.getTime() + durationMinutes * 60 * 1000);
+    const expiresAt = new Date(
+      startedAt.getTime() + durationMinutes * 60 * 1000,
+    );
 
     // A submit that arrives after the deadline is recorded as an auto-submission.
-    const lateSubmit = Date.now() > expiresAt.getTime() + CLOCK_GRACE_SECONDS * 1000;
+    const lateSubmit =
+      Date.now() > expiresAt.getTime() + CLOCK_GRACE_SECONDS * 1000;
     const effectiveAutoSubmit = autoSubmitted || lateSubmit;
 
     const scheme = await this.getMarkingScheme(attempt.test_id);
@@ -557,34 +709,76 @@ export class AttemptsService {
     const testQuestions = await fetchAll<any>(() =>
       supabase
         .from('test_questions')
-        .select('question_id, marks_override, questions(correct_answer, marks)')
+        .select(
+          'question_id, question_order, marks_override, questions(correct_answer, marks, subject, q_type, options)',
+        )
         .eq('test_id', attempt.test_id),
     );
 
+    // On an official paper each question is marked by its section's scheme:
+    // JEE Main +4/−1; JEE Advanced +3/−1, +4/−2 with partial credit, +4/0 for
+    // numerical; NEET +4/−1. A custom paper keeps per-question marks and the
+    // test's own negative marking.
+    const pattern = scheme.pattern;
+    const sections = pattern
+      ? resolveSections(
+          pattern,
+          testQuestions.map((tq) => ({
+            question_id: tq.question_id,
+            question_order: tq.question_order,
+            subject: tq.questions?.subject,
+            q_type: tq.questions?.q_type,
+            options: tq.questions?.options,
+          })),
+        )
+      : new Map();
+
     // Student's answers for this attempt
     const studentAnswers = await fetchAll<any>(() =>
-      supabase.from('answers').select('question_id, selected_answer').eq('attempt_id', attemptId),
+      supabase
+        .from('answers')
+        .select('question_id, selected_answer')
+        .eq('attempt_id', attemptId),
     );
 
-    const answerMap = new Map(studentAnswers.map((a) => [a.question_id, a.selected_answer]));
+    const answerMap = new Map(
+      studentAnswers.map((a) => [a.question_id, a.selected_answer]),
+    );
 
     let totalScore = 0;
-    const answerUpdates: { attempt_id: string; question_id: string; is_correct: boolean | null }[] =
-      [];
+    const answerUpdates: {
+      attempt_id: string;
+      question_id: string;
+      is_correct: boolean | null;
+    }[] = [];
 
     for (const tq of testQuestions) {
       const questionId = tq.question_id;
-      const correctAnswer = (tq.questions as any)?.correct_answer;
-      const marks = Number(tq.marks_override || (tq.questions as any)?.marks || 4);
+      const correctAnswer = tq.questions?.correct_answer;
+      const marks = Number(tq.marks_override || tq.questions?.marks || 4);
       const studentAnswer = answerMap.get(questionId);
 
-      const attempted = studentAnswer !== undefined && studentAnswer !== null;
-      const isCorrect = attempted && this.answersMatch(studentAnswer, correctAnswer);
+      // A cleared response is not an attempt. Unticking every option of a
+      // multi-correct question saves `{ indices: [] }`, and the numeric keypad's
+      // Clear saves `{ value: '' }` — both used to be marked wrong and, with
+      // negative marking on, cost the student marks for a question they left.
+      const attempted = !this.isEmptyAnswer(studentAnswer);
+      const section = sections.get(questionId);
+      let isCorrect = false;
 
-      if (isCorrect) {
-        totalScore += marks;
-      } else if (attempted && scheme.negativeMarking) {
-        totalScore -= scheme.negativeMarks;
+      if (section && pattern) {
+        if (attempted) {
+          const scored = scoreInSection(section, studentAnswer, correctAnswer, pattern.numericAnswer);
+          totalScore += scored.score;
+          isCorrect = scored.full;
+        }
+      } else {
+        isCorrect = attempted && this.answersMatch(studentAnswer, correctAnswer);
+        if (isCorrect) {
+          totalScore += marks;
+        } else if (attempted && scheme.negativeMarking) {
+          totalScore -= scheme.negativeMarks;
+        }
       }
 
       answerUpdates.push({
@@ -608,7 +802,9 @@ export class AttemptsService {
 
     const submittedAt = new Date();
     // Never report more time than the exam actually allowed.
-    const rawSeconds = Math.floor((submittedAt.getTime() - startedAt.getTime()) / 1000);
+    const rawSeconds = Math.floor(
+      (submittedAt.getTime() - startedAt.getTime()) / 1000,
+    );
     const timeTakenSeconds = Math.min(rawSeconds, durationMinutes * 60);
 
     // The `status = in_progress` predicate makes this the serialisation point:
@@ -636,25 +832,35 @@ export class AttemptsService {
       await this.srsService
         .processAttempt(attemptId, attempt.student_id)
         .catch((e: any) =>
-          this.logger.error(`Spaced-repetition update failed for ${attemptId}: ${e?.message}`),
+          this.logger.error(
+            `Spaced-repetition update failed for ${attemptId}: ${e?.message}`,
+          ),
         );
 
       // A new score changes the rankings — drop the cached aggregates.
       await this.cache.invalidate('leaderboard:').catch(() => undefined);
       await this.cache.invalidate('analytics:cohort:').catch(() => undefined);
-      await this.cache.invalidate(`attempt-cohort:${attempt.test_id}`).catch(() => undefined);
+      await this.cache
+        .invalidate(`attempt-cohort:${attempt.test_id}`)
+        .catch(() => undefined);
     } else {
-      this.logger.log(`Attempt ${attemptId} was already finalised by a concurrent submit.`);
+      this.logger.log(
+        `Attempt ${attemptId} was already finalised by a concurrent submit.`,
+      );
     }
 
     const correct = answerUpdates.filter((a) => a.is_correct === true).length;
-    const incorrect = answerUpdates.filter((a) => a.is_correct === false).length;
-    const unattempted = answerUpdates.filter((a) => a.is_correct === null).length;
+    const incorrect = answerUpdates.filter(
+      (a) => a.is_correct === false,
+    ).length;
+    const unattempted = answerUpdates.filter(
+      (a) => a.is_correct === null,
+    ).length;
     const total = testQuestions.length || 1;
-    const maxScore = testQuestions.reduce(
-      (sum, tq) => sum + Number(tq.marks_override || (tq.questions as any)?.marks || 4),
-      0,
-    );
+    const maxScore = testQuestions.reduce((sum, tq) => {
+      const section = sections.get(tq.question_id);
+      return sum + (section ? section.marks : Number(tq.marks_override || tq.questions?.marks || 4));
+    }, 0);
 
     if (!scheme.resultsPublished) {
       return {
@@ -664,7 +870,8 @@ export class AttemptsService {
         results_published: false,
         autoSubmitted: effectiveAutoSubmit,
         timeTakenSeconds,
-        message: 'Exam submitted successfully. Results will be released once approved by the administrator.',
+        message:
+          'Your attempt has been noted and securely recorded. Results will be released once approved by the administrator.',
       };
     }
 
@@ -683,6 +890,23 @@ export class AttemptsService {
       negativeMarking: scheme.negativeMarking,
       negativeMarks: scheme.negativeMarks,
     };
+  }
+
+  /** True when a saved response carries no actual answer. */
+  private isEmptyAnswer(answer: any): boolean {
+    if (answer === undefined || answer === null) return true;
+    if (typeof answer !== 'object') return String(answer).trim() === '';
+    if (Array.isArray(answer.indices)) return answer.indices.length === 0;
+    if ('value' in answer)
+      return answer.value === null || String(answer.value).trim() === '';
+    if ('index' in answer)
+      return (
+        answer.index === null ||
+        answer.index === undefined ||
+        answer.index === ''
+      );
+    // `{ status: 'marked' }` and similar carry no answer.
+    return Object.keys(answer).filter((k) => k !== 'status').length === 0;
   }
 
   /**
@@ -743,19 +967,37 @@ export class AttemptsService {
 
       if (!rows || rows.length < SWEEP_BATCH_LIMIT) break;
       if (page === MAX_SWEEP_PAGES - 1) {
-        this.logger.warn(`Expiry sweep stopped after ${MAX_SWEEP_PAGES} full pages.`);
+        this.logger.warn(
+          `Expiry sweep stopped after ${MAX_SWEEP_PAGES} full pages.`,
+        );
       }
     }
 
     let submitted = 0;
     for (const attempt of open) {
-      const durationMinutes = (attempt.tests as any)?.duration_minutes || 60;
+      const durationMinutes = attempt.tests?.duration_minutes || 60;
       const startedAt = new Date(attempt.started_at || Date.now()).getTime();
       const expiresAt = startedAt + durationMinutes * 60 * 1000;
 
       if (Date.now() <= expiresAt + CLOCK_GRACE_SECONDS * 1000) continue;
 
       try {
+        // A stray duplicate of an attempt that was already submitted must not
+        // become a second graded result. It can never be submitted (see
+        // submitAttempt), so discard it rather than retrying it every sweep.
+        if (await this.hasOtherSubmittedAttempt(attempt)) {
+          await supabase.from('answers').delete().eq('attempt_id', attempt.id);
+          await supabase
+            .from('attempts')
+            .delete()
+            .eq('id', attempt.id)
+            .eq('status', 'in_progress');
+          this.logger.warn(
+            `Discarded duplicate attempt ${attempt.id}: test already submitted by this student.`,
+          );
+          continue;
+        }
+
         await this.gradeAndFinalise(
           {
             id: attempt.id,
@@ -767,7 +1009,9 @@ export class AttemptsService {
         );
         submitted += 1;
       } catch (e: any) {
-        this.logger.error(`Failed to auto-submit attempt ${attempt.id}: ${e?.message}`);
+        this.logger.error(
+          `Failed to auto-submit attempt ${attempt.id}: ${e?.message}`,
+        );
       }
     }
 
@@ -781,7 +1025,9 @@ export class AttemptsService {
   async getMyAttempts(studentId: string) {
     const { data, error } = await supabase
       .from('attempts')
-      .select('id, status, total_score, started_at, submitted_at, tests(id, title, total_marks, instructions, description)')
+      .select(
+        'id, test_id, status, total_score, started_at, submitted_at, tests(id, title, total_marks, instructions, description)',
+      )
       .eq('student_id', studentId)
       .order('started_at', { ascending: false })
       .limit(200);
@@ -801,14 +1047,16 @@ export class AttemptsService {
   async getAttemptResult(attemptId: string, studentId: string) {
     const { data: attempt, error } = await supabase
       .from('attempts')
-      .select(`
+      .select(
+        `
         id, status, total_score, started_at, submitted_at, auto_submitted,
         tests(id, title, total_marks, duration_minutes, instructions, description),
         answers(
           question_id, selected_answer, is_correct, time_spent_seconds, flagged_for_doubt,
           questions(id, question_text, options, correct_answer, subject, topic, difficulty, marks)
         )
-      `)
+      `,
+      )
       .eq('id', attemptId)
       .eq('student_id', studentId)
       .single();
@@ -853,7 +1101,7 @@ export class AttemptsService {
    * for every student opening their result.
    */
   private async getCohortPosition(attempt: any) {
-    const testId = (attempt.tests as any)?.id;
+    const testId = attempt.tests?.id;
     if (!testId) return null;
 
     const score = Number(attempt.total_score) || 0;
@@ -891,23 +1139,31 @@ export class AttemptsService {
   }
 
   /** Cached mean/max for a test — recomputed at most once a minute per test. */
-  private async getTestScoreStats(testId: string): Promise<{ average: number; highest: number }> {
-    return this.cache.wrap(`attempt-cohort:${testId}`, COHORT_STATS_TTL_SECONDS, async () => {
-      const rows = await fetchAll<{ total_score: number }>(() =>
-        supabase
-          .from('attempts')
-          .select('total_score')
-          .eq('test_id', testId)
-          .eq('status', 'submitted'),
-      );
+  private async getTestScoreStats(
+    testId: string,
+  ): Promise<{ average: number; highest: number }> {
+    return this.cache.wrap(
+      `attempt-cohort:${testId}`,
+      COHORT_STATS_TTL_SECONDS,
+      async () => {
+        const rows = await fetchAll<{ total_score: number }>(() =>
+          supabase
+            .from('attempts')
+            .select('total_score')
+            .eq('test_id', testId)
+            .eq('status', 'submitted'),
+        );
 
-      if (!rows.length) return { average: 0, highest: 0 };
+        if (!rows.length) return { average: 0, highest: 0 };
 
-      const scores = rows.map((r) => Number(r.total_score) || 0);
-      return {
-        average: Number((scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2)),
-        highest: Math.max(...scores),
-      };
-    });
+        const scores = rows.map((r) => Number(r.total_score) || 0);
+        return {
+          average: Number(
+            (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2),
+          ),
+          highest: Math.max(...scores),
+        };
+      },
+    );
   }
 }

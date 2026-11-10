@@ -36,8 +36,13 @@ const ALLOWED_IMAGE_TYPES: Record<string, string> = {
 /** Confirms the bytes really are the image type the client claims. */
 function sniffImageMime(buffer: Buffer): string | null {
   if (!buffer || buffer.length < 12) return null;
-  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
-  if (buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])))
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff)
+    return 'image/jpeg';
+  if (
+    buffer
+      .subarray(0, 8)
+      .equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+  )
     return 'image/png';
   const head6 = buffer.subarray(0, 6).toString('latin1');
   if (head6 === 'GIF87a' || head6 === 'GIF89a') return 'image/gif';
@@ -61,7 +66,7 @@ export class DoubtsService {
       .eq('id', doubtId)
       .single();
     if (error || !data) throw new NotFoundException('Doubt not found');
-    return data as DoubtOwnership;
+    return data;
   }
 
   /**
@@ -72,7 +77,12 @@ export class DoubtsService {
     if (user.role === 'admin') return true;
     if (doubt.student_id === user.id) return true;
     if (doubt.accepted_by && doubt.accepted_by === user.id) return true;
-    if (user.role === 'teacher' && !doubt.accepted_by && doubt.status === 'pending') return true;
+    if (
+      user.role === 'teacher' &&
+      !doubt.accepted_by &&
+      doubt.status === 'pending'
+    )
+      return true;
     return false;
   }
 
@@ -84,7 +94,10 @@ export class DoubtsService {
     return false;
   }
 
-  async assertCanRead(doubtId: string, user: Requester): Promise<DoubtOwnership> {
+  async assertCanRead(
+    doubtId: string,
+    user: Requester,
+  ): Promise<DoubtOwnership> {
     const doubt = await this.loadOwnership(doubtId);
     if (!this.canRead(doubt, user)) {
       throw new ForbiddenException('You do not have access to this doubt.');
@@ -92,7 +105,10 @@ export class DoubtsService {
     return doubt;
   }
 
-  async assertCanWrite(doubtId: string, user: Requester): Promise<DoubtOwnership> {
+  async assertCanWrite(
+    doubtId: string,
+    user: Requester,
+  ): Promise<DoubtOwnership> {
     const doubt = await this.loadOwnership(doubtId);
     if (!this.canWrite(doubt, user)) {
       throw new ForbiddenException('You are not a participant in this doubt.');
@@ -107,7 +123,10 @@ export class DoubtsService {
   ): Promise<{ canRead: boolean; canWrite: boolean }> {
     try {
       const doubt = await this.loadOwnership(doubtId);
-      return { canRead: this.canRead(doubt, user), canWrite: this.canWrite(doubt, user) };
+      return {
+        canRead: this.canRead(doubt, user),
+        canWrite: this.canWrite(doubt, user),
+      };
     } catch {
       return { canRead: false, canWrite: false };
     }
@@ -235,7 +254,12 @@ export class DoubtsService {
     return { from, to: from + safeLimit - 1, safePage, safeLimit };
   }
 
-  private page(data: any[] | null, count: number | null, page: number, limit: number) {
+  private page(
+    data: any[] | null,
+    count: number | null,
+    page: number,
+    limit: number,
+  ) {
     const total = count ?? 0;
     return {
       data: data || [],
@@ -252,12 +276,14 @@ export class DoubtsService {
 
     const { data, error } = await supabase
       .from('doubts')
-      .select(`
+      .select(
+        `
         id, status, created_at, resolved_at,
         student:users!doubts_student_id_fkey(id, full_name, email),
         questions(id, question_text, subject, topic, options, correct_answer),
         teacher:users!doubts_accepted_by_fkey(id, full_name)
-      `)
+      `,
+      )
       .eq('id', id)
       .single();
     if (error || !data) throw new NotFoundException('Doubt not found');
@@ -284,7 +310,9 @@ export class DoubtsService {
 
     // Only an unclaimed doubt can be claimed; admins may reassign.
     if (doubt.accepted_by && user.role !== 'admin') {
-      throw new ConflictException('This doubt has already been accepted by another teacher.');
+      throw new ConflictException(
+        'This doubt has already been accepted by another teacher.',
+      );
     }
 
     let query = supabase
@@ -298,7 +326,9 @@ export class DoubtsService {
     const { data, error } = await query.select().single();
 
     if (error || !data) {
-      throw new ConflictException('This doubt has already been accepted by another teacher.');
+      throw new ConflictException(
+        'This doubt has already been accepted by another teacher.',
+      );
     }
     return data;
   }
@@ -307,7 +337,9 @@ export class DoubtsService {
   async resolve(id: string, user: Requester) {
     const doubt = await this.loadOwnership(id);
     if (doubt.accepted_by !== user.id && user.role !== 'admin') {
-      throw new ForbiddenException('Only the teacher handling this doubt can resolve it.');
+      throw new ForbiddenException(
+        'Only the teacher handling this doubt can resolve it.',
+      );
     }
 
     const { data, error } = await supabase
@@ -356,7 +388,9 @@ export class DoubtsService {
     const text = (messageText ?? '').trim();
     if (!text) throw new BadRequestException('Message cannot be empty.');
     if (text.length > MAX_MESSAGE_LENGTH) {
-      throw new BadRequestException(`Message exceeds ${MAX_MESSAGE_LENGTH} characters.`);
+      throw new BadRequestException(
+        `Message exceeds ${MAX_MESSAGE_LENGTH} characters.`,
+      );
     }
 
     const { data, error } = await supabase
@@ -369,10 +403,15 @@ export class DoubtsService {
   }
 
   /** Upload an image, store in Supabase Storage, save URL as a chat message */
-  async uploadImage(doubtId: string, user: Requester, file: Express.Multer.File) {
+  async uploadImage(
+    doubtId: string,
+    user: Requester,
+    file: Express.Multer.File,
+  ) {
     await this.assertCanWrite(doubtId, user);
 
-    if (!file || !file.buffer?.length) throw new BadRequestException('No file provided');
+    if (!file || !file.buffer?.length)
+      throw new BadRequestException('No file provided');
     if (file.size > MAX_IMAGE_BYTES) {
       throw new BadRequestException('Image must be 5 MB or smaller.');
     }
@@ -380,7 +419,9 @@ export class DoubtsService {
     // Trust the bytes, not the declared mime type or the client's filename.
     const sniffed = sniffImageMime(file.buffer);
     if (!sniffed || !ALLOWED_IMAGE_TYPES[sniffed]) {
-      throw new BadRequestException('Only JPG, PNG, GIF and WEBP images are supported.');
+      throw new BadRequestException(
+        'Only JPG, PNG, GIF and WEBP images are supported.',
+      );
     }
 
     // Path is built entirely from server-controlled values — no traversal via
@@ -396,13 +437,20 @@ export class DoubtsService {
         upsert: false,
       });
 
-    if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+    if (uploadError)
+      throw new Error(`Storage upload failed: ${uploadError.message}`);
 
-    const { data: urlData } = supabase.storage.from('question-images').getPublicUrl(fileName);
+    const { data: urlData } = supabase.storage
+      .from('question-images')
+      .getPublicUrl(fileName);
     const imageUrl = urlData.publicUrl;
 
     // Save as a chat message with special image prefix so frontend can render it
-    const data = await this.persistMessage(doubtId, user.id, `[IMAGE]:${imageUrl}`);
+    const data = await this.persistMessage(
+      doubtId,
+      user.id,
+      `[IMAGE]:${imageUrl}`,
+    );
     return { ...data, imageUrl };
   }
 
@@ -416,7 +464,8 @@ export class DoubtsService {
   async remove(doubtId: string, user: Requester) {
     const doubt = await this.loadOwnership(doubtId);
     const isOwner = doubt.student_id === user.id;
-    const isHandler = Boolean(doubt.accepted_by) && doubt.accepted_by === user.id;
+    const isHandler =
+      Boolean(doubt.accepted_by) && doubt.accepted_by === user.id;
 
     if (user.role !== 'admin' && !isOwner && !isHandler) {
       throw new ForbiddenException(
@@ -430,7 +479,7 @@ export class DoubtsService {
     // Delete the doubt
     const { error } = await supabase.from('doubts').delete().eq('id', doubtId);
     if (error) throw new Error(error.message);
-    
+
     return { success: true };
   }
 }

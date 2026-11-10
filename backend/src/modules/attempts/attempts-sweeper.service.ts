@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { AttemptsService } from './attempts.service';
 import { CacheService } from '../../common/cache/cache.service';
 
@@ -55,7 +60,9 @@ export class AttemptsSweeperService implements OnModuleInit, OnModuleDestroy {
     try {
       const lockTtl = Math.max(
         30,
-        Math.ceil((Number(process.env.ATTEMPT_SWEEP_INTERVAL_MS) || 60_000) / 1000) * 2,
+        Math.ceil(
+          (Number(process.env.ATTEMPT_SWEEP_INTERVAL_MS) || 60_000) / 1000,
+        ) * 2,
       );
 
       const swept = await this.cache.withLock('attempt-sweeper', lockTtl, () =>

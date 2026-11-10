@@ -2,13 +2,15 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { supabase } from '../../config/supabase.config';
 import { CacheService } from '../../common/cache/cache.service';
 import { fetchAll } from '../../common/db/query.util';
+import { releasedTestIds } from '../tests/tests.service';
 
 /**
  * Rankings are derived by aggregating every submitted attempt, which is far too
  * expensive to redo on each request. Results are cached with a short TTL —
  * a leaderboard that is up to 5 minutes stale is fine, a slow one is not.
  */
-const LEADERBOARD_TTL_SECONDS = Number(process.env.LEADERBOARD_TTL_SECONDS) || 300;
+const LEADERBOARD_TTL_SECONDS =
+  Number(process.env.LEADERBOARD_TTL_SECONDS) || 300;
 
 const CACHE_PREFIX = 'leaderboard:';
 
@@ -31,54 +33,71 @@ export class LeaderboardService {
    * result away, then re-scanned the whole table for every `getMyRank` call.)
    */
   private async buildRanking(): Promise<RankedStudent[]> {
-    return this.cache.wrap(`${CACHE_PREFIX}global`, LEADERBOARD_TTL_SECONDS, async () => {
-      // Paged. A single select returns at most PostgREST's `db-max-rows` (1000)
-      // and says nothing about having truncated — so once the platform passed
-      // 1000 submitted attempts the leaderboard was quietly built from a
-      // partial table and everyone's rank was wrong.
-      const data = await fetchAll<any>(() =>
-        supabase
-          .from('attempts')
-          .select('student_id, total_score, users(id, full_name)')
-          .eq('status', 'submitted')
-          .order('id', { ascending: true }),
-      );
+    return this.cache.wrap(
+      `${CACHE_PREFIX}global`,
+      LEADERBOARD_TTL_SECONDS,
+      async () => {
+        // Paged. A single select returns at most PostgREST's `db-max-rows` (1000)
+        // and says nothing about having truncated — so once the platform passed
+        // 1000 submitted attempts the leaderboard was quietly built from a
+        // partial table and everyone's rank was wrong.
+        const all = await fetchAll<any>(() =>
+          supabase
+            .from('attempts')
+            .select('student_id, test_id, total_score, users(id, full_name)')
+            .eq('status', 'submitted')
+            .order('id', { ascending: true }),
+        );
 
-      const totals = new Map<
-        string,
-        { id: string; name: string; totalScore: number; testCount: number; bestScore: number }
-      >();
+        // Only tests whose results an admin has released count. Otherwise the
+        // leaderboard tells every student their score the moment they submit.
+        const released = await releasedTestIds(all.map((a) => a.test_id));
+        const data = all.filter((a) => released.has(a.test_id));
 
-      for (const attempt of data) {
-        const id = attempt.student_id;
-        const score = Number(attempt.total_score) || 0;
-        const name = (attempt.users as any)?.full_name || 'Unknown';
+        const totals = new Map<
+          string,
+          {
+            id: string;
+            name: string;
+            totalScore: number;
+            testCount: number;
+            bestScore: number;
+          }
+        >();
 
-        const entry = totals.get(id) ?? {
-          id,
-          name,
-          totalScore: 0,
-          testCount: 0,
-          bestScore: 0,
-        };
-        entry.totalScore += score;
-        entry.testCount += 1;
-        entry.bestScore = Math.max(entry.bestScore, score);
-        totals.set(id, entry);
-      }
+        for (const attempt of data) {
+          const id = attempt.student_id;
+          const score = Number(attempt.total_score) || 0;
+          const name = attempt.users?.full_name || 'Unknown';
 
-      // Ties share a rank (standard competition ranking: 1, 2, 2, 4).
-      const sorted = Array.from(totals.values()).sort((a, b) => b.totalScore - a.totalScore);
+          const entry = totals.get(id) ?? {
+            id,
+            name,
+            totalScore: 0,
+            testCount: 0,
+            bestScore: 0,
+          };
+          entry.totalScore += score;
+          entry.testCount += 1;
+          entry.bestScore = Math.max(entry.bestScore, score);
+          totals.set(id, entry);
+        }
 
-      let lastScore: number | null = null;
-      let lastRank = 0;
-      return sorted.map((student, idx) => {
-        const rank = student.totalScore === lastScore ? lastRank : idx + 1;
-        lastScore = student.totalScore;
-        lastRank = rank;
-        return { rank, ...student };
-      });
-    });
+        // Ties share a rank (standard competition ranking: 1, 2, 2, 4).
+        const sorted = Array.from(totals.values()).sort(
+          (a, b) => b.totalScore - a.totalScore,
+        );
+
+        let lastScore: number | null = null;
+        let lastRank = 0;
+        return sorted.map((student, idx) => {
+          const rank = student.totalScore === lastScore ? lastRank : idx + 1;
+          lastScore = student.totalScore;
+          lastRank = rank;
+          return { rank, ...student };
+        });
+      },
+    );
   }
 
   /** Global leaderboard — all students ranked by total score */
@@ -104,7 +123,10 @@ export class LeaderboardService {
    * cohorts' names and scores by guessing ids. Staff see any batch; a student
    * sees only a batch they are in.
    */
-  async assertCanViewBatch(batchId: string, user: { id: string; role?: string }): Promise<void> {
+  async assertCanViewBatch(
+    batchId: string,
+    user: { id: string; role?: string },
+  ): Promise<void> {
     if (user.role === 'teacher' || user.role === 'admin') return;
 
     const { data: membership } = await supabase
@@ -126,7 +148,10 @@ export class LeaderboardService {
       LEADERBOARD_TTL_SECONDS,
       async () => {
         const batchStudents = await fetchAll<{ student_id: string }>(() =>
-          supabase.from('batch_students').select('student_id').eq('batch_id', batchId),
+          supabase
+            .from('batch_students')
+            .select('student_id')
+            .eq('batch_id', batchId),
         );
 
         const studentIds = new Set(batchStudents.map((b) => b.student_id));
@@ -165,7 +190,9 @@ export class LeaderboardService {
       rank: ranking[myIdx].rank,
       totalScore: ranking[myIdx].totalScore,
       totalStudents: ranking.length,
-      neighbors: ranking.slice(start, end).map((s) => ({ ...s, isMe: s.id === studentId })),
+      neighbors: ranking
+        .slice(start, end)
+        .map((s) => ({ ...s, isMe: s.id === studentId })),
     };
   }
 

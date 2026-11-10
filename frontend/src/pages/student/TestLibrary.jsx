@@ -9,17 +9,17 @@ import { apiClient } from '../../api/client';
 import './TestLibrary.css';
 
 const SCORE_FILTERS = [
-  { label: 'All Results', value: 'all' },
+  { label: 'All results', value: 'all' },
   { label: '≥ 75%  (Strong)', value: 'good' },
   { label: '40–74%  (Average)', value: 'mid' },
   { label: '< 40%  (Needs Work)', value: 'bad' },
 ];
 
 const SORT_OPTIONS = [
-  { label: 'Newest First', value: 'newest' },
-  { label: 'Oldest First', value: 'oldest' },
-  { label: 'Highest Score', value: 'score_desc' },
-  { label: 'Lowest Score', value: 'score_asc' },
+  { label: 'Newest first', value: 'newest' },
+  { label: 'Oldest first', value: 'oldest' },
+  { label: 'Highest score', value: 'score_desc' },
+  { label: 'Lowest score', value: 'score_asc' },
 ];
 
 /** Format seconds → "Xm Ys" */
@@ -40,7 +40,7 @@ const fmtDate = (iso) => {
 
 const ScoreBadge = ({ pct, pending }) => {
   if (pending) {
-    return <span className="tl-badge" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>Pending Approval</span>;
+    return <span className="tl-badge" style={{ background: '#f3e6c6', color: '#8f5c0e', border: '1px solid #dfc68f' }}>Pending approval</span>;
   }
   const cls = pct >= 75 ? 'tl-badge-good' : pct >= 40 ? 'tl-badge-mid' : 'tl-badge-bad';
   return <span className={`tl-badge ${cls}`}>{pct}%</span>;
@@ -149,7 +149,7 @@ const StudentTestLibrary = () => {
             <BookOpen size={28} />
           </div>
           <div>
-            <h1 className="tl-title">Test Library</h1>
+            <h1 className="tl-title">Test library</h1>
             <p className="tl-subtitle">Your complete history of every test you've taken</p>
           </div>
         </div>
@@ -164,40 +164,40 @@ const StudentTestLibrary = () => {
 
       {/* ── Stats Bar ───────────────────────────────────────────────────── */}
       {stats && (
-        <div className="tl-stats-grid animate-slide-up">
+        <div className="tl-stats-grid animate-slide-up ink-cycle ink-stats">
           <div className="tl-stat-card glass">
-            <div className="tl-stat-icon" style={{ background: 'rgba(59,130,246,0.12)', color: 'var(--color-dashboard-blue)' }}>
+            <div className="tl-stat-icon" style={{ background: 'rgba(43, 68, 166,0.12)', color: 'var(--color-dashboard-blue)' }}>
               <FileText size={22} />
             </div>
             <div className="tl-stat-info">
-              <span className="tl-stat-label">Tests Taken</span>
+              <span className="tl-stat-label">Tests taken</span>
               <span className="tl-stat-value">{stats.total}</span>
             </div>
           </div>
           <div className="tl-stat-card glass">
-            <div className="tl-stat-icon" style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--color-biology-green)' }}>
+            <div className="tl-stat-icon" style={{ background: 'rgba(47, 107, 58,0.12)', color: 'var(--color-biology-green)' }}>
               <TrendingUp size={22} />
             </div>
             <div className="tl-stat-info">
-              <span className="tl-stat-label">Avg Score</span>
+              <span className="tl-stat-label">Avg score</span>
               <span className="tl-stat-value">{stats.avgPct}%</span>
             </div>
           </div>
           <div className="tl-stat-card glass">
-            <div className="tl-stat-icon" style={{ background: 'rgba(245,158,11,0.12)', color: 'var(--color-chemistry-orange)' }}>
+            <div className="tl-stat-icon" style={{ background: 'rgba(143, 92, 14,0.12)', color: 'var(--color-chemistry-orange)' }}>
               <Star size={22} />
             </div>
             <div className="tl-stat-info">
-              <span className="tl-stat-label">Best Score</span>
+              <span className="tl-stat-label">Best score</span>
               <span className="tl-stat-value">{stats.bestPct}%</span>
             </div>
           </div>
           <div className="tl-stat-card glass">
-            <div className="tl-stat-icon" style={{ background: 'rgba(99,102,241,0.12)', color: '#6366f1' }}>
+            <div className="tl-stat-icon" style={{ background: 'rgba(43, 68, 166,0.12)', color: 'var(--accent)' }}>
               <Clock size={22} />
             </div>
             <div className="tl-stat-info">
-              <span className="tl-stat-label">Total Time Spent</span>
+              <span className="tl-stat-label">Total time spent</span>
               <span className="tl-stat-value">{fmtDuration(stats.totalTime)}</span>
             </div>
           </div>
@@ -309,7 +309,7 @@ const StudentTestLibrary = () => {
             : null;
 
           const isPending = attempt.results_published === false;
-          const barColor = isPending ? '#f59e0b' : (pct >= 75 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#f43f5e');
+          const barColor = isPending ? '#8f5c0e' : (pct >= 75 ? '#2f6b3a' : pct >= 40 ? '#8f5c0e' : '#b3352b');
 
           return (
             <div
@@ -345,7 +345,7 @@ const StudentTestLibrary = () => {
                 {/* Score progress bar */}
                 {isPending ? (
                   <div className="tl-progress-wrap">
-                    <span className="tl-progress-label" style={{ color: '#b45309', fontWeight: 600 }}>
+                    <span className="tl-progress-label" style={{ color: '#8f5c0e', fontWeight: 500 }}>
                       ⏳ Results Awaiting Administrator Approval
                     </span>
                   </div>
@@ -367,8 +367,8 @@ const StudentTestLibrary = () => {
                 {isPending ? (
                   <div className="tl-card-stats">
                     <div className="tl-card-stat">
-                      <Clock size={14} className="tl-stat-ico" style={{ color: '#d97706' }} />
-                      <span style={{ color: '#b45309', fontWeight: 600 }}>Responses Recorded</span>
+                      <Clock size={14} className="tl-stat-ico" style={{ color: '#8f5c0e' }} />
+                      <span style={{ color: '#8f5c0e', fontWeight: 500 }}>Responses recorded</span>
                     </div>
                     <div className="tl-card-stat">
                       <span className="tl-stat-sub">Scores released upon admin approval</span>
@@ -387,7 +387,7 @@ const StudentTestLibrary = () => {
                       <span className="tl-stat-sub"> of total</span>
                     </div>
                     <div className="tl-card-stat">
-                      <CheckCircle2 size={14} className="tl-stat-ico" style={{ color: '#10b981' }} />
+                      <CheckCircle2 size={14} className="tl-stat-ico" style={{ color: '#2f6b3a' }} />
                       <span className={pct >= 40 ? 'tl-pass' : 'tl-fail'}>
                         {pct >= 40 ? 'Passed' : 'Failed'}
                       </span>
@@ -405,7 +405,7 @@ const StudentTestLibrary = () => {
                 onClick={() => navigate(`/student/result/${attempt.id}`)}
                 aria-label={`View result for ${test.title}`}
               >
-                View Result
+                View result
                 <ArrowRight size={15} />
               </button>
             </div>

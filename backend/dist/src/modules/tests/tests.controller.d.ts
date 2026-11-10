@@ -1,5 +1,5 @@
 import { TestsService } from './tests.service';
-import { AssignTeachersDto, AssignTestDto, CreateTestDto, SaveFullTestDto, TestListQueryDto, TestQuestionsDto, UpdateTestDto } from './dto/test.dto';
+import { AssignTeachersDto, AssignTestDto, CreateTestDto, SaveFullTestDto, PublishResultsDto, TestListQueryDto, TestQuestionsDto, UpdateTestDto } from './dto/test.dto';
 export declare class TestsController {
     private readonly testsService;
     constructor(testsService: TestsService);
@@ -14,9 +14,7 @@ export declare class TestsController {
     create(body: CreateTestDto, user: any): Promise<any>;
     getStudentTests(user: any): Promise<any[]>;
     publish(id: string, user: any): Promise<any>;
-    publishResults(id: string, body: {
-        published?: boolean;
-    }, user: any): Promise<{
+    publishResults(id: string, body: PublishResultsDto, user: any): Promise<{
         success: boolean;
         testId: string;
         results_published: boolean;

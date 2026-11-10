@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { supabase } from '../../config/supabase.config';
 import { chunk, fetchAll, ID_CHUNK_SIZE } from '../../common/db/query.util';
 import {
@@ -51,7 +55,10 @@ export class QuestionsService {
   }
 
   /** Throws unless the caller may write to every one of `ids`. */
-  private async assertCanWriteAll(ids: string[], user?: Requester): Promise<void> {
+  private async assertCanWriteAll(
+    ids: string[],
+    user?: Requester,
+  ): Promise<void> {
     const subject = this.scopedSubject(user);
     if (!subject || !ids.length) return;
 
@@ -66,14 +73,22 @@ export class QuestionsService {
         throw new NotFoundException('Question not found');
       }
       // Case-insensitive: the bank stores "Physics", tokens sometimes carry "physics".
-      if (data!.some((q) => String(q.subject).toLowerCase() !== subject.toLowerCase())) {
-        throw new ForbiddenException(`You can only modify ${subject} questions.`);
+      if (
+        data.some(
+          (q) => String(q.subject).toLowerCase() !== subject.toLowerCase(),
+        )
+      ) {
+        throw new ForbiddenException(
+          `You can only modify ${subject} questions.`,
+        );
       }
     }
   }
 
   /** Strips everything that is not a client-writable column. */
-  private pickWritable(body: Partial<CreateQuestionDto> | Record<string, any>): Record<string, any> {
+  private pickWritable(
+    body: Partial<CreateQuestionDto> | Record<string, any>,
+  ): Record<string, any> {
     const out: Record<string, any> = {};
     for (const key of WRITABLE_COLUMNS) {
       if (body?.[key] !== undefined) out[key] = body[key];
@@ -136,9 +151,13 @@ export class QuestionsService {
     } else if (filters.exclude_subjective === 'true') {
       query = query.neq('q_type', 'subjective');
     }
-    if (filters.topic) query = query.ilike('topic', `%${this.escapeLike(filters.topic)}%`);
+    if (filters.topic)
+      query = query.ilike('topic', `%${this.escapeLike(filters.topic)}%`);
     if (filters.search)
-      query = query.ilike('question_text', `%${this.escapeLike(filters.search)}%`);
+      query = query.ilike(
+        'question_text',
+        `%${this.escapeLike(filters.search)}%`,
+      );
 
     const { data, error, count } = await query;
     if (error) throw new Error(error.message);
@@ -173,11 +192,18 @@ export class QuestionsService {
 
   /** Get one question (includes correct_answer — teacher only) */
   async findOne(id: string, user?: Requester) {
-    const { data, error } = await supabase.from('questions').select('*').eq('id', id).single();
+    const { data, error } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('id', id)
+      .single();
     if (error || !data) throw new NotFoundException('Question not found');
 
     const subject = this.scopedSubject(user);
-    if (subject && String(data.subject).toLowerCase() !== subject.toLowerCase()) {
+    if (
+      subject &&
+      String(data.subject).toLowerCase() !== subject.toLowerCase()
+    ) {
       throw new ForbiddenException(`You can only view ${subject} questions.`);
     }
     return data;
@@ -215,8 +241,14 @@ export class QuestionsService {
     const patch = this.pickWritable(body);
     // A scoped teacher must not be able to move a question out of their subject.
     const scoped = this.scopedSubject(user);
-    if (scoped && patch.subject && String(patch.subject).toLowerCase() !== scoped.toLowerCase()) {
-      throw new ForbiddenException(`You can only file questions under ${scoped}.`);
+    if (
+      scoped &&
+      patch.subject &&
+      String(patch.subject).toLowerCase() !== scoped.toLowerCase()
+    ) {
+      throw new ForbiddenException(
+        `You can only file questions under ${scoped}.`,
+      );
     }
 
     const { data, error } = await supabase
@@ -282,7 +314,11 @@ export class QuestionsService {
   }
 
   /** Approve a question (optionally correcting it in the same call). */
-  async approve(id: string, reviewer: Requester, corrections?: UpdateQuestionDto) {
+  async approve(
+    id: string,
+    reviewer: Requester,
+    corrections?: UpdateQuestionDto,
+  ) {
     await this.assertCanWriteAll([id], reviewer);
 
     const payload: Record<string, any> = {
@@ -393,7 +429,10 @@ export class QuestionsService {
 
     // 2. Honour subject-scoped access for teachers without redundant DB reads.
     const scoped = this.scopedSubject(user);
-    if (scoped && rows.some((q) => String(q.subject).toLowerCase() !== scoped.toLowerCase())) {
+    if (
+      scoped &&
+      rows.some((q) => String(q.subject).toLowerCase() !== scoped.toLowerCase())
+    ) {
       throw new ForbiddenException(`You can only modify ${scoped} questions.`);
     }
 
@@ -418,11 +457,15 @@ export class QuestionsService {
   /** Validation shared by preview and confirm so a valid preview is never dropped on save. */
   private validateCsvRow(row: any): string[] {
     const problems: string[] = [];
-    if (!String(row?.question_text || '').trim()) problems.push('question is required');
+    if (!String(row?.question_text || '').trim())
+      problems.push('question is required');
 
     const answer = row?.correct_answer;
     const validIndex = (value: any) =>
-      value !== null && value !== '' && Number.isInteger(Number(value)) && Number(value) >= 0;
+      value !== null &&
+      value !== '' &&
+      Number.isInteger(Number(value)) &&
+      Number(value) >= 0;
     let answerValid = false;
     if (answer && typeof answer === 'object' && !Array.isArray(answer)) {
       if ('index' in answer) {
@@ -440,11 +483,14 @@ export class QuestionsService {
     }
     if (!answerValid) problems.push('correct must be A, B, C or D');
 
-    const difficulty = String(row?.difficulty || 'medium').trim().toLowerCase();
+    const difficulty = String(row?.difficulty || 'medium')
+      .trim()
+      .toLowerCase();
     if (!['easy', 'medium', 'hard'].includes(difficulty)) {
       problems.push('difficulty must be easy, medium or hard');
     }
-    if (!String(row?.subject || '').trim()) problems.push('subject is required');
+    if (!String(row?.subject || '').trim())
+      problems.push('subject is required');
     if (!String(row?.topic || '').trim()) problems.push('topic is required');
     return problems;
   }
@@ -464,18 +510,29 @@ export class QuestionsService {
 
           // Expected CSV columns: question,optA,optB,optC,optD,correct,difficulty,subject,topic
           const correctIndex = ['A', 'B', 'C', 'D'].indexOf(
-            String(row.correct || '').trim().toUpperCase(),
+            String(row.correct || '')
+              .trim()
+              .toUpperCase(),
           );
-          const difficulty = String(row.difficulty || 'medium').trim().toLowerCase();
+          const difficulty = String(row.difficulty || 'medium')
+            .trim()
+            .toLowerCase();
           const parsed = {
             question_text: String(row.question || '').slice(0, 8000),
-            options: [row.optA || '', row.optB || '', row.optC || '', row.optD || ''],
+            options: [
+              row.optA || '',
+              row.optB || '',
+              row.optC || '',
+              row.optD || '',
+            ],
             correct_answer: { index: correctIndex },
             difficulty,
             subject: String(row.subject || '').slice(0, 100),
             topic: String(row.topic || '').slice(0, 200),
             q_type: 'single_correct',
-            marks: Number.isFinite(parseFloat(row.marks)) ? parseFloat(row.marks) : 4,
+            marks: Number.isFinite(parseFloat(row.marks))
+              ? parseFloat(row.marks)
+              : 4,
           };
           const problems = this.validateCsvRow(parsed);
 
@@ -502,8 +559,13 @@ export class QuestionsService {
     const validRows = (rows || [])
       .filter((r) => this.validateCsvRow(r).length === 0)
       .map((r) => {
-        if (scoped && String(r.subject).toLowerCase() !== scoped.toLowerCase()) {
-          throw new ForbiddenException(`You can only import ${scoped} questions.`);
+        if (
+          scoped &&
+          String(r.subject).toLowerCase() !== scoped.toLowerCase()
+        ) {
+          throw new ForbiddenException(
+            `You can only import ${scoped} questions.`,
+          );
         }
         return {
           ...this.pickWritable(r),
@@ -520,7 +582,10 @@ export class QuestionsService {
 
     let inserted = 0;
     for (const batch of chunk(validRows, 500)) {
-      const { data, error } = await supabase.from('questions').insert(batch).select('id');
+      const { data, error } = await supabase
+        .from('questions')
+        .insert(batch)
+        .select('id');
       if (error) throw new Error(error.message);
       inserted += data?.length || 0;
     }

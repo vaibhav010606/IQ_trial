@@ -45,7 +45,7 @@ const Settings = () => {
 
   const handleSavePassword = async () => {
     if (passwords.newPassword !== passwords.confirmPassword) {
-      showToast('New passwords do not match!');
+      showToast('The new passwords do not match');
       return;
     }
     const problem = passwordProblem(passwords.newPassword);
@@ -58,7 +58,7 @@ const Settings = () => {
         currentPassword: passwords.currentPassword,
         newPassword: passwords.newPassword
       });
-      showToast('Password updated successfully!');
+      showToast('Password updated');
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
       showToast(err.message || 'Failed to update password');
@@ -73,7 +73,7 @@ const Settings = () => {
     const fullName = `${profile.firstName} ${profile.lastName}`.trim();
     const updatedUser = { ...initialUser, name: fullName, email: profile.email };
     localStorage.setItem('mock_token', JSON.stringify(updatedUser));
-    showToast('Profile updated successfully!');
+    showToast('Profile updated');
     // trigger a reload to update sidebar or we can just rely on state
     window.dispatchEvent(new Event('storage'));
   };
@@ -89,7 +89,7 @@ const Settings = () => {
       <div className="settings-content">
         <div className="settings-sidebar">
           <div className={`settings-tab ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
-            <User size={18} /> My Profile
+            <User size={18} /> My profile
           </div>
           <div className={`settings-tab ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => setActiveTab('notifications')}>
             <Bell size={18} /> Notifications
@@ -102,39 +102,39 @@ const Settings = () => {
         <div className="settings-main">
           {activeTab === 'profile' && (
             <>
-              <div className="settings-section-title">Profile Information</div>
+              <div className="settings-section-title">Profile information</div>
               
               <div className="profile-avatar-section">
                 <div className="avatar-large">{profile.firstName[0]}{profile.lastName[0]}</div>
                 <div className="avatar-actions">
-                  <button className="btn btn-outline-primary">Change Picture</button>
+                  <button className="btn btn-outline-primary">Change picture</button>
                   <button className="btn" style={{ color: 'var(--text-secondary)' }}>Remove</button>
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">First Name</label>
+                  <label className="form-label">First name</label>
                   <input type="text" className="form-control" name="firstName" value={profile.firstName} onChange={handleProfileChange} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Last Name</label>
+                  <label className="form-label">Last name</label>
                   <input type="text" className="form-control" name="lastName" value={profile.lastName} onChange={handleProfileChange} />
                 </div>
               </div>
 
               <div className="form-group">
-                <label className="form-label">Email Address</label>
+                <label className="form-label">Email address</label>
                 <input type="email" className="form-control" name="email" value={profile.email} onChange={handleProfileChange} />
               </div>
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Phone Number</label>
+                  <label className="form-label">Phone number</label>
                   <input type="tel" className="form-control" name="phone" value={profile.phone} onChange={handleProfileChange} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Grade / Class</label>
+                  <label className="form-label">Grade / class</label>
                   <select className="form-control" name="grade" value={profile.grade} onChange={handleProfileChange}>
                     <option value="11">Class 11</option>
                     <option value="12">Class 12</option>
@@ -152,19 +152,19 @@ const Settings = () => {
                     phone: '+1 (555) 000-0000',
                     grade: '12'
                   });
-                }}>Discard Changes</button>
-                <button className="btn btn-primary" onClick={handleSaveProfile}>Save Changes</button>
+                }}>Discard changes</button>
+                <button className="btn btn-primary" onClick={handleSaveProfile}>Save changes</button>
               </div>
             </>
           )}
 
           {activeTab === 'notifications' && (
             <>
-              <div className="settings-section-title">Notification Preferences</div>
+              <div className="settings-section-title">Notification preferences</div>
               
               <div className="toggle-row">
                 <div className="toggle-info">
-                  <h4>Email Notifications</h4>
+                  <h4>Email notifications</h4>
                   <p>Receive updates about your test scores and reports via email.</p>
                 </div>
                 <div className={`toggle-switch ${notifications.email ? 'active' : ''}`} onClick={() => toggleNotification('email')}>
@@ -174,7 +174,7 @@ const Settings = () => {
 
               <div className="toggle-row">
                 <div className="toggle-info">
-                  <h4>Push Notifications</h4>
+                  <h4>Push notifications</h4>
                   <p>Get real-time alerts when a teacher answers your live doubt.</p>
                 </div>
                 <div className={`toggle-switch ${notifications.app ? 'active' : ''}`} onClick={() => toggleNotification('app')}>
@@ -194,7 +194,7 @@ const Settings = () => {
 
               <div className="toggle-row">
                 <div className="toggle-info">
-                  <h4>Marketing Updates</h4>
+                  <h4>Marketing updates</h4>
                   <p>Receive news about new features, courses, and offers.</p>
                 </div>
                 <div className={`toggle-switch ${notifications.marketing ? 'active' : ''}`} onClick={() => toggleNotification('marketing')}>
@@ -203,34 +203,34 @@ const Settings = () => {
               </div>
 
               <div className="settings-footer">
-                <button className="btn btn-primary" onClick={() => showToast('Preferences Saved!')}>Save Preferences</button>
+                <button className="btn btn-primary" onClick={() => showToast('Preferences saved')}>Save preferences</button>
               </div>
             </>
           )}
 
           {activeTab === 'security' && (
             <>
-              <div className="settings-section-title">Change Password</div>
+              <div className="settings-section-title">Change password</div>
               
               <div className="form-group">
-                <label className="form-label">Current Password</label>
+                <label className="form-label">Current password</label>
                 <input type="password" className="form-control" name="currentPassword" value={passwords.currentPassword} onChange={handlePasswordChange} placeholder="Enter your current password" />
               </div>
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">New Password</label>
+                  <label className="form-label">New password</label>
                   <input type="password" className="form-control" name="newPassword" value={passwords.newPassword} onChange={handlePasswordChange} placeholder="New password" />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Confirm New Password</label>
+                  <label className="form-label">Confirm new password</label>
                   <input type="password" className="form-control" name="confirmPassword" value={passwords.confirmPassword} onChange={handlePasswordChange} placeholder="Confirm new password" />
                 </div>
               </div>
 
               <div className="settings-footer">
                 <button className="btn btn-outline-primary" onClick={() => setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' })}>Clear</button>
-                <button className="btn btn-primary" onClick={handleSavePassword}>Update Password</button>
+                <button className="btn btn-primary" onClick={handleSavePassword}>Update password</button>
               </div>
             </>
           )}

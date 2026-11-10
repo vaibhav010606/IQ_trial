@@ -66,7 +66,9 @@ let AnalyticsController = class AnalyticsController {
 };
 exports.AnalyticsController = AnalyticsController;
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: '[Student] Get own analytics — for AnalyticsHub page' }),
+    (0, swagger_1.ApiOperation)({
+        summary: '[Student] Get own analytics — for AnalyticsHub page',
+    }),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('student'),
     (0, common_1.Get)('me'),
@@ -76,7 +78,9 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AnalyticsController.prototype, "getMyAnalytics", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: '[Student] Questions due for spaced-repetition revision' }),
+    (0, swagger_1.ApiOperation)({
+        summary: '[Student] Questions due for spaced-repetition revision',
+    }),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('student'),
     (0, common_1.Get)('revision-due'),

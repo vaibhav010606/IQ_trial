@@ -120,7 +120,7 @@ const StudentCRM = () => {
           >
             <option value="">All statuses</option>
             <option value="Active">Active</option>
-            <option value="At Risk">At Risk</option>
+            <option value="At Risk">At risk</option>
           </select>
         </div>
       </div>
@@ -131,11 +131,11 @@ const StudentCRM = () => {
         <table className="crm-table">
           <thead>
             <tr>
-              <th>Student Name</th>
+              <th>Student name</th>
               <th>Batch</th>
-              <th>Last Active</th>
-              <th>Tests Taken</th>
-              <th>Avg Score</th>
+              <th>Last active</th>
+              <th>Tests taken</th>
+              <th>Avg score</th>
               <th>Status</th>
             </tr>
           </thead>

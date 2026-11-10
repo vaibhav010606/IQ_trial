@@ -31,7 +31,7 @@
   width: 96px;
   height: 96px;
   background-color: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(8px);
+  
   border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
@@ -43,7 +43,7 @@
   font-size: 42px;
   color: white;
   margin: 0 0 8px 0;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .subject-hero-text p {
@@ -58,21 +58,21 @@
 }
 
 .btn-resume-learning {
-  background-color: white;
+  background-color: var(--surface);
   color: var(--subject-color, var(--text-primary));
   padding: 14px 24px;
   border-radius: var(--radius-pill);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  transition: var(--transition);
 }
 
 .btn-resume-learning:hover {
-  transform: translateY(-2px);
+  transform: translateY(0);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 }
 
@@ -80,7 +80,7 @@
   position: absolute;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 50%;
-  backdrop-filter: blur(10px);
+  
 }
 
 .shape-1 {
@@ -119,7 +119,7 @@
   font-size: 15px;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition);
 }
 
 .tab-item:hover {
@@ -153,11 +153,11 @@
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: var(--transition);
 }
 
 .chapter-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(0);
   box-shadow: var(--shadow-lg);
   border-color: var(--subject-color);
 }
@@ -185,10 +185,10 @@
 
 .chapter-number {
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  text-transform: none;
+  letter-spacing: 0;
   color: var(--text-secondary);
-  font-weight: 700;
+  font-weight: 600;
   display: block;
   margin-bottom: 4px;
 }
@@ -238,7 +238,7 @@
   width: 100%;
   height: 100%;
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(4px);
+  
   display: flex;
   align-items: center;
   justify-content: center;
@@ -253,7 +253,7 @@
 .btn-chapter-action {
   padding: 12px 24px;
   border-radius: var(--radius-pill);
-  font-weight: 600;
+  font-weight: 500;
   font-size: 15px;
   text-decoration: none;
   box-shadow: var(--shadow-md);
@@ -267,17 +267,17 @@
 
 /* ── Added: real syllabus/lecture data, empty states ─────────────────────── */
 
-.sl-muted { color: var(--text-secondary, #64748b); }
+.sl-muted { color: var(--text-secondary, var(--ink-500)); }
 .sl-small { font-size: 0.79rem; }
 
 .sl-empty {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 52px 20px; text-align: center; color: var(--text-secondary, #94a3b8);
-  border: 1px dashed var(--border-color, #e2e8f0); border-radius: 14px;
+  padding: 52px 20px; text-align: center; color: var(--text-secondary, var(--ink-400));
+  border: 1px dashed var(--border-color, var(--line)); border-radius: 12px;
 }
 
 .sl-link {
-  color: var(--subject-color, #6366f1); font-weight: 600;
+  color: var(--subject-color, var(--accent)); font-weight: 500;
   font-size: 0.87rem; text-decoration: none;
 }
 .sl-link:hover { text-decoration: underline; }

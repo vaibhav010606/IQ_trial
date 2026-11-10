@@ -172,7 +172,7 @@ export const TestPDFExportModal = ({ isOpen, onClose, testData = {}, selectedQue
             <FileText size={20} />
           </div>
           <div>
-            <h3>Question Paper PDF Export</h3>
+            <h3>Question paper PDF export</h3>
             <span className="tc-pdf-meta-hint">
               {testData.title || 'Assessment'} · {displayedTotalQuestions} Questions · {displayedTotalMarks} Marks
               {subjectFilter !== 'ALL' && ` (${subjectFilter} only)`}
@@ -205,7 +205,7 @@ export const TestPDFExportModal = ({ isOpen, onClose, testData = {}, selectedQue
               checked={showTopicTags}
               onChange={e => setShowTopicTags(e.target.checked)}
             />
-            <span>Show Topic Tags</span>
+            <span>Show topic tags</span>
           </label>
 
           <label className="tc-pdf-toggle">
@@ -214,7 +214,7 @@ export const TestPDFExportModal = ({ isOpen, onClose, testData = {}, selectedQue
               checked={showAnswers}
               onChange={e => setShowAnswers(e.target.checked)}
             />
-            <span>Include Answer Key</span>
+            <span>Include answer key</span>
           </label>
 
           <label className="tc-pdf-toggle">
@@ -223,7 +223,7 @@ export const TestPDFExportModal = ({ isOpen, onClose, testData = {}, selectedQue
               checked={showSolutions}
               onChange={e => setShowSolutions(e.target.checked)}
             />
-            <span>Include Solutions</span>
+            <span>Include solutions</span>
           </label>
 
           <button

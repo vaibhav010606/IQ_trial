@@ -111,10 +111,10 @@ const TeacherSettings = () => {
         <p className="ts-muted">Loading…</p>
       ) : activeTab === 'account' ? (
         <div className="settings-panel">
-          <h2>Account Details</h2>
+          <h2>Account details</h2>
 
           <div className="form-group">
-            <label>Full Name</label>
+            <label>Full name</label>
             <input
               type="text"
               value={profile.full_name || ''}
@@ -135,7 +135,7 @@ const TeacherSettings = () => {
               <input type="text" value={profile.role || ''} disabled />
             </div>
             <div className="form-group">
-              <label>Member Since</label>
+              <label>Member since</label>
               <input
                 type="text"
                 value={profile.created_at ? new Date(profile.created_at).toLocaleDateString() : '—'}
@@ -150,10 +150,10 @@ const TeacherSettings = () => {
         </div>
       ) : (
         <div className="settings-panel">
-          <h2>Change Password</h2>
+          <h2>Change password</h2>
 
           <div className="form-group">
-            <label>Current Password</label>
+            <label>Current password</label>
             <input
               type="password"
               value={password.current}
@@ -163,7 +163,7 @@ const TeacherSettings = () => {
           </div>
 
           <div className="form-group">
-            <label>New Password</label>
+            <label>New password</label>
             <input
               type="password"
               value={password.newPass}
@@ -173,7 +173,7 @@ const TeacherSettings = () => {
           </div>
 
           <div className="form-group">
-            <label>Confirm New Password</label>
+            <label>Confirm new password</label>
             <input
               type="password"
               value={password.confirm}

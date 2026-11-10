@@ -9,7 +9,8 @@ const ATTEMPT = 'attempt-1';
 
 /** Grabs the rows handed to the first upsert against a table. */
 const upsertPayload = (table: string) =>
-  supabaseMock.calls.find((c) => c.table === table && c.op === 'upsert')?.payload;
+  supabaseMock.calls.find((c) => c.table === table && c.op === 'upsert')
+    ?.payload;
 
 describe('SpacedRepetitionService', () => {
   let service: SpacedRepetitionService;
@@ -21,12 +22,12 @@ describe('SpacedRepetitionService', () => {
 
   /** Queues the reads processAttempt performs, in order. */
   const queueAttempt = (answers: any[], history = answers) => {
-    supabaseMock.queueResult('answers', { data: answers });            // loadGradedAnswers
+    supabaseMock.queueResult('answers', { data: answers }); // loadGradedAnswers
     supabaseMock.queueResult('spaced_repetition_state', { data: [] }); // existing state
-    supabaseMock.queueResult('spaced_repetition_state', { data: null });// upsert
+    supabaseMock.queueResult('spaced_repetition_state', { data: null }); // upsert
     supabaseMock.queueResult('attempts', { data: [{ id: ATTEMPT }] }); // predictions: attempts
-    supabaseMock.queueResult('answers', { data: history });            // predictions: answers
-    supabaseMock.queueResult('predictions', { data: null });           // upsert
+    supabaseMock.queueResult('answers', { data: history }); // predictions: answers
+    supabaseMock.queueResult('predictions', { data: null }); // upsert
   };
 
   const answer = (over: Partial<any> = {}) => ({
@@ -92,7 +93,10 @@ describe('SpacedRepetitionService', () => {
   });
 
   it('does not flag risk on a small sample', async () => {
-    const history = [answer({ is_correct: false }), answer({ is_correct: false })];
+    const history = [
+      answer({ is_correct: false }),
+      answer({ is_correct: false }),
+    ];
     queueAttempt([answer()], history);
 
     await service.processAttempt(ATTEMPT, STUDENT);
@@ -102,20 +106,35 @@ describe('SpacedRepetitionService', () => {
   });
 
   it('rolls topics up into a subject-level row', async () => {
-    queueAttempt([answer()], [answer(), answer({ questions: { subject: 'Physics', topic: 'Optics', marks: 4 } })]);
+    queueAttempt(
+      [answer()],
+      [
+        answer(),
+        answer({
+          questions: { subject: 'Physics', topic: 'Optics', marks: 4 },
+        }),
+      ],
+    );
 
     await service.processAttempt(ATTEMPT, STUDENT);
 
     const rows = upsertPayload('predictions');
-    const subjectRow = rows.find((r: any) => r.subject === 'Physics' && r.topic === '');
+    const subjectRow = rows.find(
+      (r: any) => r.subject === 'Physics' && r.topic === '',
+    );
 
     expect(subjectRow).toBeDefined();
     expect(subjectRow.sample_size).toBe(2);
   });
 
   it('swallows database failures so grading is never blocked', async () => {
-    supabaseMock.queueResult('answers', { data: null, error: { message: 'boom' } });
+    supabaseMock.queueResult('answers', {
+      data: null,
+      error: { message: 'boom' },
+    });
 
-    await expect(service.processAttempt(ATTEMPT, STUDENT)).resolves.toBeUndefined();
+    await expect(
+      service.processAttempt(ATTEMPT, STUDENT),
+    ).resolves.toBeUndefined();
   });
 });

@@ -125,7 +125,7 @@ let BatchesService = class BatchesService {
             .maybeSingle();
         if (error)
             throw new Error(error.message);
-        return data ?? { batch_id: batchId, student_id: studentId, alreadyMember: true };
+        return (data ?? { batch_id: batchId, student_id: studentId, alreadyMember: true });
     }
     async removeStudent(batchId, studentId, user) {
         await this.assertCanManage(batchId, user);

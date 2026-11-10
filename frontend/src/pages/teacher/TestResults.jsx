@@ -175,9 +175,9 @@ const TestResults = () => {
   };
 
   const getRankBadge = (rank) => {
-    if (rank === 1) return <span className="results-rank-badge rank-1" title="1st Place">🥇 1</span>;
-    if (rank === 2) return <span className="results-rank-badge rank-2" title="2nd Place">🥈 2</span>;
-    if (rank === 3) return <span className="results-rank-badge rank-3" title="3rd Place">🥉 3</span>;
+    if (rank === 1) return <span className="results-rank-badge rank-1 num" title="First">1</span>;
+    if (rank === 2) return <span className="results-rank-badge rank-2 num" title="Second">2</span>;
+    if (rank === 3) return <span className="results-rank-badge rank-3 num" title="Third">3</span>;
     return <span className="results-rank-badge rank-other">#{rank}</span>;
   };
 
@@ -190,7 +190,7 @@ const TestResults = () => {
       <div className="results-page">
         <div className="results-empty">
           <BookOpen size={42} />
-          <h3>No Tests Found</h3>
+          <h3>No tests found</h3>
           <p>There are no tests in the system yet. Once tests are initiated and taken, results will appear here.</p>
           <button className="results-btn" onClick={() => navigate(backPath)}>
             Back to Tests
@@ -211,18 +211,23 @@ const TestResults = () => {
     count: 0,
   }));
 
+  // With negative marking a JEE score can go below zero (−2/300 is −1%), which
+  // used to index band −1 and crash the whole page. Below zero counts in the
+  // lowest band; anything non-numeric is skipped.
   if (results && results.length > 0) {
     for (const r of results) {
-      const idx = Math.min(9, Math.floor(r.percentage / 10));
+      const pct = Number(r.percentage);
+      if (!Number.isFinite(pct)) continue;
+      const idx = Math.max(0, Math.min(9, Math.floor(pct / 10)));
       distribution[idx].count += 1;
     }
   }
 
   const kpis = summary ? [
-    { label: 'Candidates Submitted', value: `${summary.submitted}/${summary.assigned}`, sub: `${attemptRate}% attendance rate`, icon: Users, color: '#3b82f6' },
-    { label: 'Cohort Average', value: `${summary.average}`, sub: `out of ${summary.maxMarks} marks`, icon: TrendingUp, color: '#10b981' },
-    { label: 'Highest Score', value: `${summary.highest}`, sub: `median score: ${summary.median}`, icon: Trophy, color: '#f59e0b' },
-    { label: 'Auto-Submitted', value: `${summary.autoSubmitted}`, sub: 'ran out of test time', icon: Clock, color: '#8b5cf6' },
+    { label: 'Candidates submitted', value: `${summary.submitted}/${summary.assigned}`, sub: `${attemptRate}% attendance rate`, icon: Users, color: '#2b44a6' },
+    { label: 'Cohort average', value: `${summary.average}`, sub: `out of ${summary.maxMarks} marks`, icon: TrendingUp, color: '#2f6b3a' },
+    { label: 'Highest score', value: `${summary.highest}`, sub: `median score: ${summary.median}`, icon: Trophy, color: '#8f5c0e' },
+    { label: 'Auto-Submitted', value: `${summary.autoSubmitted}`, sub: 'ran out of test time', icon: Clock, color: '#2b44a6' },
   ] : [];
 
   return (
@@ -233,7 +238,7 @@ const TestResults = () => {
           <button className="results-back" onClick={() => navigate(backPath)}>
             <ArrowLeft size={17} /> {isAdmin ? 'Back to Test Initiation' : 'Back to Test Library'}
           </button>
-          <h1>Candidate Test Results</h1>
+          <h1>Candidate test results</h1>
           <p className="results-muted">
             Inspect performance scores, leaderboard rankings, and test metrics across all candidates.
           </p>
@@ -278,7 +283,7 @@ const TestResults = () => {
 
       {/* Error state */}
       {error && !loading && (
-        <div className="results-card" style={{ borderColor: '#fca5a5', background: '#fef2f2' }}>
+        <div className="results-card" style={{ borderColor: '#e2b6aa', background: '#f5e2da' }}>
           <p className="results-error" style={{ margin: 0 }}>{error}</p>
         </div>
       )}
@@ -296,8 +301,8 @@ const TestResults = () => {
                 gap: 16,
                 padding: '16px 20px',
                 marginBottom: 20,
-                border: data.results_published ? '1px solid #86efac' : '1px solid #fde68a',
-                background: data.results_published ? '#f0fdf4' : '#fffbeb',
+                border: data.results_published ? '1px solid #b6cba6' : '1px solid #dfc68f',
+                background: data.results_published ? '#e3ecd9' : '#f3e6c6',
                 borderRadius: 12,
               }}
             >
@@ -308,16 +313,16 @@ const TestResults = () => {
                       width: 9,
                       height: 9,
                       borderRadius: '50%',
-                      background: data.results_published ? '#16a34a' : '#d97706',
+                      background: data.results_published ? '#2f6b3a' : '#8f5c0e',
                     }}
                   />
-                  <strong style={{ fontSize: 14, color: data.results_published ? '#15803d' : '#b45309' }}>
+                  <strong style={{ fontSize: 14, color: data.results_published ? '#2f6b3a' : '#8f5c0e' }}>
                     {data.results_published
                       ? 'Student Visibility: Live & Released'
                       : 'Student Visibility: Withheld (Pending Admin Approval)'}
                   </strong>
                 </div>
-                <p style={{ margin: 0, fontSize: 13, color: '#475569' }}>
+                <p style={{ margin: 0, fontSize: 13, color: '#56504a' }}>
                   {data.results_published
                     ? 'Students who submitted this test can now see their score, accuracy, and detailed solutions in their portal.'
                     : 'Candidates who took this exam see a confirmation screen that results are pending approval. Scores are hidden until you release them.'}
@@ -331,28 +336,28 @@ const TestResults = () => {
                 style={{
                   padding: '9px 18px',
                   borderRadius: 8,
-                  border: data.results_published ? '1px solid #cbd5e1' : 'none',
-                  background: data.results_published ? '#ffffff' : '#059669',
-                  color: data.results_published ? '#475569' : '#ffffff',
-                  fontWeight: 600,
+                  border: data.results_published ? '1px solid #c6b99e' : 'none',
+                  background: data.results_published ? '#ffffff' : '#2f6b3a',
+                  color: data.results_published ? '#56504a' : '#ffffff',
+                  fontWeight: 500,
                   fontSize: 13,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
-                  boxShadow: data.results_published ? 'none' : '0 2px 8px rgba(5, 150, 105, 0.25)',
-                  transition: 'all 0.15s ease',
+                  boxShadow: data.results_published ? 'none' : '0 2px 8px rgba(47, 107, 58, 0.25)',
+                  transition: 'var(--transition)',
                 }}
               >
                 {releasingResults
                   ? 'Updating...'
                   : data.results_published
                   ? 'Withhold Results from Students'
-                  : '✓ Approve & Release Results to Students'}
+                  : 'Approve and release results'}
               </button>
             </div>
           )}
 
           {/* ── KPI Summary Cards ── */}
-          <div className="results-kpi-grid">
+          <div className="results-kpi-grid ink-cycle ink-stats">
             {kpis.map((k) => {
               const Icon = k.icon;
               return (
@@ -372,8 +377,8 @@ const TestResults = () => {
 
           {summary.submitted === 0 ? (
             <div className="results-empty">
-              <AlertTriangle size={38} color="#d97706" />
-              <h3>No Candidate Submissions Yet</h3>
+              <AlertTriangle size={38} color="#8f5c0e" />
+              <h3>No candidate submissions yet</h3>
               <p>
                 This test has <strong>{summary.assigned} assigned candidate{summary.assigned !== 1 ? 's' : ''}</strong>, but no submissions have been recorded yet.
               </p>
@@ -399,7 +404,7 @@ const TestResults = () => {
                     <Tooltip />
                     <Bar dataKey="count" radius={[5, 5, 0, 0]}>
                       {distribution.map((d, i) => (
-                        <Cell key={d.range} fill={i < 4 ? '#ef4444' : i < 7 ? '#f59e0b' : '#10b981'} />
+                        <Cell key={d.range} fill={i < 4 ? '#b3352b' : i < 7 ? '#8f5c0e' : '#2f6b3a'} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -482,10 +487,10 @@ const TestResults = () => {
                         <tr>
                           <th style={{ width: 80 }}>Rank</th>
                           <th>Candidate</th>
-                          <th>Total Score</th>
+                          <th>Total score</th>
                           <th>Percentage</th>
-                          <th>Submitted At</th>
-                          <th>Submission Type</th>
+                          <th>Submitted at</th>
+                          <th>Submission type</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -514,7 +519,7 @@ const TestResults = () => {
                                 </div>
                               </td>
                               <td>
-                                <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>{r.total_score}</strong>
+                                <strong style={{ fontSize: '1.05rem', color: '#1b1a17' }}>{r.total_score}</strong>
                                 <span className="results-muted" style={{ fontSize: '0.82rem' }}> / {summary.maxMarks}</span>
                               </td>
                               <td>
@@ -532,7 +537,7 @@ const TestResults = () => {
                                   </span>
                                 ) : (
                                   <span className="results-flag-manual" title="Submitted manually by candidate">
-                                    <CheckCircle2 size={13} color="#059669" /> Manual
+                                    <CheckCircle2 size={13} color="#2f6b3a" /> Manual
                                   </span>
                                 )}
                               </td>
@@ -552,7 +557,7 @@ const TestResults = () => {
                   <table className="results-table">
                     <thead>
                       <tr>
-                        <th style={{ minWidth: 260 }}>Question Text</th>
+                        <th style={{ minWidth: 260 }}>Question text</th>
                         <th>Subject</th>
                         <th>Topic</th>
                         <th style={{ textAlign: 'center' }}>Correct</th>

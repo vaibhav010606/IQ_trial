@@ -19,7 +19,9 @@ import Redis from 'ioredis';
  * cache outage must not become an availability outage during an exam.
  */
 @Injectable()
-export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleDestroy {
+export class RedisThrottlerStorage
+  implements ThrottlerStorage, OnModuleDestroy
+{
   private readonly logger = new Logger(RedisThrottlerStorage.name);
   private readonly memory = new ThrottlerStorageService();
   private redis: Redis | null = null;
@@ -28,14 +30,17 @@ export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleDestroy 
   constructor() {
     const url = process.env.REDIS_URL;
     if (!url) {
-      this.logger.log('REDIS_URL not set — throttling counters are per-instance.');
+      this.logger.log(
+        'REDIS_URL not set — throttling counters are per-instance.',
+      );
       return;
     }
 
     try {
       this.redis = new Redis(url, {
         maxRetriesPerRequest: 1,
-        retryStrategy: (times) => (times > 5 ? null : Math.min(times * 200, 2000)),
+        retryStrategy: (times) =>
+          times > 5 ? null : Math.min(times * 200, 2000),
         // A separate logical DB would be cleaner, but the key prefix is enough
         // to keep throttle counters out of the cache's way.
         keyPrefix: 'throttle:',
@@ -45,14 +50,17 @@ export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleDestroy 
         this.logger.log('Redis throttler storage connected.');
       });
       this.redis.on('error', (e) => {
-        if (this.healthy) this.logger.warn(`Redis throttler error: ${e.message}`);
+        if (this.healthy)
+          this.logger.warn(`Redis throttler error: ${e.message}`);
         this.healthy = false;
       });
       this.redis.on('end', () => {
         this.healthy = false;
       });
     } catch (e: any) {
-      this.logger.warn(`Redis throttler init failed (${e?.message}) — using memory.`);
+      this.logger.warn(
+        `Redis throttler init failed (${e?.message}) — using memory.`,
+      );
       this.redis = null;
     }
   }
@@ -76,14 +84,34 @@ export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleDestroy 
     throttlerName: string,
   ): Promise<ThrottlerStorageRecord> {
     if (!this.redis || !this.healthy) {
-      return this.memory.increment(key, ttl, limit, blockDuration, throttlerName);
+      return this.memory.increment(
+        key,
+        ttl,
+        limit,
+        blockDuration,
+        throttlerName,
+      );
     }
 
     try {
-      return await this.incrementInRedis(key, ttl, limit, blockDuration, throttlerName);
+      return await this.incrementInRedis(
+        key,
+        ttl,
+        limit,
+        blockDuration,
+        throttlerName,
+      );
     } catch (e: any) {
-      this.logger.warn(`Redis throttler read failed (${e?.message}) — using memory this call.`);
-      return this.memory.increment(key, ttl, limit, blockDuration, throttlerName);
+      this.logger.warn(
+        `Redis throttler read failed (${e?.message}) — using memory this call.`,
+      );
+      return this.memory.increment(
+        key,
+        ttl,
+        limit,
+        blockDuration,
+        throttlerName,
+      );
     }
   }
 
@@ -123,22 +151,25 @@ export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleDestroy 
       return { hits, ttlLeft, 0, 0 }
     `;
 
-    const [totalHits, timeToExpire, isBlocked, timeToBlockExpire] = (await this.redis!.eval(
-      script,
-      2,
-      hitsKey,
-      blockKey,
-      String(ttl),
-      String(limit),
-      String(blockDuration > 0 ? blockDuration : ttl),
-    )) as [number, number, number, number];
+    const [totalHits, timeToExpire, isBlocked, timeToBlockExpire] =
+      (await this.redis!.eval(
+        script,
+        2,
+        hitsKey,
+        blockKey,
+        String(ttl),
+        String(limit),
+        String(blockDuration > 0 ? blockDuration : ttl),
+      )) as [number, number, number, number];
 
     return {
       totalHits: Number(totalHits) || 0,
       // Nest expects seconds remaining, Redis gave us milliseconds.
       timeToExpire: Math.ceil(Math.max(0, Number(timeToExpire)) / 1000),
       isBlocked: Number(isBlocked) === 1,
-      timeToBlockExpire: Math.ceil(Math.max(0, Number(timeToBlockExpire)) / 1000),
+      timeToBlockExpire: Math.ceil(
+        Math.max(0, Number(timeToBlockExpire)) / 1000,
+      ),
     };
   }
 }

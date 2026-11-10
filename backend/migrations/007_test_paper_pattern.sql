@@ -38,7 +38,7 @@ begin
     select 1 from pg_constraint where conname = 'tests_paper_pattern_check'
   ) then
     alter table public.tests add constraint tests_paper_pattern_check
-      check (paper_pattern is null or paper_pattern in ('jee_main', 'jee_advanced', 'neet', 'custom'));
+      check (paper_pattern is null or paper_pattern in ('jee_main', 'jee_advanced', 'jee_advanced_p2', 'neet', 'custom'));
   end if;
 end $$;
 
@@ -53,9 +53,23 @@ alter table public.tests
 -- ---------------------------------------------------------------------------
 -- 2. Backfill
 -- ---------------------------------------------------------------------------
--- Everything created before this migration is a plain quiz with no pattern.
+-- Before this column existed the console wrote the pattern into the title and
+-- the generated instructions ("Pattern: JEE Main"). Read it back from there —
+-- a blanket 'custom' turned every existing JEE / NEET paper into a custom one
+-- and dropped its section quotas. Only what cannot be recognised is 'custom'.
 update public.tests
-   set paper_pattern = 'custom'
+   set paper_pattern = case
+         when lower(coalesce(title, '') || ' ' || coalesce(instructions, '') || ' ' || coalesce(description, ''))
+              ~ 'jee[ _]?adv' and lower(coalesce(title, '') || ' ' || coalesce(instructions, ''))
+              ~ 'paper[ _-]?(2|ii)\M' then 'jee_advanced_p2'
+         when lower(coalesce(title, '') || ' ' || coalesce(instructions, '') || ' ' || coalesce(description, ''))
+              ~ 'jee[ _]?adv' then 'jee_advanced'
+         when lower(coalesce(title, '') || ' ' || coalesce(instructions, '') || ' ' || coalesce(description, ''))
+              ~ 'jee[ _]?main' then 'jee_main'
+         when lower(coalesce(title, '') || ' ' || coalesce(instructions, '') || ' ' || coalesce(description, ''))
+              ~ 'neet' then 'neet'
+         else 'custom'
+       end
  where paper_pattern is null;
 
 -- ---------------------------------------------------------------------------

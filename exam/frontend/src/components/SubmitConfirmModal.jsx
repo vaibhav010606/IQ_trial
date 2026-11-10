@@ -8,7 +8,7 @@ const SubmitConfirmModal = ({ responses, total, onCancel, onConfirm }) => {
   return (
     <div className="modal-overlay">
       <div className="submit-modal">
-        <h2>Submit Exam</h2>
+        <h2>Submit exam</h2>
         <div className="submit-summary">
           <p><strong>Total Questions:</strong> {total}</p>
           <p><strong>Answered:</strong> {answered}</p>

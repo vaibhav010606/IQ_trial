@@ -48,7 +48,7 @@ const ForgotPasswordPage = () => {
         <div className="login-form-card">
           {sent ? (
             <>
-              <MailCheck size={44} style={{ color: '#059669', marginBottom: '12px' }} />
+              <MailCheck size={44} style={{ color: '#2f6b3a', marginBottom: '12px' }} />
               <h2>Check your inbox</h2>
               <p className="login-subtitle">
                 If an account exists for <strong>{email}</strong>, a reset link is on its way.
@@ -65,7 +65,7 @@ const ForgotPasswordPage = () => {
 
               <form onSubmit={handleSubmit} className="login-form">
                 <div className="form-group">
-                  <label>Email Address</label>
+                  <label>Email address</label>
                   <input
                     type="email"
                     placeholder="you@example.com"
@@ -85,7 +85,7 @@ const ForgotPasswordPage = () => {
 
               <Link
                 to="/"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '18px', fontSize: '0.88rem', color: '#64748b', textDecoration: 'none' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '18px', fontSize: '0.88rem', color: '#736b5f', textDecoration: 'none' }}
               >
                 <ArrowLeft size={15} /> Back to Sign In
               </Link>

@@ -56,9 +56,9 @@ const Leaderboard = () => {
     : rows;
 
   const rankIcon = (rank) => {
-    if (rank === 1) return <Trophy size={20} color="#fbbf24" fill="#fef3c7" />;
-    if (rank === 2) return <Medal size={20} color="#94a3b8" fill="#f1f5f9" />;
-    if (rank === 3) return <Award size={20} color="#b45309" fill="#fef3c7" />;
+    if (rank === 1) return <Trophy size={20} color="#8f5c0e" fill="#f3e6c6" />;
+    if (rank === 2) return <Medal size={20} color="#998f7d" fill="#ebe3d3" />;
+    if (rank === 3) return <Award size={20} color="#8f5c0e" fill="#f3e6c6" />;
     return <span className="rank-number">#{rank}</span>;
   };
 
@@ -66,7 +66,7 @@ const Leaderboard = () => {
     <div className="leaderboard-container animate-fade-in">
       <div className="leaderboard-hero animate-slide-up">
         <div className="leaderboard-hero-content">
-          <h1>National Leaderboard</h1>
+          <h1>National leaderboard</h1>
           <p>Ranked by total score across every submitted test.</p>
         </div>
         <div className="leaderboard-hero-icon">
@@ -77,12 +77,12 @@ const Leaderboard = () => {
       {myRank?.rank && (
         <div className="lb-mycard glass animate-slide-up">
           <div>
-            <span className="lb-mycard-label">Your Rank</span>
+            <span className="lb-mycard-label">Your rank</span>
             <span className="lb-mycard-rank">#{myRank.rank}</span>
             <span className="lb-muted lb-small"> of {myRank.totalStudents}</span>
           </div>
           <div className="lb-mycard-score">
-            <span className="lb-mycard-label">Total Score</span>
+            <span className="lb-mycard-label">Total score</span>
             <strong>{myRank.totalScore ?? 0}</strong>
           </div>
         </div>
@@ -123,7 +123,7 @@ const Leaderboard = () => {
               <table className="leaderboard-table">
                 <thead>
                   <tr>
-                    <th>Rank</th><th>Student</th><th>Tests</th><th>Best</th><th>Total Score</th>
+                    <th>Rank</th><th>Student</th><th>Tests</th><th>Best</th><th>Total score</th>
                   </tr>
                 </thead>
                 <tbody>

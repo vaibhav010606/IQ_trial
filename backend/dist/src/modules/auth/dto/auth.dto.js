@@ -26,7 +26,9 @@ class LogoutDto {
 }
 exports.LogoutDto = LogoutDto;
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ description: 'Omit to revoke only the current session.' }),
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Omit to revoke only the current session.',
+    }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
@@ -46,7 +48,9 @@ class ResetPasswordDto {
 }
 exports.ResetPasswordDto = ResetPasswordDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'Access token from the password-recovery email link.' }),
+    (0, swagger_1.ApiProperty)({
+        description: 'Access token from the password-recovery email link.',
+    }),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], ResetPasswordDto.prototype, "accessToken", void 0);

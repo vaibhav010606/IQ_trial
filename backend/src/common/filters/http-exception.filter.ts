@@ -46,7 +46,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     } else {
       // Unhandled: log everything we have, tell the caller nothing beyond the id.
       errorId = randomUUID();
-      const detail = exception instanceof Error ? exception.stack || exception.message : String(exception);
+      const detail =
+        exception instanceof Error
+          ? exception.stack || exception.message
+          : String(exception);
       this.logger.error(
         `${request.method} ${request.url} → 500 [${errorId}]: ${detail}`,
       );

@@ -68,6 +68,23 @@ const RESPONSE_STATUSES = [
     'marked',
     'answered_marked',
 ];
+function isValidUUID(id) {
+    if (typeof id !== 'string' || id.length !== 36)
+        return false;
+    for (let i = 0; i < 36; i++) {
+        if (i === 8 || i === 13 || i === 18 || i === 23) {
+            if (id.charCodeAt(i) !== 45)
+                return false;
+        }
+        else {
+            const code = id.charCodeAt(i);
+            const isHex = (code >= 48 && code <= 57) || (code >= 65 && code <= 70) || (code >= 97 && code <= 102);
+            if (!isHex)
+                return false;
+        }
+    }
+    return true;
+}
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 let AppService = AppService_1 = class AppService {
     logger = new common_1.Logger(AppService_1.name);
@@ -97,7 +114,7 @@ let AppService = AppService_1 = class AppService {
         throw new common_1.ServiceUnavailableException('The secure exam service is not set up yet. Ask an administrator to run the exam schema.');
     }
     async loadOwnedSession(sessionId, studentId) {
-        if (!UUID_RE.test(sessionId))
+        if (!isValidUUID(sessionId))
             throw new common_1.NotFoundException('Exam session not found');
         const { data: session, error } = await this.supabase
             .from('exam_sessions')
@@ -116,7 +133,7 @@ let AppService = AppService_1 = class AppService {
         return Date.now() > new Date(endsAt).getTime() + CLOCK_GRACE_SECONDS * 1000;
     }
     async startSession(examId, studentId) {
-        if (!UUID_RE.test(examId))
+        if (!isValidUUID(examId))
             throw new common_1.NotFoundException('Test not found');
         const { data: testData, error: testError } = await this.supabase
             .from('tests')

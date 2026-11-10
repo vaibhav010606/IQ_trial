@@ -1,3 +1,4 @@
+import { AlertTriangle } from 'lucide-react';
 import React from 'react';
 
 class ErrorBoundary extends React.Component {
@@ -33,8 +34,8 @@ class ErrorBoundary extends React.Component {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'var(--bg-color, #f8fafc)',
-          color: 'var(--text-primary, #0f172a)',
+          background: 'var(--bg-color, #f6f1e6)',
+          color: 'var(--text-primary, #1b1a17)',
           padding: '24px',
           fontFamily: 'var(--font-family, system-ui, sans-serif)',
         }}>
@@ -45,27 +46,27 @@ class ErrorBoundary extends React.Component {
             borderRadius: '16px',
             padding: '36px',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            border: '1px solid var(--border-color, #e2e8f0)',
+            border: '1px solid var(--border-color, #ded4bf)',
             textAlign: 'center',
           }}>
             <div style={{
               width: '56px',
               height: '56px',
               borderRadius: '50%',
-              background: '#fee2e2',
-              color: '#ef4444',
+              background: '#f5e2da',
+              color: '#b3352b',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '28px',
               marginBottom: '20px',
             }}>
-              ⚠️
+              <AlertTriangle size={24} strokeWidth={1.75} aria-hidden="true" />
             </div>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '10px' }}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 600, marginBottom: '10px' }}>
               Something went wrong
             </h2>
-            <p style={{ color: 'var(--text-secondary, #64748b)', fontSize: '0.95rem', lineHeight: 1.5, marginBottom: '28px' }}>
+            <p style={{ color: 'var(--text-secondary, #736b5f)', fontSize: '0.95rem', lineHeight: 1.5, marginBottom: '28px' }}>
               An unexpected error occurred while displaying this page. Your data is safe. Try reloading or heading back to the home page.
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
@@ -75,16 +76,16 @@ class ErrorBoundary extends React.Component {
                 style={{
                   padding: '10px 20px',
                   borderRadius: '10px',
-                  background: 'var(--color-dashboard-blue, #3b82f6)',
+                  background: 'var(--color-dashboard-blue, #2b44a6)',
                   color: '#ffffff',
-                  fontWeight: 600,
+                  fontWeight: 500,
                   fontSize: '0.95rem',
                   border: 'none',
                   cursor: 'pointer',
-                  boxShadow: '0 2px 4px rgba(59, 130, 246, 0.25)',
+                  boxShadow: '0 2px 4px rgba(43, 68, 166, 0.25)',
                 }}
               >
-                Reload Page
+                Reload page
               </button>
               <button
                 type="button"
@@ -92,11 +93,11 @@ class ErrorBoundary extends React.Component {
                 style={{
                   padding: '10px 20px',
                   borderRadius: '10px',
-                  background: 'var(--bg-color, #f1f5f9)',
-                  color: 'var(--text-primary, #0f172a)',
-                  fontWeight: 600,
+                  background: 'var(--bg-color, #ebe3d3)',
+                  color: 'var(--text-primary, #1b1a17)',
+                  fontWeight: 500,
                   fontSize: '0.95rem',
-                  border: '1px solid var(--border-color, #cbd5e1)',
+                  border: '1px solid var(--border-color, #c6b99e)',
                   cursor: 'pointer',
                 }}
               >
@@ -104,16 +105,16 @@ class ErrorBoundary extends React.Component {
               </button>
             </div>
             {this.state.error?.message && (
-              <details style={{ marginTop: '24px', textAlign: 'left', fontSize: '12px', color: '#94a3b8' }}>
-                <summary style={{ cursor: 'pointer', outline: 'none' }}>Technical Details</summary>
+              <details style={{ marginTop: '24px', textAlign: 'left', fontSize: '12px', color: '#998f7d' }}>
+                <summary style={{ cursor: 'pointer', outline: 'none' }}>Technical details</summary>
                 <pre style={{
                   marginTop: '8px',
                   padding: '10px',
-                  background: '#f8fafc',
+                  background: '#f6f1e6',
                   borderRadius: '8px',
                   overflowX: 'auto',
                   whiteSpace: 'pre-wrap',
-                  color: '#e11d48',
+                  color: '#b3352b',
                 }}>
                   {this.state.error.message}
                 </pre>

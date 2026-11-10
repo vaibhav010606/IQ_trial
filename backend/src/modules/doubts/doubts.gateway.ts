@@ -24,7 +24,8 @@ import { MAX_MESSAGE_LENGTH } from './dto/doubt.dto';
  *  - Access grants are re-validated periodically so revoked access cannot linger.
  */
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /** How long a room access decision is cached on the socket before re-checking. */
 const ACCESS_TTL_MS = 30_000;
@@ -49,7 +50,7 @@ export class DoubtsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly doubtsService: DoubtsService) { }
+  constructor(private readonly doubtsService: DoubtsService) {}
 
   /**
    * Called when a client connects. The handshake is asynchronous, but clients emit
@@ -65,7 +66,9 @@ export class DoubtsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   /** Verifies the JWT signature before trusting any claim, then loads the profile. */
   private async authenticate(client: Socket) {
     try {
-      const identity = await verifySupabaseToken(client.handshake.auth?.token ?? '');
+      const identity = await verifySupabaseToken(
+        client.handshake.auth?.token ?? '',
+      );
 
       // Role always comes from the database, never from the token payload.
       const { data: profile } = await supabase
@@ -84,11 +87,17 @@ export class DoubtsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.data.role = profile.role;
       client.data.name = profile.full_name;
       client.data.grants = new Map<string, RoomGrant>();
-      client.data.counters = { windowStart: Date.now(), messages: 0, typing: 0 };
+      client.data.counters = {
+        windowStart: Date.now(),
+        messages: 0,
+        typing: 0,
+      };
 
       console.log(`[Socket] Connected: ${profile.full_name} (${profile.role})`);
     } catch (e: any) {
-      client.emit('auth_error', { message: e?.message ?? 'Authentication failed.' });
+      client.emit('auth_error', {
+        message: e?.message ?? 'Authentication failed.',
+      });
       client.disconnect();
     }
   }
@@ -132,7 +141,10 @@ export class DoubtsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   /** Simple fixed-window flood control so one socket cannot spam the room or the DB. */
-  private withinRateLimit(client: Socket, kind: 'messages' | 'typing'): boolean {
+  private withinRateLimit(
+    client: Socket,
+    kind: 'messages' | 'typing',
+  ): boolean {
     const counters = client.data.counters;
     const now = Date.now();
     if (now - counters.windowStart > RATE_LIMIT_WINDOW_MS) {
@@ -141,10 +153,15 @@ export class DoubtsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       counters.typing = 0;
     }
     counters[kind] += 1;
-    const max = kind === 'messages' ? MAX_MESSAGES_PER_WINDOW : MAX_TYPING_EVENTS_PER_WINDOW;
+    const max =
+      kind === 'messages'
+        ? MAX_MESSAGES_PER_WINDOW
+        : MAX_TYPING_EVENTS_PER_WINDOW;
     if (counters[kind] > max) {
       if (kind === 'messages') {
-        client.emit('error', { message: 'You are sending messages too quickly.' });
+        client.emit('error', {
+          message: 'You are sending messages too quickly.',
+        });
       }
       return false;
     }
@@ -155,14 +172,19 @@ export class DoubtsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /** Student/Teacher joins a specific doubt room — only if they are a participant. */
   @SubscribeMessage('join_room')
-  async handleJoinRoom(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
+  async handleJoinRoom(
+    @MessageBody() data: any,
+    @ConnectedSocket() client: Socket,
+  ) {
     if (!(await this.isAuthenticated(client))) return;
     const doubtId = this.readDoubtId(client, data);
     if (!doubtId) return;
 
     const grant = await this.getGrant(client, doubtId);
     if (!grant.canRead) {
-      client.emit('error', { message: 'You do not have access to this doubt.' });
+      client.emit('error', {
+        message: 'You do not have access to this doubt.',
+      });
       return;
     }
 
@@ -172,7 +194,10 @@ export class DoubtsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /** Leave a doubt room */
   @SubscribeMessage('leave_room')
-  async handleLeaveRoom(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
+  async handleLeaveRoom(
+    @MessageBody() data: any,
+    @ConnectedSocket() client: Socket,
+  ) {
     if (!(await this.isAuthenticated(client))) return;
     const doubtId = this.readDoubtId(client, data);
     if (!doubtId) return;
@@ -183,28 +208,40 @@ export class DoubtsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /** Someone sends a message — authorise, save to DB and broadcast to the room */
   @SubscribeMessage('send_message')
-  async handleMessage(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
+  async handleMessage(
+    @MessageBody() data: any,
+    @ConnectedSocket() client: Socket,
+  ) {
     if (!(await this.isAuthenticated(client))) return;
     const doubtId = this.readDoubtId(client, data);
     if (!doubtId) return;
     if (!this.withinRateLimit(client, 'messages')) return;
 
-    const text = typeof data?.message_text === 'string' ? data.message_text.trim() : '';
+    const text =
+      typeof data?.message_text === 'string' ? data.message_text.trim() : '';
     if (!text) return;
     if (text.length > MAX_MESSAGE_LENGTH) {
-      client.emit('error', { message: `Message exceeds ${MAX_MESSAGE_LENGTH} characters.` });
+      client.emit('error', {
+        message: `Message exceeds ${MAX_MESSAGE_LENGTH} characters.`,
+      });
       return;
     }
 
     const grant = await this.getGrant(client, doubtId);
     if (!grant.canWrite) {
-      client.emit('error', { message: 'You are not a participant in this doubt.' });
+      client.emit('error', {
+        message: 'You are not a participant in this doubt.',
+      });
       return;
     }
 
     let message: any;
     try {
-      message = await this.doubtsService.persistMessage(doubtId, client.data.userId, text);
+      message = await this.doubtsService.persistMessage(
+        doubtId,
+        client.data.userId,
+        text,
+      );
     } catch {
       client.emit('error', { message: 'Failed to send message' });
       return;
@@ -223,7 +260,10 @@ export class DoubtsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /** Typing indicators — only broadcast into rooms the socket is actually in. */
   @SubscribeMessage('typing_start')
-  async handleTypingStart(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
+  async handleTypingStart(
+    @MessageBody() data: any,
+    @ConnectedSocket() client: Socket,
+  ) {
     if (!(await this.isAuthenticated(client))) return;
     const doubtId = this.readDoubtId(client, data);
     if (!doubtId) return;
@@ -237,7 +277,10 @@ export class DoubtsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('typing_stop')
-  async handleTypingStop(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
+  async handleTypingStop(
+    @MessageBody() data: any,
+    @ConnectedSocket() client: Socket,
+  ) {
     if (!(await this.isAuthenticated(client))) return;
     const doubtId = this.readDoubtId(client, data);
     if (!doubtId) return;
@@ -255,11 +298,15 @@ export class DoubtsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     message: any,
     sender: { id: string; full_name: string; role: string },
   ) {
-    this.server?.to(`doubt:${doubtId}`).emit('new_message', { ...message, sender });
+    this.server
+      ?.to(`doubt:${doubtId}`)
+      .emit('new_message', { ...message, sender });
   }
 
   /** Helper: notify a room about a doubt status change */
   notifyStatusChange(doubtId: string, status: string) {
-    this.server?.to(`doubt:${doubtId}`).emit('doubt_status_changed', { doubtId, status });
+    this.server
+      ?.to(`doubt:${doubtId}`)
+      .emit('doubt_status_changed', { doubtId, status });
   }
 }

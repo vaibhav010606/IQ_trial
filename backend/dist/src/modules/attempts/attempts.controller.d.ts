@@ -24,6 +24,7 @@ export declare class AttemptsController {
         results_published: boolean;
         total_score: any;
         id: any;
+        test_id: any;
         status: any;
         started_at: any;
         submitted_at: any;

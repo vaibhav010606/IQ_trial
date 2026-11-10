@@ -53,7 +53,9 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], LeaderboardController.prototype, "getMyRank", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: 'Batch-specific leaderboard (members and staff only)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Batch-specific leaderboard (members and staff only)',
+    }),
     (0, common_1.Get)('batch/:batchId'),
     __param(0, (0, common_1.Param)('batchId', common_1.ParseUUIDPipe)),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),

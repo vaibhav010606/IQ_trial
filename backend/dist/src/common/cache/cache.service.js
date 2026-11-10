@@ -1,10 +1,43 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
@@ -14,6 +47,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 var CacheService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CacheService = void 0;
+const crypto = __importStar(require("crypto"));
 const common_1 = require("@nestjs/common");
 const crypto_1 = require("crypto");
 const ioredis_1 = __importDefault(require("ioredis"));
@@ -33,7 +67,7 @@ let CacheService = CacheService_1 = class CacheService {
         try {
             this.redis = new ioredis_1.default(url, {
                 maxRetriesPerRequest: 2,
-                retryStrategy: (times) => (times > 5 ? null : Math.min(times * 200, 2000)),
+                retryStrategy: (times) => times > 5 ? null : Math.min(times * 200, 2000),
                 lazyConnect: false,
             });
             this.redis.on('ready', () => {
@@ -97,7 +131,10 @@ let CacheService = CacheService_1 = class CacheService {
         }
         if (this.memory.size > 500)
             this.pruneMemory();
-        this.memory.set(key, { value: raw, expiresAt: Date.now() + ttlSeconds * 1000 });
+        this.memory.set(key, {
+            value: raw,
+            expiresAt: Date.now() + ttlSeconds * 1000,
+        });
     }
     async invalidate(prefix) {
         for (const key of this.memory.keys()) {
@@ -162,13 +199,21 @@ let CacheService = CacheService_1 = class CacheService {
         const held = this.memoryLocks.get(lockKey);
         if (held && held.expiresAt > Date.now())
             return false;
-        this.memoryLocks.set(lockKey, { token, expiresAt: Date.now() + ttlSeconds * 1000 });
+        this.memoryLocks.set(lockKey, {
+            token,
+            expiresAt: Date.now() + ttlSeconds * 1000,
+        });
         return true;
     }
     async release(lockKey, token) {
         const held = this.memoryLocks.get(lockKey);
-        if (held?.token === token)
-            this.memoryLocks.delete(lockKey);
+        if (held?.token && typeof token === 'string') {
+            const a = Buffer.from(held.token);
+            const b = Buffer.from(token);
+            if (a.length === b.length && crypto.timingSafeEqual(a, b)) {
+                this.memoryLocks.delete(lockKey);
+            }
+        }
         if (this.isDistributed) {
             try {
                 await this.redis.eval(`if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("del", KEYS[1]) else return 0 end`, 1, lockKey, token);

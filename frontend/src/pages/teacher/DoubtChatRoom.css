@@ -34,12 +34,12 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   font-weight: 500;
-  background: white;
+  background: var(--surface);
 }
 .btn-outline:hover { background-color: var(--bg-color); }
 
 .pinned-question-card {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: var(--spacing-3);
@@ -88,7 +88,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
-  background-color: #f8fafc;
+  background-color: var(--surface-raised);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
 }
@@ -102,7 +102,7 @@
 
 .message-bubble.student {
   align-self: flex-start;
-  background-color: #e2e8f0;
+  background-color: var(--line);
   color: var(--text-primary);
   border-bottom-left-radius: 4px;
 }
@@ -173,10 +173,10 @@
 
 /* Typing indicator */
 .typing-indicator {
-  background: #e2e8f0 !important;
+  background: var(--line) !important;
   display: flex !important;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   padding: 12px 16px !important;
   width: fit-content;
 }
@@ -184,7 +184,7 @@
 .typing-indicator span {
   width: 8px;
   height: 8px;
-  background: #94a3b8;
+  background: var(--ink-400);
   border-radius: 50%;
   animation: bounce 1.2s infinite;
 }
@@ -193,5 +193,5 @@
 
 @keyframes bounce {
   0%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-8px); }
+  40% { transform: translateY(0); }
 }

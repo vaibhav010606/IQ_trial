@@ -1,12 +1,22 @@
 import {
   Injectable,
   Logger,
+  Optional,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
 import { supabase } from '../../config/supabase.config';
 import { throwSupabaseError } from '../../common/db/supabase-error';
+import { CacheService } from '../../common/cache/cache.service';
+import {
+  getPattern,
+  paperMarks,
+  PaperQuestion,
+  patternIdOf,
+  PatternSpec,
+  validatePaper,
+} from './exam-patterns';
 import {
   fetchAll,
   fetchAllIn,
@@ -48,7 +58,13 @@ const WRITABLE_COLUMNS = [
 const TEST_TYPE_VALUES = ['quiz', 'mock_test', 'assignment', 'exam'] as const;
 
 /** Patterns `tests.paper_pattern` accepts (see migration 007). */
-const PAPER_PATTERNS = ['jee_main', 'jee_advanced', 'neet', 'custom'] as const;
+const PAPER_PATTERNS = [
+  'jee_main',
+  'jee_advanced',
+  'jee_advanced_p2',
+  'neet',
+  'custom',
+] as const;
 
 /**
  * The console sends the exam *pattern* in `t_type` — 'jee_main', 'custom' — but
@@ -60,6 +76,7 @@ const PAPER_PATTERNS = ['jee_main', 'jee_advanced', 'neet', 'custom'] as const;
 const PATTERN_TO_TYPE: Record<string, (typeof TEST_TYPE_VALUES)[number]> = {
   jee_main: 'mock_test',
   jee_advanced: 'mock_test',
+  jee_advanced_p2: 'mock_test',
   neet: 'mock_test',
   custom: 'quiz',
 };
@@ -72,13 +89,41 @@ const PATTERN_TO_TYPE: Record<string, (typeof TEST_TYPE_VALUES)[number]> = {
 export function isTestResultsPublished(test: any): boolean {
   if (!test) return false;
   if (test.results_published === true) return true;
-  if (typeof test.instructions === 'string' && test.instructions.includes('[RESULTS_PUBLISHED:true]')) {
+  if (
+    typeof test.instructions === 'string' &&
+    test.instructions.includes('[RESULTS_PUBLISHED:true]')
+  ) {
     return true;
   }
-  if (typeof test.description === 'string' && test.description.includes('[RESULTS_PUBLISHED:true]')) {
+  if (
+    typeof test.description === 'string' &&
+    test.description.includes('[RESULTS_PUBLISHED:true]')
+  ) {
     return true;
   }
   return false;
+}
+
+/**
+ * Which of these tests have had their results released by an admin.
+ *
+ * Anything that shows a score, a rank or right/wrong — the leaderboard, a
+ * student's own analytics — must filter through this. Otherwise a student
+ * learns their marks (and their rank moving) the moment they submit, before
+ * the admin has approved the results.
+ *
+ * Selects `*` because `results_published` only exists after migration 009;
+ * older databases carry the flag as a tag in `instructions` / `description`.
+ */
+export async function releasedTestIds(testIds: string[]): Promise<Set<string>> {
+  const unique = [...new Set(testIds.filter(Boolean))];
+  if (!unique.length) return new Set();
+  const rows = await fetchAllIn<any>(unique, (idChunk) =>
+    supabase.from('tests').select('*').in('id', idChunk),
+  );
+  return new Set(
+    rows.filter((t) => isTestResultsPublished(t)).map((t) => t.id),
+  );
 }
 
 export function stripInternalTags(text?: string): string {
@@ -92,6 +137,9 @@ export class TestsService {
 
   /** Whether migration 007 has been applied. Probed lazily, then remembered. */
   private hasPaperPattern: boolean | null = null;
+
+  // Optional so the unit tests can construct the service bare.
+  constructor(@Optional() private readonly cache?: CacheService) {}
 
   // ── Authorisation ───────────────────────────────────────────────────────────
 
@@ -121,7 +169,10 @@ export class TestsService {
   }
 
   /** Owner-level: admin, or the person who created the test. */
-  private async assertCanAdminister(testId: string, user: Requester): Promise<any> {
+  private async assertCanAdminister(
+    testId: string,
+    user: Requester,
+  ): Promise<any> {
     const test = await this.loadForAccess(testId);
     if (user.role === 'admin' || test.created_by === user.id) return test;
 
@@ -131,7 +182,10 @@ export class TestsService {
   }
 
   /** Owner-level, plus any teacher assigned to fill questions on this paper. */
-  private async assertCanContribute(testId: string, user: Requester): Promise<any> {
+  private async assertCanContribute(
+    testId: string,
+    user: Requester,
+  ): Promise<any> {
     const test = await this.loadForAccess(testId);
     if (user.role === 'admin' || test.created_by === user.id) return test;
 
@@ -177,15 +231,24 @@ export class TestsService {
       .eq('student_id', studentId);
 
     if (error) throw new Error(error.message);
-    if (!rows?.length) throw new ForbiddenException('You are not assigned to this test.');
+    if (!rows?.length)
+      throw new ForbiddenException('You are not assigned to this test.');
 
     if (!requireOpen) return;
 
     // Widest window across every batch the student sits in.
-    const starts = rows.map((r) => (r.scheduled_start ? new Date(r.scheduled_start).getTime() : null));
-    const ends = rows.map((r) => (r.scheduled_end ? new Date(r.scheduled_end).getTime() : null));
-    const opensAt = starts.includes(null) ? null : Math.min(...(starts as number[]));
-    const closesAt = ends.includes(null) ? null : Math.max(...(ends as number[]));
+    const starts = rows.map((r) =>
+      r.scheduled_start ? new Date(r.scheduled_start).getTime() : null,
+    );
+    const ends = rows.map((r) =>
+      r.scheduled_end ? new Date(r.scheduled_end).getTime() : null,
+    );
+    const opensAt = starts.includes(null)
+      ? null
+      : Math.min(...(starts as number[]));
+    const closesAt = ends.includes(null)
+      ? null
+      : Math.max(...(ends as number[]));
 
     const now = Date.now();
     const grace = CLOCK_GRACE_SECONDS * 1000;
@@ -220,8 +283,12 @@ export class TestsService {
    * Accepts a pattern in `t_type` for compatibility with the existing console,
    * which has always used that field for 'jee_main' / 'custom'.
    */
-  private resolveTypeAndPattern(body: Record<string, any>): Record<string, any> {
-    const raw = String(body?.paper_pattern ?? body?.t_type ?? '').trim().toLowerCase();
+  private resolveTypeAndPattern(
+    body: Record<string, any>,
+  ): Record<string, any> {
+    const raw = String(body?.paper_pattern ?? body?.t_type ?? '')
+      .trim()
+      .toLowerCase();
     if (!raw) return {};
 
     // A genuine enum member: pass it through, no pattern implied.
@@ -245,9 +312,14 @@ export class TestsService {
    * migration behind degrades instead of failing every test creation.
    */
   private async insertTest(row: Record<string, any>): Promise<any> {
-    const { data, error } = await supabase.from('tests').insert(row).select().single();
+    const { data, error } = await supabase
+      .from('tests')
+      .insert(row)
+      .select()
+      .single();
     if (!error) {
-      if (this.hasPaperPattern === null && 'paper_pattern' in row) this.hasPaperPattern = true;
+      if (this.hasPaperPattern === null && 'paper_pattern' in row)
+        this.hasPaperPattern = true;
       return data;
     }
 
@@ -260,7 +332,11 @@ export class TestsService {
         );
       }
       const { paper_pattern: _dropped, ...withoutPattern } = row;
-      const retry = await supabase.from('tests').insert(withoutPattern).select().single();
+      const retry = await supabase
+        .from('tests')
+        .insert(withoutPattern)
+        .select()
+        .single();
       if (retry.error) throwSupabaseError(retry.error, 'tests.insert');
       return retry.data;
     }
@@ -272,7 +348,9 @@ export class TestsService {
   private isMissingColumn(error: any): boolean {
     const code = String(error?.code || '');
     if (code === 'PGRST204' || code === '42703') return true;
-    return /column .* does not exist|schema cache/i.test(String(error?.message || ''));
+    return /column .* does not exist|schema cache/i.test(
+      String(error?.message || ''),
+    );
   }
 
   /**
@@ -295,7 +373,10 @@ export class TestsService {
   private async paperPatternAvailable(): Promise<boolean> {
     if (this.hasPaperPattern !== null) return this.hasPaperPattern;
 
-    const { error } = await supabase.from('tests').select('paper_pattern').limit(1);
+    const { error } = await supabase
+      .from('tests')
+      .select('paper_pattern')
+      .limit(1);
 
     if (!error) {
       this.hasPaperPattern = true;
@@ -319,7 +400,9 @@ export class TestsService {
 
   /** Appends `paper_pattern` to a select list only when the column exists. */
   private async withPattern(columns: string): Promise<string> {
-    return (await this.paperPatternAvailable()) ? `${columns}, paper_pattern` : columns;
+    return (await this.paperPatternAvailable())
+      ? `${columns}, paper_pattern`
+      : columns;
   }
 
   isTestResultsPublished(test: any): boolean {
@@ -337,10 +420,15 @@ export class TestsService {
   private attachInferredPattern(t: any): any {
     if (!t) return t;
     if (!t.paper_pattern) {
-      const text = `${t.title || ''} ${t.description || ''} ${t.instructions || ''} ${t.t_type || ''}`.toLowerCase();
+      const text =
+        `${t.title || ''} ${t.description || ''} ${t.instructions || ''} ${t.t_type || ''}`.toLowerCase();
       if (text.includes('jee main') || text.includes('jee_main')) {
         t.paper_pattern = 'jee_main';
-      } else if (text.includes('jee advanced') || text.includes('jee_advanced') || text.includes('jee adv')) {
+      } else if (
+        text.includes('jee advanced') ||
+        text.includes('jee_advanced') ||
+        text.includes('jee adv')
+      ) {
         t.paper_pattern = 'jee_advanced';
       } else if (text.includes('neet')) {
         t.paper_pattern = 'neet';
@@ -362,7 +450,10 @@ export class TestsService {
    * list only needs each question's subject, to show the per-subject counts, so
    * that is all it asks for now, and the response is paginated.
    */
-  async findAll(user: Requester, filters: { status?: string; page?: number; limit?: number } = {}) {
+  async findAll(
+    user: Requester,
+    filters: { status?: string; page?: number; limit?: number } = {},
+  ) {
     const page = Math.max(Number(filters.page) || 1, 1);
     const limit = Math.min(Math.max(Number(filters.limit) || 50, 1), 200);
     const from = (page - 1) * limit;
@@ -416,7 +507,8 @@ export class TestsService {
    * window is open, and never sees `correct_answer`.
    */
   async findOne(id: string, user: Requester) {
-    if (user.role === 'student') {
+    const isStudent = user.role === 'student';
+    if (isStudent) {
       await this.assertStudentMaySit(id, user.id);
     } else {
       await this.assertCanContribute(id, user);
@@ -427,11 +519,18 @@ export class TestsService {
        negative_marking, negative_marks, created_at, created_by`,
     );
 
+    // The answer key is never selected for a student. Both exam screens call
+    // this endpoint while the exam is running, and selecting `correct_answer`
+    // here put every answer in the browser's network tab.
+    const questionColumns = isStudent
+      ? 'id, subject, topic, question_text, options, difficulty, q_type, marks, image_url'
+      : 'id, subject, topic, question_text, options, correct_answer, difficulty, q_type, marks, image_url';
+
     const { data, error } = await supabase
       .from('tests')
       .select(
         `${base},
-        test_questions(question_order, marks_override, questions(id, subject, topic, question_text, options, correct_answer, difficulty, q_type, marks, image_url))`,
+        test_questions(question_order, marks_override, questions(${questionColumns}))`,
       )
       .eq('id', id)
       .single();
@@ -482,7 +581,11 @@ export class TestsService {
 
   /** [Admin] Set the full list of teachers assigned to a test (replaces previous list) */
   async assignTeachers(testId: string, teacherIds: string[]) {
-    const { data: test } = await supabase.from('tests').select('id').eq('id', testId).single();
+    const { data: test } = await supabase
+      .from('tests')
+      .select('id')
+      .eq('id', testId)
+      .single();
     if (!test) throw new NotFoundException('Test not found');
 
     const { error: delError } = await supabase
@@ -494,13 +597,17 @@ export class TestsService {
     if (teacherIds.length > 0) {
       const { error: insError } = await supabase
         .from('test_teachers')
-        .insert(teacherIds.map((tid) => ({ test_id: testId, teacher_id: tid })));
+        .insert(
+          teacherIds.map((tid) => ({ test_id: testId, teacher_id: tid })),
+        );
       if (insError) throw new Error(insError.message);
     }
 
     const { data, error } = await supabase
       .from('tests')
-      .select('id, title, test_teachers(teacher_id, users(id, full_name, email))')
+      .select(
+        'id, title, test_teachers(teacher_id, users(id, full_name, email))',
+      )
       .eq('id', testId)
       .single();
     if (error) throw new Error(error.message);
@@ -511,9 +618,19 @@ export class TestsService {
   async update(id: string, body: UpdateTestDto, user: Requester) {
     await this.assertCanAdminister(id, user);
 
+    const row: Record<string, any> = {
+      ...this.pickWritable(body),
+      updated_at: new Date().toISOString(),
+    };
+    if ('paper_pattern' in row && !(await this.paperPatternAvailable())) {
+      // Same degradation as insertTest: without migration 007 the column is
+      // absent and naming it fails the whole update ("Failed to publish").
+      delete row.paper_pattern;
+    }
+
     const { data, error } = await supabase
       .from('tests')
-      .update({ ...this.pickWritable(body), updated_at: new Date().toISOString() })
+      .update(row)
       .eq('id', id)
       .select()
       .single();
@@ -558,8 +675,24 @@ export class TestsService {
     await this.assertCanContribute(testId, user);
     const ids = questionIds ?? []; // Allow empty array to clear questions
 
+    // Once a student has started the paper, its questions are fixed: grading,
+    // ranks and the per-question stats all assume every attempt saw the same
+    // paper. Changing it mid-window silently re-marks some students and not others.
+    const { count: attemptCount, error: attemptErr } = await supabase
+      .from('attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('test_id', testId);
+    if (attemptErr) throw new Error(attemptErr.message);
+    if ((attemptCount ?? 0) > 0) {
+      throw new BadRequestException(
+        'Students have already started this test, so its questions can no longer be changed.',
+      );
+    }
+
     const scoped =
-      user.role === 'teacher' && user.subject && user.subject !== 'All' ? user.subject : null;
+      user.role === 'teacher' && user.subject && user.subject !== 'All'
+        ? user.subject
+        : null;
 
     const { data: existingTestQuestions } = await supabase
       .from('test_questions')
@@ -578,7 +711,9 @@ export class TestsService {
         const q = tq?.questions;
         if (!q) return null;
         if (Array.isArray(q)) {
-          return q[0]?.subject ? String(q[0].subject).trim().toLowerCase() : null;
+          return q[0]?.subject
+            ? String(q[0].subject).trim().toLowerCase()
+            : null;
         }
         return q.subject ? String(q.subject).trim().toLowerCase() : null;
       };
@@ -594,10 +729,12 @@ export class TestsService {
       if (unknownIds.length > 0) {
         const fetched = await fetchAllIn<{ id: string; subject: string }>(
           unknownIds,
-          (chunk) => supabase.from('questions').select('id, subject').in('id', chunk),
+          (chunk) =>
+            supabase.from('questions').select('id, subject').in('id', chunk),
         );
         fetched.forEach((q) => {
-          if (q.subject) dbSubjectMap.set(q.id, String(q.subject).trim().toLowerCase());
+          if (q.subject)
+            dbSubjectMap.set(q.id, String(q.subject).trim().toLowerCase());
         });
       }
 
@@ -622,7 +759,9 @@ export class TestsService {
         .map((tq) => tq.question_id);
 
       // Incoming questions for this teacher's subject (strip other subjects if sent)
-      const incomingScopedIds = ids.filter((id) => !otherSubjectIds.includes(id));
+      const incomingScopedIds = ids.filter(
+        (id) => !otherSubjectIds.includes(id),
+      );
 
       // Touched only tracks additions/removals within this teacher's scoped subject
       touched = [
@@ -641,8 +780,8 @@ export class TestsService {
     }
 
     const isDraft =
-      (await supabase.from('tests').select('status').eq('id', testId).single())?.data
-        ?.status === 'draft';
+      (await supabase.from('tests').select('status').eq('id', testId).single())
+        ?.data?.status === 'draft';
     await this.assertQuestionsUsable(finalIds, touched, user, isDraft);
 
     const rows = finalIds.map((qId, idx) => ({
@@ -690,15 +829,23 @@ export class TestsService {
     skipApproval = false,
   ): Promise<void> {
     const scoped =
-      user.role === 'teacher' && user.subject && user.subject !== 'All' ? user.subject : null;
+      user.role === 'teacher' && user.subject && user.subject !== 'All'
+        ? user.subject
+        : null;
 
     const idsToLoad = [...new Set([...questionIds, ...scopeCheckIds])];
     if (!idsToLoad.length) return;
 
-    const rows = await fetchAllIn<{ id: string; subject: string; review_status: string; is_active: boolean }>(
-      idsToLoad,
-      (idChunk) =>
-        supabase.from('questions').select('id, subject, review_status, is_active').in('id', idChunk),
+    const rows = await fetchAllIn<{
+      id: string;
+      subject: string;
+      review_status: string;
+      is_active: boolean;
+    }>(idsToLoad, (idChunk) =>
+      supabase
+        .from('questions')
+        .select('id, subject, review_status, is_active')
+        .in('id', idChunk),
     );
 
     const byId = new Map(rows.map((r) => [r.id, r]));
@@ -706,7 +853,8 @@ export class TestsService {
     for (const id of questionIds) {
       const q = byId.get(id);
       if (!q) throw new BadRequestException(`Question ${id} does not exist.`);
-      if (!q.is_active) throw new BadRequestException('A selected question has been deleted.');
+      if (!q.is_active)
+        throw new BadRequestException('A selected question has been deleted.');
       if (!skipApproval && q.review_status !== 'approved') {
         throw new BadRequestException(
           'Every question on a test must be approved in the review queue first.',
@@ -718,28 +866,80 @@ export class TestsService {
       const scopedNorm = scoped.trim().toLowerCase();
       for (const id of scopeCheckIds) {
         const q = byId.get(id);
-        if (q && String(q.subject || '').trim().toLowerCase() !== scopedNorm) {
-          throw new ForbiddenException(`You can only add or remove ${scoped} questions.`);
+        if (
+          q &&
+          String(q.subject || '')
+            .trim()
+            .toLowerCase() !== scopedNorm
+        ) {
+          throw new ForbiddenException(
+            `You can only add or remove ${scoped} questions.`,
+          );
         }
       }
     }
   }
 
-  /** Sums the paper's marks and stores them on the test row. */
-  private async recalculateTotalMarks(testId: string): Promise<number> {
-    const questions = await fetchAll<{ marks_override: number | null; questions: any }>(() =>
+  /** The questions on a paper, flattened into what the pattern rules need. */
+  private async paperRows(
+    testId: string,
+  ): Promise<(PaperQuestion & { marks?: number; marks_override?: number | null })[]> {
+    const rows = await fetchAll<any>(() =>
       supabase
         .from('test_questions')
-        .select('marks_override, questions(marks)')
+        .select('question_id, question_order, marks_override, questions(subject, q_type, options, marks)')
         .eq('test_id', testId),
     );
+    return rows.map((tq: any) => {
+      const q = Array.isArray(tq.questions) ? tq.questions[0] : tq.questions;
+      return {
+        question_id: tq.question_id,
+        question_order: tq.question_order,
+        marks_override: tq.marks_override,
+        subject: q?.subject,
+        q_type: q?.q_type,
+        options: q?.options,
+        marks: q?.marks,
+      };
+    });
+  }
 
-    const totalMarks = questions.reduce(
-      (sum, tq: any) => sum + Number(tq.marks_override || tq.questions?.marks || 4),
-      0,
-    );
+  /** The official pattern a test follows, or null for a custom paper. */
+  private async patternOfTest(testId: string): Promise<{ id: string; spec: PatternSpec } | null> {
+    const { data: test } = await supabase.from('tests').select('*').eq('id', testId).single();
+    const id = patternIdOf(test);
+    const spec = getPattern(id);
+    return id && spec ? { id, spec } : null;
+  }
 
-    await supabase.from('tests').update({ total_marks: totalMarks }).eq('id', testId);
+  /** Refuses a paper that departs from its official pattern, listing what is off. */
+  private assertMatchesPattern(spec: PatternSpec, rows: PaperQuestion[]): void {
+    const problems = validatePaper(spec, rows);
+    if (problems.length) {
+      throw new BadRequestException(
+        `This paper does not follow the official ${spec.label} pattern (${spec.edition}). ` +
+          problems.join(' '),
+      );
+    }
+  }
+
+  /**
+   * Sums the paper's marks and stores them on the test row. A paper that follows
+   * an official pattern is worth what its sections award (JEE Advanced: +3 and
+   * +4 sections, 180 per paper), not a flat 4 per question.
+   */
+  private async recalculateTotalMarks(testId: string): Promise<number> {
+    const pattern = await this.patternOfTest(testId);
+    const rows = await this.paperRows(testId);
+
+    const totalMarks = pattern
+      ? paperMarks(pattern.spec, rows)
+      : rows.reduce((sum, tq) => sum + Number(tq.marks_override || tq.marks || 4), 0);
+
+    await supabase
+      .from('tests')
+      .update({ total_marks: totalMarks })
+      .eq('id', testId);
     return totalMarks;
   }
 
@@ -748,27 +948,60 @@ export class TestsService {
     await this.assertCanAdminister(id, user);
 
     // An empty paper published by accident is worse than a failed request.
-    const { data: tqRows, count, error: tqError } = await supabase
+    const {
+      data: tqRows,
+      count,
+      error: tqError,
+    } = await supabase
       .from('test_questions')
       .select('question_id', { count: 'exact' })
       .eq('test_id', id);
 
     if (tqError) throw new Error(tqError.message);
-    const questionIds = (tqRows || []).map((tq) => tq.question_id).filter(Boolean);
+    const questionIds = (tqRows || [])
+      .map((tq) => tq.question_id)
+      .filter(Boolean);
     if (!count && !questionIds.length) {
-      throw new BadRequestException('Add at least one question before publishing this test.');
+      throw new BadRequestException(
+        'Add at least one question before publishing this test.',
+      );
     }
 
     // Ensure all questions are approved and active before making the test live
     if (questionIds.length) {
-      const test = await supabase.from('tests').select('subject').eq('id', id).single();
-      const isMixed = !test?.data?.subject || test.data.subject === 'Mixed' || test.data.subject === 'All';
-      await this.assertQuestionsUsable(questionIds, isMixed ? [] : questionIds, user, false);
+      const test = await supabase
+        .from('tests')
+        .select('subject')
+        .eq('id', id)
+        .single();
+      const isMixed =
+        !test?.data?.subject ||
+        test.data.subject === 'Mixed' ||
+        test.data.subject === 'All';
+      await this.assertQuestionsUsable(
+        questionIds,
+        isMixed ? [] : questionIds,
+        user,
+        false,
+      );
+    }
+
+    // A paper declared as JEE Main / JEE Advanced / NEET must match the official
+    // pattern exactly — every subject, every section's count — before students
+    // can see it. Its duration and total marks are then the official ones.
+    const pattern = await this.patternOfTest(id);
+    const officialFields: Record<string, any> = {};
+    if (pattern) {
+      const rows = await this.paperRows(id);
+      this.assertMatchesPattern(pattern.spec, rows);
+      officialFields.duration_minutes = pattern.spec.durationMinutes;
+      officialFields.total_marks = paperMarks(pattern.spec, rows);
+      officialFields.negative_marking = true;
     }
 
     const { data, error } = await supabase
       .from('tests')
-      .update({ status: 'published', updated_at: new Date().toISOString() })
+      .update({ status: 'published', ...officialFields, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();
@@ -789,7 +1022,9 @@ export class TestsService {
     );
 
     if (!assignments.length) {
-      throw new BadRequestException('No students found in the selected batches');
+      throw new BadRequestException(
+        'No students found in the selected batches',
+      );
     }
 
     await this.replaceAssignments(testId, assignments);
@@ -813,7 +1048,10 @@ export class TestsService {
 
     for (const batchId of batchIds) {
       const students = await fetchAll<{ student_id: string }>(() =>
-        supabase.from('batch_students').select('student_id').eq('batch_id', batchId),
+        supabase
+          .from('batch_students')
+          .select('student_id')
+          .eq('batch_id', batchId),
       );
 
       for (const bs of students) {
@@ -834,12 +1072,20 @@ export class TestsService {
   }
 
   /** Clears the previous assignment set for these students, then writes the new one. */
-  private async replaceAssignments(testId: string, assignments: any[]): Promise<void> {
+  private async replaceAssignments(
+    testId: string,
+    assignments: any[],
+  ): Promise<void> {
     const studentIds = assignments.map((a) => a.student_id);
 
     await runInChunks(
       studentIds,
-      (ids) => supabase.from('test_assignments').delete().eq('test_id', testId).in('student_id', ids),
+      (ids) =>
+        supabase
+          .from('test_assignments')
+          .delete()
+          .eq('test_id', testId)
+          .in('student_id', ids),
       ID_CHUNK_SIZE,
     );
 
@@ -850,7 +1096,9 @@ export class TestsService {
 
   private assertWindowSane(start?: string, end?: string) {
     if (start && end && new Date(end).getTime() <= new Date(start).getTime()) {
-      throw new BadRequestException('The exam window must end after it starts.');
+      throw new BadRequestException(
+        'The exam window must end after it starts.',
+      );
     }
   }
 
@@ -902,10 +1150,12 @@ export class TestsService {
     return fetchAll<any>(() =>
       supabase
         .from('test_questions')
-        .select(`
+        .select(
+          `
           question_order, marks_override,
           questions(id, subject, topic, question_text, options, difficulty, q_type, image_url, marks)
-        `)
+        `,
+        )
         .eq('test_id', testId)
         .order('question_order', { ascending: true }),
     );
@@ -923,7 +1173,9 @@ export class TestsService {
 
     const { data: test } = await supabase
       .from('tests')
-      .select('id, title, total_marks, duration_minutes, instructions, description')
+      .select(
+        'id, title, total_marks, duration_minutes, instructions, description',
+      )
       .eq('id', testId)
       .single();
 
@@ -936,10 +1188,12 @@ export class TestsService {
     const rows = await fetchAll<any>(() =>
       supabase
         .from('attempts')
-        .select(`
+        .select(
+          `
           id, total_score, status, started_at, submitted_at, auto_submitted,
           users(id, full_name, email)
-        `)
+        `,
+        )
         .eq('test_id', testId)
         .eq('status', 'submitted')
         .order('total_score', { ascending: false })
@@ -961,7 +1215,9 @@ export class TestsService {
         : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
       : 0;
 
-    const questionStats = await this.buildQuestionStats(rows.map((a: any) => a.id));
+    const questionStats = await this.buildQuestionStats(
+      rows.map((a: any) => a.id),
+    );
 
     let lastScore: number | null = null;
     let lastRank = 0;
@@ -980,7 +1236,9 @@ export class TestsService {
         highest: sorted.length ? sorted[sorted.length - 1] : 0,
         lowest: sorted.length ? sorted[0] : 0,
         average: scores.length
-          ? Number((scores.reduce((s, v) => s + v, 0) / scores.length).toFixed(2))
+          ? Number(
+              (scores.reduce((s, v) => s + v, 0) / scores.length).toFixed(2),
+            )
           : 0,
         median: Number(median.toFixed(2)),
         autoSubmitted: rows.filter((a: any) => a.auto_submitted).length,
@@ -1001,9 +1259,15 @@ export class TestsService {
   }
 
   /** [Admin] Approve and release (or withhold) test results for students */
-  async setResultsPublished(testId: string, published: boolean, user: Requester) {
+  async setResultsPublished(
+    testId: string,
+    published: boolean,
+    user: Requester,
+  ) {
     if (user.role !== 'admin') {
-      throw new ForbiddenException('Only administrators can approve and publish test results.');
+      throw new ForbiddenException(
+        'Only administrators can approve and publish test results.',
+      );
     }
 
     const { data: test, error: fetchErr } = await supabase
@@ -1015,17 +1279,27 @@ export class TestsService {
 
     // Persist status tag in instructions for compatibility with all environments
     let instructions = test.instructions || '';
-    instructions = instructions.replace(/\[RESULTS_PUBLISHED:(true|false)\]/g, '').trim();
+    instructions = instructions
+      .replace(/\[RESULTS_PUBLISHED:(true|false)\]/g, '')
+      .trim();
     if (published) {
-      instructions = instructions ? `${instructions}\n[RESULTS_PUBLISHED:true]` : '[RESULTS_PUBLISHED:true]';
+      instructions = instructions
+        ? `${instructions}\n[RESULTS_PUBLISHED:true]`
+        : '[RESULTS_PUBLISHED:true]';
     } else {
-      instructions = instructions ? `${instructions}\n[RESULTS_PUBLISHED:false]` : '[RESULTS_PUBLISHED:false]';
+      instructions = instructions
+        ? `${instructions}\n[RESULTS_PUBLISHED:false]`
+        : '[RESULTS_PUBLISHED:false]';
     }
 
     // Try updating both results_published column and instructions
     const { error: colErr } = await supabase
       .from('tests')
-      .update({ results_published: published, instructions, updated_at: new Date().toISOString() })
+      .update({
+        results_published: published,
+        instructions,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', testId);
 
     if (colErr && this.isMissingColumn(colErr)) {
@@ -1039,6 +1313,12 @@ export class TestsService {
       throw new Error(colErr.message);
     }
 
+    // Releasing (or withholding) results changes what the leaderboard and the
+    // students' analytics may show — drop the cached aggregates now rather than
+    // waiting out their TTL.
+    await this.cache?.invalidate('leaderboard:').catch(() => undefined);
+    await this.cache?.invalidate('analytics:cohort:').catch(() => undefined);
+
     return { success: true, testId, results_published: published };
   }
 
@@ -1051,7 +1331,9 @@ export class TestsService {
     const answers = await fetchAllIn<any>(attemptIds, (idChunk) =>
       supabase
         .from('answers')
-        .select('question_id, is_correct, questions(question_text, subject, topic)')
+        .select(
+          'question_id, is_correct, questions(question_text, subject, topic)',
+        )
         .in('attempt_id', idChunk),
     );
 
@@ -1077,7 +1359,11 @@ export class TestsService {
 
     const stats = [...byQuestion.values()].map((stat) => {
       const answered = stat.correct + stat.incorrect;
-      return { ...stat, accuracy: answered > 0 ? Math.round((stat.correct / answered) * 100) : 0 };
+      return {
+        ...stat,
+        accuracy:
+          answered > 0 ? Math.round((stat.correct / answered) * 100) : 0,
+      };
     });
 
     // Hardest first — that is what a teacher wants to re-teach.
@@ -1102,10 +1388,38 @@ export class TestsService {
     this.assertWindowSane(body.scheduled_start, body.scheduled_end);
     // Skip the approval gate for drafts — teachers can assemble papers
     // from their full bank before the review queue catches up.
-    await this.assertQuestionsUsable(questionIds, questionIds, user, targetStatus === 'draft');
+    await this.assertQuestionsUsable(
+      questionIds,
+      questionIds,
+      user,
+      targetStatus === 'draft',
+    );
 
     if (targetStatus === 'published' && !questionIds.length) {
-      throw new BadRequestException('Add at least one question before publishing this test.');
+      throw new BadRequestException(
+        'Add at least one question before publishing this test.',
+      );
+    }
+
+    // Publishing straight from the constructor must meet the official pattern
+    // too — the same rule PATCH /:id/publish enforces.
+    const patternId = patternIdOf({ ...body, ...this.resolveTypeAndPattern(body) });
+    const pattern = getPattern(patternId);
+    if (targetStatus === 'published' && pattern) {
+      const qs = await fetchAllIn<any>(questionIds, (idChunk) =>
+        supabase.from('questions').select('id, subject, q_type, options').in('id', idChunk),
+      );
+      const byId = new Map(qs.map((q) => [q.id, q]));
+      this.assertMatchesPattern(
+        pattern,
+        questionIds.map((qid, idx) => ({
+          question_id: qid,
+          question_order: idx + 1,
+          subject: byId.get(qid)?.subject,
+          q_type: byId.get(qid)?.q_type,
+          options: byId.get(qid)?.options,
+        })),
+      );
     }
 
     // 1. Create the test as a draft.
@@ -1125,7 +1439,9 @@ export class TestsService {
           question_id: qId,
           question_order: idx + 1,
         }));
-        await insertInBatches(qRows, (batch) => supabase.from('test_questions').insert(batch));
+        await insertInBatches(qRows, (batch) =>
+          supabase.from('test_questions').insert(batch),
+        );
       }
 
       const totalMarks = await this.recalculateTotalMarks(testId);
@@ -1138,13 +1454,19 @@ export class TestsService {
           body.scheduled_start,
           body.scheduled_end,
         );
-        if (assignments.length) await this.replaceAssignments(testId, assignments);
+        if (assignments.length)
+          await this.replaceAssignments(testId, assignments);
       }
 
       // 4. Only now is it safe to publish.
       const { data: finalTest, error: statusError } = await supabase
         .from('tests')
-        .update({ status: targetStatus, total_marks: totalMarks })
+        .update({
+          status: targetStatus,
+          total_marks: totalMarks,
+          // An official paper runs for the official duration.
+          ...(pattern ? { duration_minutes: pattern.durationMinutes } : {}),
+        })
         .eq('id', testId)
         .select()
         .single();
@@ -1154,7 +1476,9 @@ export class TestsService {
     } catch (e: any) {
       // Roll the half-built test back so the library is not littered with
       // unusable drafts the teacher never asked for.
-      await this.remove(testId, { id: user.id, role: 'admin' }).catch(() => undefined);
+      await this.remove(testId, { id: user.id, role: 'admin' }).catch(
+        () => undefined,
+      );
       throw e;
     }
   }

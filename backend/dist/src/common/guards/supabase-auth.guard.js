@@ -33,7 +33,9 @@ let SupabaseAuthGuard = class SupabaseAuthGuard {
             identity = await (0, supabase_jwt_1.verifySupabaseToken)(token);
         }
         catch (e) {
-            throw new common_1.UnauthorizedException(e instanceof supabase_jwt_1.TokenVerificationError ? e.message : 'Invalid or malformed token.');
+            throw new common_1.UnauthorizedException(e instanceof supabase_jwt_1.TokenVerificationError
+                ? e.message
+                : 'Invalid or malformed token.');
         }
         const { data: profile, error: profileError } = await supabase_config_1.supabase
             .from('users')
@@ -43,7 +45,7 @@ let SupabaseAuthGuard = class SupabaseAuthGuard {
         if (profileError || !profile) {
             throw new common_1.UnauthorizedException('User profile not found. Contact support.');
         }
-        let subject = identity.metadata?.subject;
+        let subject = identity.appMetadata?.subject;
         if (!subject) {
             const cached = subjectCache.get(identity.userId);
             if (cached && cached.expiresAt > Date.now()) {
@@ -51,7 +53,10 @@ let SupabaseAuthGuard = class SupabaseAuthGuard {
             }
             else {
                 const { data } = await supabase_config_1.supabase.auth.admin.getUserById(identity.userId);
-                subject = data?.user?.user_metadata?.subject || 'All';
+                subject =
+                    data?.user?.app_metadata?.subject ||
+                        data?.user?.user_metadata?.subject ||
+                        'All';
                 const now = Date.now();
                 if (subjectCache.size >= MAX_CACHE_ENTRIES) {
                     pruneSubjectCache(now);

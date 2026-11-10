@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAppData } from '../context/AppDataContext';
+import { initials, setPortal } from '../utils/initials';
 import './MainLayout.css';
 
 const MainLayout = () => {
@@ -29,6 +30,12 @@ const MainLayout = () => {
     setUserToggledOpen(false);
   }, [location.pathname]);
 
+  // Each portal writes in its own ink. An admin browsing teacher pages keeps
+  // the admin ink, so it is always clear which console you are in.
+  useEffect(() => {
+    setPortal(user.role === 'admin' ? 'admin' : isTeacher ? 'teacher' : 'student');
+  }, [user.role, isTeacher]);
+
   const isCollapsed = Boolean((isConstructorRoute && !userToggledOpen) || sidebarCollapsed);
 
   const toggleSidebar = () => {
@@ -47,44 +54,52 @@ const MainLayout = () => {
     { name: 'Chemistry', path: '/student/subject/chemistry', icon: FlaskConical },
     { name: 'Mathematics', path: '/student/subject/math', icon: Calculator },
     { name: 'Lectures', path: '/student/lectures', icon: Video },
-    { name: 'Test Library', path: '/student/test-library', icon: FileText },
+    { name: 'Test library', path: '/student/test-library', icon: FileText },
     { name: 'Analytics', path: '/student/analytics', icon: Layers },
     { name: 'Leaderboard', path: '/student/leaderboard', icon: Award },
-    { name: 'Chat History', path: '/student/doubts', icon: MessageSquare },
+    { name: 'Doubts', path: '/student/doubts', icon: MessageSquare },
   ];
 
   const isAdmin = user.role === 'admin';
 
+  // Grouped the way a teacher's week runs: papers, questions, students.
   const teacherNav = [
     { name: 'Dashboard', path: '/teacher', icon: LayoutDashboard },
-    { name: 'Batch Management', path: '/teacher/batch-management', icon: UsersRound },
+    { section: 'Papers' },
     // Building a paper from scratch is an admin action; teachers fill in the
     // questions for their subject from Test Library instead.
     ...(isAdmin
-      ? [{ name: 'Test Constructor', path: '/teacher/test-constructor', icon: Layers }]
+      ? [{ name: 'Test constructor', path: '/teacher/test-constructor', icon: Layers }]
       : []),
-    { name: 'Test Library', path: '/teacher/test-library', icon: FileText },
-    { name: 'Test Results', path: '/teacher/test-results', icon: Trophy },
-    { name: 'Question Bank', path: '/teacher/question-bank', icon: Database },
-    { name: 'Review Queue', path: '/teacher/review-queue', icon: ClipboardCheck },
+    { name: 'Test library', path: '/teacher/test-library', icon: FileText },
+    { name: 'Test results', path: '/teacher/test-results', icon: Trophy },
+    { section: 'Questions' },
+    { name: 'Question bank', path: '/teacher/question-bank', icon: Database },
+    { name: 'Review queue', path: '/teacher/review-queue', icon: ClipboardCheck },
+    { name: 'CSV upload', path: '/teacher/csv-upload', icon: Upload },
+    { section: 'Students' },
+    { name: 'Batches', path: '/teacher/batch-management', icon: UsersRound },
+    { name: 'Students', path: '/teacher/crm', icon: Users },
+    { name: 'Cohort analytics', path: '/teacher/analytics', icon: Award },
+    { name: 'Doubt queue', path: '/teacher/doubt-queue', icon: MessageSquare },
     { name: 'Lectures', path: '/teacher/lectures', icon: Video },
-    { name: 'Cohort Analytics', path: '/teacher/analytics', icon: Award },
-    { name: 'Student CRM', path: '/teacher/crm', icon: Users },
-    { name: 'Doubt Queue', path: '/teacher/doubt-queue', icon: MessageSquare },
-    { name: 'CSV Upload', path: '/teacher/csv-upload', icon: Upload },
   ];
 
   const navItems = isTeacher ? teacherNav : studentNav;
 
   return (
     <div className={`app-layout ${isTeacher ? 'teacher-theme' : 'student-theme'} ${isCollapsed ? 'sidebar-collapsed-mode' : ''}`}>
-      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`} aria-label="Main Navigation">
+      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`} aria-label="Main navigation">
+        <div className="sidebar-brand">
+          <span className="sidebar-brand-mark" aria-hidden="true" />
+          <span>EduCommand</span>
+        </div>
         <div className="sidebar-header">
           <div className="user-profile" title={user.full_name || (isTeacher ? 'Teacher' : 'Student')}>
-            <div className="avatar"></div>
+            <div className="avatar" aria-hidden="true">{initials(user.full_name || (isTeacher ? 'Teacher' : 'Student'))}</div>
             <div className="user-info">
               <h4>{user.full_name || (isTeacher ? 'Teacher' : 'Student')}</h4>
-              <span>{isTeacher ? 'Teacher Portal' : 'Student Portal'}</span>
+              <span>{isAdmin ? 'Admin' : isTeacher ? (user.subject && user.subject !== 'All' ? `${user.subject} teacher` : 'Teacher') : 'Student'}</span>
             </div>
           </div>
           <button
@@ -100,6 +115,9 @@ const MainLayout = () => {
         
         <nav className="sidebar-nav">
           {navItems.map((item) => {
+            if (item.section) {
+              return <div key={`section-${item.section}`} className="nav-section">{item.section}</div>;
+            }
             const Icon = item.icon;
             
             // Logic for active state, checking exact match OR specific sub-routes
@@ -123,7 +141,7 @@ const MainLayout = () => {
                 className={`nav-item ${isActive ? 'active' : ''}`}
                 title={item.name}
               >
-                <Icon size={20} />
+                <Icon size={18} />
                 <span>{item.name}</span>
               </Link>
             );
@@ -136,12 +154,12 @@ const MainLayout = () => {
             className={`nav-item ${location.pathname === (isTeacher ? '/teacher/settings' : '/student/settings') ? 'active' : ''}`}
             title="Settings"
           >
-            <Settings size={20} />
+            <Settings size={18} />
             <span>Settings</span>
           </Link>
-          <button className="nav-item text-danger" onClick={handleLogout} title="Logout">
-            <LogOut size={20} />
-            <span>Logout</span>
+          <button className="nav-item text-danger" onClick={handleLogout} title="Sign out">
+            <LogOut size={18} />
+            <span>Sign out</span>
           </button>
         </div>
       </aside>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiClient, captureTokenFromUrl, getRefreshToken, getToken, getPortalUrl } from '../api/client';
 import { normalisePaper, subjectsInPaper } from '../lib/questionFormat';
+import { getPattern, patternIdOf, markingRows } from '../lib/examPatterns';
 import '../index.css';
 
 const PORTAL_URL = getPortalUrl();
@@ -47,6 +48,22 @@ const TYPE_LABELS = {
  * so the instructions page describes the test the admin actually created.
  */
 function buildConfig(test, paper) {
+  // An official paper explains its real, section-by-section marking scheme —
+  // the one the server grades by.
+  const pattern = getPattern(patternIdOf(test));
+  if (pattern) {
+    const subjects = subjectsInPaper(paper);
+    return {
+      title: test.title || pattern.label,
+      description: `${pattern.label} · official pattern (${pattern.edition}, ${pattern.authority})`,
+      duration: `${test.duration_minutes || pattern.durationMinutes} minutes`,
+      totalQuestions: paper.length,
+      totalMarks: test.total_marks ?? '—',
+      sections: markingRows(pattern),
+      subjects: subjects.length ? subjects.join(', ') : Object.keys(pattern.subjects).join(', '),
+    };
+  }
+
   const negative = test.negative_marking
     ? `−${Number(test.negative_marks) || 0} per wrong answer`
     : 'no negative marking';
@@ -86,6 +103,8 @@ const ExamLauncher = () => {
   const [config, setConfig] = useState(previewConfigs[testId] || null);
   const [loading, setLoading] = useState(!isPreview);
   const [error, setError] = useState('');
+  /** Set when this test is already submitted: each test can be taken once. */
+  const [doneAttemptId, setDoneAttemptId] = useState(null);
 
   useEffect(() => {
     captureTokenFromUrl();
@@ -106,21 +125,25 @@ const ExamLauncher = () => {
       }
 
       try {
-        const [test, rawPaper, myAttempts] = await Promise.all([
-          apiClient.get(`/tests/${testId}`),
-          apiClient.get(`/tests/${testId}/questions`),
-          apiClient.get('/attempts/my').catch(() => []),
-        ]);
+        // Each test can be taken once. Check that first — before loading the
+        // paper — and say so plainly, rather than bouncing the student back to
+        // the dashboard with no explanation. (The server refuses a second
+        // attempt regardless; this is so the student understands why.)
+        const myAttempts = await apiClient.get('/attempts/my').catch(() => []);
         if (cancelled) return;
-
-        // If the student already completed/submitted this test, redirect to student homescreen
         const alreadySubmitted = (myAttempts || []).find(
-          (a) => (a.test_id === testId || a.tests?.id === testId) && a.status === 'submitted'
+          (a) => (a.test_id === testId || a.tests?.id === testId || (Array.isArray(a.tests) && a.tests[0]?.id === testId)) && a.status === 'submitted'
         );
         if (alreadySubmitted) {
-          window.location.replace(PORTAL_URL);
+          setDoneAttemptId(alreadySubmitted.id);
           return;
         }
+
+        const [test, rawPaper] = await Promise.all([
+          apiClient.get(`/tests/${testId}`),
+          apiClient.get(`/tests/${testId}/questions`),
+        ]);
+        if (cancelled) return;
 
         setConfig(buildConfig(test, normalisePaper(rawPaper)));
       } catch (e) {
@@ -160,6 +183,37 @@ const ExamLauncher = () => {
     );
   }
 
+  const isAlreadyDone = Boolean(doneAttemptId) || /already submitted|already completed|taken only once/i.test(error);
+
+  if (isAlreadyDone) {
+    const resultUrl = doneAttemptId ? `${PORTAL_URL.replace(/\/$/, '')}/result/${doneAttemptId}` : PORTAL_URL;
+    return (
+      <div className="exam-launcher-container">
+        <div className="launcher-card">
+          <div style={{ width: 56, height: 56, background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+          <span style={{ display: 'inline-block', padding: '4px 12px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#065f46', background: '#d1fae5', borderRadius: 9999, marginBottom: 12 }}>
+            Attempt Noted & Recorded
+          </span>
+          <h2>Your attempt has been noted</h2>
+          <p style={{ color: '#475569', fontSize: '0.95rem', lineHeight: 1.5, marginBottom: 20 }}>
+            You have already submitted this examination. Each test can be attempted only once — second chances or retakes are strictly prohibited.
+          </p>
+          <div className="launcher-actions">
+            <button className="btn-cancel" onClick={handleCancel}>Back to dashboard</button>
+            {doneAttemptId && (
+              <button className="btn-start" onClick={() => window.location.assign(resultUrl)}>View result</button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (error || !config) {
     return (
       <div className="exam-launcher-container">
@@ -185,7 +239,7 @@ const ExamLauncher = () => {
           <p><strong>Total Marks:</strong> {config.totalMarks}</p>
           <p><strong>Subjects:</strong> {config.subjects}</p>
           <hr />
-          <h3>Marking Scheme</h3>
+          <h3>Marking scheme</h3>
           <table className="marking-table">
             <thead>
               <tr><th>Section</th><th>Questions</th><th>Marking</th></tr>

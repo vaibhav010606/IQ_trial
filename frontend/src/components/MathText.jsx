@@ -39,8 +39,17 @@ export function containsMath(text) {
   return SEGMENT_RE.test(text);
 }
 
+/**
+ * Source-citation markers like "[cite: 161]" or "[cite: 12, 14]" that an AI
+ * generation/import step left inside question text and options. They are not
+ * part of the question, so they are never shown.
+ */
+export const stripCiteTags = (value) =>
+  String(value).replace(/\s*\[\s*cite(?:_start|_end)?\s*(?::[^\]]*)?\]/gi, '');
+
 const MathText = ({ children, text, as: Tag = 'span', className, ...rest }) => {
-  const source = typeof text === 'string' ? text : typeof children === 'string' ? children : '';
+  const raw = typeof text === 'string' ? text : typeof children === 'string' ? children : '';
+  const source = raw ? stripCiteTags(raw) : '';
 
   const segments = useMemo(() => {
     if (!source) return [];

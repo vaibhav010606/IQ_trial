@@ -37,7 +37,7 @@ const ActionBar = ({ currentQ, totalQ, onNavigate, currentResponse, questionId, 
     <div className="action-bar">
       <div className="action-left">
         <button className="btn-action mark-next" onClick={handleMarkAndNext}>Mark for Review & Next</button>
-        <button className="btn-action clear" onClick={handleClear}>Clear Response</button>
+        <button className="btn-action clear" onClick={handleClear}>Clear response</button>
       </div>
       <div className="action-right">
         <button className="btn-action save-mark" onClick={handleSaveAndMark}>Save & Mark for Review</button>

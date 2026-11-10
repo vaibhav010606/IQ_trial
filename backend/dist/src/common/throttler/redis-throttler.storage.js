@@ -31,7 +31,7 @@ let RedisThrottlerStorage = RedisThrottlerStorage_1 = class RedisThrottlerStorag
         try {
             this.redis = new ioredis_1.default(url, {
                 maxRetriesPerRequest: 1,
-                retryStrategy: (times) => (times > 5 ? null : Math.min(times * 200, 2000)),
+                retryStrategy: (times) => times > 5 ? null : Math.min(times * 200, 2000),
                 keyPrefix: 'throttle:',
             });
             this.redis.on('ready', () => {

@@ -53,11 +53,16 @@ const PLACEHOLDER_OPTIONS = ['A', 'B', 'C', 'D'];
 @Injectable()
 export class PdfProcessorService implements OnModuleInit {
   private readonly logger = new Logger(PdfProcessorService.name);
-  private readonly scriptsDir = path.resolve(process.cwd(), 'scripts', 'pdf-processor');
+  private readonly scriptsDir = path.resolve(
+    process.cwd(),
+    'scripts',
+    'pdf-processor',
+  );
 
   /** `python3` on the container image; plain `python` is what Windows dev boxes have. */
   private readonly pythonBin =
-    process.env.PYTHON_BIN || (process.platform === 'win32' ? 'python' : 'python3');
+    process.env.PYTHON_BIN ||
+    (process.platform === 'win32' ? 'python' : 'python3');
 
   constructor(private readonly uploadsGateway: UploadsGateway) {}
 
@@ -92,7 +97,8 @@ export class PdfProcessorService implements OnModuleInit {
       }
     }
 
-    if (removed) this.logger.log(`Cleared ${removed} stale PDF run director(ies).`);
+    if (removed)
+      this.logger.log(`Cleared ${removed} stale PDF run director(ies).`);
   }
 
   /**
@@ -104,8 +110,13 @@ export class PdfProcessorService implements OnModuleInit {
    * now passed as an argv array to `execFile` — no shell is involved — and the
    * value is additionally checked against a fixed list.
    */
-  async processPdf(fileBuffer: Buffer, teacherId: string, examType: string = 'jee') {
-    if (!fileBuffer?.length) throw new BadRequestException('No PDF file provided.');
+  async processPdf(
+    fileBuffer: Buffer,
+    teacherId: string,
+    examType: string = 'jee',
+  ) {
+    if (!fileBuffer?.length)
+      throw new BadRequestException('No PDF file provided.');
     if (!this.looksLikePdf(fileBuffer)) {
       throw new BadRequestException('That file is not a PDF.');
     }
@@ -121,7 +132,13 @@ export class PdfProcessorService implements OnModuleInit {
       extra: Record<string, any> = {},
     ) => {
       try {
-        this.uploadsGateway.emitProgress(teacherId, { runId, stage, message, percent, ...extra });
+        this.uploadsGateway.emitProgress(teacherId, {
+          runId,
+          stage,
+          message,
+          percent,
+          ...extra,
+        });
       } catch {
         // Progress reporting must never break the pipeline.
       }
@@ -165,21 +182,32 @@ export class PdfProcessorService implements OnModuleInit {
       const dbRows: any[] = [];
       const typeCounts: Record<string, number> = {};
       const bucket = 'question-images';
-      const uploadable = manifest.filter((m: any) => m.classified_path).length || 1;
+      const uploadable =
+        manifest.filter((m: any) => m.classified_path).length || 1;
       let uploadedSoFar = 0;
 
-      report('uploading-images', `Uploading ${uploadable} question image(s)…`, 55, {
-        processed: manifest.length,
-      });
+      report(
+        'uploading-images',
+        `Uploading ${uploadable} question image(s)…`,
+        55,
+        {
+          processed: manifest.length,
+        },
+      );
 
       for (const item of manifest) {
         if (!item.classified_path) continue; // Skip failed extractions
 
         // The manifest is produced by our own script, but it is still a file on
         // disk: resolve it and confirm it stayed inside the run's output dir.
-        const absoluteImagePath = this.resolveInside(outputDir, item.classified_path);
+        const absoluteImagePath = this.resolveInside(
+          outputDir,
+          item.classified_path,
+        );
         if (!absoluteImagePath) {
-          this.logger.warn(`Skipping manifest entry with suspicious path: ${item.classified_path}`);
+          this.logger.warn(
+            `Skipping manifest entry with suspicious path: ${item.classified_path}`,
+          );
           continue;
         }
         if (!(await this.exists(absoluteImagePath))) continue;
@@ -198,7 +226,9 @@ export class PdfProcessorService implements OnModuleInit {
           });
 
         if (uploadError) {
-          this.logger.error(`Failed to upload ${storagePath}: ${uploadError.message}`);
+          this.logger.error(
+            `Failed to upload ${storagePath}: ${uploadError.message}`,
+          );
           continue; // Skip if we can't upload the image
         }
 
@@ -210,7 +240,9 @@ export class PdfProcessorService implements OnModuleInit {
           55 + Math.round((uploadedSoFar / uploadable) * 30),
         );
 
-        const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(storagePath);
+        const { data: publicUrlData } = supabase.storage
+          .from(bucket)
+          .getPublicUrl(storagePath);
 
         // Prepare row for `questions` table. Defaults to marks=4, medium.
         const qType = this.resolveQuestionType(item.question_type);
@@ -247,11 +279,16 @@ export class PdfProcessorService implements OnModuleInit {
         `Run ${runId} complete. Inserted ${insertedCount} questions. ` +
           `Types: ${JSON.stringify(typeCounts)}`,
       );
-      report('complete', `Done — ${insertedCount} question(s) added to the review queue.`, 100, {
-        processed: manifest.length,
-        inserted: insertedCount,
-        byType: typeCounts,
-      });
+      report(
+        'complete',
+        `Done — ${insertedCount} question(s) added to the review queue.`,
+        100,
+        {
+          processed: manifest.length,
+          inserted: insertedCount,
+          byType: typeCounts,
+        },
+      );
       return {
         success: true,
         processed: manifest.length,
@@ -269,7 +306,9 @@ export class PdfProcessorService implements OnModuleInit {
     } finally {
       // 7. Cleanup temp files; never let a cleanup failure mask the real result.
       fs.rm(tempDir, { recursive: true, force: true }).catch((err) =>
-        this.logger.warn(`Failed to cleanup temp dir ${tempDir}: ${err?.message}`),
+        this.logger.warn(
+          `Failed to cleanup temp dir ${tempDir}: ${err?.message}`,
+        ),
       );
     }
   }
@@ -278,7 +317,9 @@ export class PdfProcessorService implements OnModuleInit {
 
   /** Matches the caller's exam type against the taxonomies classify.py knows. */
   private resolveExamType(value: string): ExamType {
-    const normalised = String(value ?? '').trim().toLowerCase();
+    const normalised = String(value ?? '')
+      .trim()
+      .toLowerCase();
     if (!normalised) return 'jee';
     if (!(SUPPORTED_EXAM_TYPES as readonly string[]).includes(normalised)) {
       throw new BadRequestException(
@@ -290,7 +331,9 @@ export class PdfProcessorService implements OnModuleInit {
 
   /** `%PDF-` magic bytes. Filenames and declared MIME types are not evidence. */
   private looksLikePdf(buffer: Buffer): boolean {
-    return buffer.length > 5 && buffer.subarray(0, 5).toString('latin1') === '%PDF-';
+    return (
+      buffer.length > 5 && buffer.subarray(0, 5).toString('latin1') === '%PDF-'
+    );
   }
 
   /**
@@ -300,8 +343,10 @@ export class PdfProcessorService implements OnModuleInit {
    * anything unexpected falls back to the commonest shape for a reviewer to fix.
    */
   private resolveQuestionType(value: unknown): string {
-    const normalised = typeof value === 'string' ? value.trim().toLowerCase() : '';
-    if ((QUESTION_TYPES as readonly string[]).includes(normalised)) return normalised;
+    const normalised =
+      typeof value === 'string' ? value.trim().toLowerCase() : '';
+    if ((QUESTION_TYPES as readonly string[]).includes(normalised))
+      return normalised;
     if (normalised) {
       this.logger.warn(
         `Unrecognised question_type "${normalised}"; storing as ${DEFAULT_QUESTION_TYPE}.`,
@@ -319,11 +364,14 @@ export class PdfProcessorService implements OnModuleInit {
    * they have set it.
    */
   private buildCorrectAnswer(qType: string, item: any): Record<string, any> {
-    const indices: number[] = Array.isArray(item?.answer_indices) ? item.answer_indices : [];
+    const indices: number[] = Array.isArray(item?.answer_indices)
+      ? item.answer_indices
+      : [];
     const value = item?.answer_value ?? null;
 
     if (qType === 'multi_correct') return { indices };
-    if (qType === 'numerical') return { value: value ?? item?.raw_answer ?? null };
+    if (qType === 'numerical')
+      return { value: value ?? item?.raw_answer ?? null };
     return { index: indices.length ? indices[0] : 0 };
   }
 
@@ -331,7 +379,11 @@ export class PdfProcessorService implements OnModuleInit {
    * Spawns a pipeline script with an argv array — no shell, so nothing in the
    * arguments can be interpreted as a command — under a timeout.
    */
-  private async runScript(script: string, args: string[], timeoutMs: number): Promise<void> {
+  private async runScript(
+    script: string,
+    args: string[],
+    timeoutMs: number,
+  ): Promise<void> {
     const safeScript = path.basename(script);
     const scriptPath = path.join(this.scriptsDir, safeScript);
     this.logger.log(`Executing: ${script} ${args.join(' ')}`);
@@ -346,7 +398,9 @@ export class PdfProcessorService implements OnModuleInit {
       });
     } catch (e: any) {
       if (e?.killed || e?.signal === 'SIGTERM') {
-        throw new Error(`${script} timed out after ${Math.round(timeoutMs / 1000)}s`);
+        throw new Error(
+          `${script} timed out after ${Math.round(timeoutMs / 1000)}s`,
+        );
       }
       // stderr carries the Python traceback — useful in our logs, never to the client.
       this.logger.error(`${script} failed: ${e?.stderr || e?.message}`);
@@ -356,17 +410,22 @@ export class PdfProcessorService implements OnModuleInit {
 
   private async readManifest(manifestPath: string): Promise<any[]> {
     if (!(await this.exists(manifestPath))) {
-      throw new Error('Classification manifest not found. Python script failed.');
+      throw new Error(
+        'Classification manifest not found. Python script failed.',
+      );
     }
 
     let parsed: unknown;
     try {
       parsed = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
     } catch (e: any) {
-      throw new Error(`Classification manifest is not valid JSON: ${e?.message}`);
+      throw new Error(
+        `Classification manifest is not valid JSON: ${e?.message}`,
+      );
     }
 
-    if (!Array.isArray(parsed)) throw new Error('Classification manifest is not an array.');
+    if (!Array.isArray(parsed))
+      throw new Error('Classification manifest is not an array.');
     if (parsed.length > MAX_QUESTIONS_PER_RUN) {
       throw new BadRequestException(
         `That paper produced ${parsed.length} questions, above the ${MAX_QUESTIONS_PER_RUN} per-upload limit. Split it into smaller files.`,

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Users, Layers, Award, MessageSquare, FileText, Upload, Database, TrendingUp,
-  ClipboardCheck, AlertTriangle,
+  MessageSquare, FileText, Upload, Database, TrendingUp, ClipboardCheck, AlertTriangle, ChevronRight,
 } from 'lucide-react';
 import { apiClient, getStoredUser, toList } from '../../api/client';
 import './TeacherDashboard.css';
@@ -64,25 +63,29 @@ const TeacherDashboard = () => {
   const show = (v) => (loading ? '—' : v);
 
   const kpis = [
-    { label: 'Total Students', value: show(stats?.students), icon: Users, to: '/teacher/crm' },
-    { label: 'Active Batches', value: show(stats?.batches), icon: Layers, to: '/teacher/batch-management' },
-    { label: 'Published Tests', value: show(stats?.published), icon: FileText, to: '/teacher/test-library' },
-    { label: 'Pending Doubts', value: show(stats?.pendingDoubts), icon: MessageSquare, to: '/teacher/doubt-queue', tone: stats?.pendingDoubts ? 'warning' : '' },
-    { label: 'Avg Cohort Score', value: show(stats?.avgScore), icon: Award, to: '/teacher/analytics', tone: 'success' },
+    { label: 'Students', value: show(stats?.students), to: '/teacher/crm' },
+    { label: 'Active batches', value: show(stats?.batches), to: '/teacher/batch-management' },
+    { label: 'Published tests', value: show(stats?.published), to: '/teacher/test-library' },
+    { label: 'Open doubts', value: show(stats?.pendingDoubts), to: '/teacher/doubt-queue', tone: stats?.pendingDoubts ? 'warning' : '' },
+    { label: 'Average cohort score', value: show(stats?.avgScore), to: '/teacher/analytics' },
   ];
+
+  const actions = [
+    { to: '/teacher/test-library', icon: FileText, title: 'Test library', text: 'Open a test to add your subject’s questions or see its results' },
+    { to: '/teacher/csv-upload', icon: Upload, title: 'Upload questions', text: 'Import a CSV, or extract questions from a PDF paper' },
+    { to: '/teacher/review-queue', icon: ClipboardCheck, title: 'Review queue', text: 'Check extracted questions before they can go on a paper' },
+    { to: '/teacher/doubt-queue', icon: MessageSquare, title: 'Doubt queue', text: 'Answer students’ doubts as they come in' },
+    { to: '/teacher/question-bank', icon: Database, title: 'Question bank', text: 'Browse, edit and tag questions by topic and type' },
+    { to: '/teacher/analytics', icon: TrendingUp, title: 'Cohort analytics', text: 'Scores and weak topics across your batches' },
+  ];
+
+  const subjectLabel = user.subject && user.subject !== 'All' ? `${user.subject} faculty` : 'Faculty';
 
   return (
     <div className="teacher-dashboard">
-      <header className="hero-banner">
-        <div className="hero-content">
-          <div className="greeting">
-            <h1>Welcome back, {user.full_name || 'Teacher'}</h1>
-            <span className="role-badge">
-              {user.subject && user.subject !== 'All' ? `${user.subject} Faculty` : 'Faculty'}
-            </span>
-          </div>
-          <p>Here's what's happening with your batches today.</p>
-        </div>
+      <header className="page-head">
+        <h1>Dashboard</h1>
+        <p>{user.full_name || 'Teacher'} · {subjectLabel}</p>
       </header>
 
       {/* Things that need attention, only when they exist. */}
@@ -90,71 +93,46 @@ const TeacherDashboard = () => {
         <section className="td-alerts">
           {stats.pendingReview > 0 && (
             <button className="td-alert" onClick={() => navigate('/teacher/review-queue')}>
-              <ClipboardCheck size={18} />
+              <ClipboardCheck size={16} />
               <span>
-                <strong>{stats.pendingReview}</strong> extracted question(s) awaiting review
+                <strong className="num">{stats.pendingReview}</strong> extracted {stats.pendingReview === 1 ? 'question needs' : 'questions need'} review
               </span>
             </button>
           )}
           {stats.atRisk > 0 && (
             <button className="td-alert warn" onClick={() => navigate('/teacher/analytics')}>
-              <AlertTriangle size={18} />
+              <AlertTriangle size={16} />
               <span>
-                <strong>{stats.atRisk}</strong> student(s) flagged at risk
+                <strong className="num">{stats.atRisk}</strong> {stats.atRisk === 1 ? 'student' : 'students'} flagged at risk
               </span>
             </button>
           )}
         </section>
       )}
 
-      <section className="kpi-grid">
-        {kpis.map((kpi) => {
-          const Icon = kpi.icon;
-          return (
-            <div key={kpi.label} className="kpi-card" onClick={() => navigate(kpi.to)}>
-              <div className="kpi-icon-wrapper"><Icon size={24} /></div>
-              <div className="kpi-details">
-                <span className="kpi-label">{kpi.label}</span>
-                <span className={`kpi-value ${kpi.tone || ''}`}>{kpi.value}</span>
-              </div>
-            </div>
-          );
-        })}
+      <section className="kpi-grid ink-cycle">
+        {kpis.map((kpi) => (
+          <button key={kpi.label} type="button" className="kpi-card marks-box" onClick={() => navigate(kpi.to)}>
+            <span className="kpi-label">{kpi.label}</span>
+            <span className={`kpi-value figure ${kpi.tone || ''}`}>{kpi.value}</span>
+          </button>
+        ))}
       </section>
 
       <section className="quick-actions">
-        <h2>Quick Actions</h2>
-        <div className="action-grid">
-          <Link to="/teacher/test-library" className="action-card">
-            <div className="action-icon"><FileText size={32} /></div>
-            <h3>Test Library</h3>
-            <p>View existing tests, see results, and collaborate on test creation.</p>
-          </Link>
-          <Link to="/teacher/csv-upload" className="action-card">
-            <div className="action-icon"><Upload size={32} /></div>
-            <h3>Bulk Upload</h3>
-            <p>Import questions from a CSV, or extract them from a PDF paper.</p>
-          </Link>
-          <Link to="/teacher/review-queue" className="action-card">
-            <div className="action-icon"><ClipboardCheck size={32} /></div>
-            <h3>Review Queue</h3>
-            <p>Verify AI-extracted questions before they reach a live test.</p>
-          </Link>
-          <Link to="/teacher/doubt-queue" className="action-card">
-            <div className="action-icon"><MessageSquare size={32} /></div>
-            <h3>Doubt Queue</h3>
-            <p>Resolve incoming student questions in real time.</p>
-          </Link>
-          <Link to="/teacher/question-bank" className="action-card">
-            <div className="action-icon"><Database size={32} /></div>
-            <h3>Question Bank</h3>
-            <p>Manage and organize your assessment items.</p>
-          </Link>
-          <Link to="/teacher/analytics" className="action-card">
-            <div className="action-icon"><TrendingUp size={32} /></div>
-            <h3>Cohort Analytics</h3>
-            <p>View detailed performance metrics across batches.</p>
-          </Link>
+        <h2>Shortcuts</h2>
+        <div className="action-grid ink-cycle">
+          {actions.map(({ to, icon: Icon, title, text }, i) => (
+            <Link key={to} to={to} className="action-card">
+              <span className="action-qno num">{String(i + 1).padStart(2, '0')}</span>
+              <Icon size={18} className="action-icon" />
+              <span className="action-text">
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </span>
+              <ChevronRight size={16} className="action-chevron" />
+            </Link>
+          ))}
         </div>
       </section>
     </div>

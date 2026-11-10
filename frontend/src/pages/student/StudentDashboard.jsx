@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Book, FlaskConical, Calculator, ArrowRight, TrendingUp, Clock, Target,
@@ -105,11 +105,8 @@ const StudentDashboard = () => {
   /** Surfaced when the exam app cannot be reached, instead of a dead browser tab. */
   const [launchError, setLaunchError] = useState('');
 
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      // One slow or empty endpoint must not blank the whole dashboard.
+  const fetchDashboardData = useCallback(async (isMountedCheck = () => true) => {
+    try {
       const [tests, myAttempts, stats, myRank] = await Promise.allSettled([
         apiClient.get('/tests/available'),
         apiClient.get('/attempts/my'),
@@ -117,23 +114,50 @@ const StudentDashboard = () => {
         apiClient.get('/leaderboard/me'),
       ]);
 
-      if (cancelled) return;
+      if (!isMountedCheck()) return;
 
       if (tests.status === 'fulfilled') setAssignments(tests.value || []);
       if (myAttempts.status === 'fulfilled') setAttempts(myAttempts.value || []);
       if (stats.status === 'fulfilled') setAnalytics(stats.value);
       if (myRank.status === 'fulfilled') setRank(myRank.value);
-      setLoading(false);
-    })();
-
-    return () => { cancelled = true; };
+    } finally {
+      if (isMountedCheck()) setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    const isMounted = () => mounted;
+
+    fetchDashboardData(isMounted);
+
+    // Auto-refresh when student returns to this tab (e.g. after submitting in another window)
+    const onFocus = () => {
+      fetchDashboardData(isMounted);
+    };
+
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') onFocus();
+    });
+
+    return () => {
+      mounted = false;
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [fetchDashboardData]);
+
   // attempt status per test, so a finished test shows its result instead of restarting.
+  // A submitted attempt always wins, so a finished test can only ever offer
+  // "View result" — never another start. (Each test can be taken once.)
   const attemptByTest = new Map();
   for (const a of attempts) {
-    const testId = a.tests?.id;
-    if (testId) attemptByTest.set(testId, a);
+    const testId = a.test_id || (Array.isArray(a.tests) ? a.tests[0]?.id : a.tests?.id);
+    if (!testId) continue;
+    const current = attemptByTest.get(testId);
+    if (!current || (current.status !== 'submitted' && a.status === 'submitted')) {
+      attemptByTest.set(testId, a);
+    }
   }
 
   const now = Date.now();
@@ -147,13 +171,13 @@ const StudentDashboard = () => {
 
   const kpis = [
     {
-      label: 'Overall Rank',
+      label: 'Overall rank',
       value: rank?.rank ? `#${rank.rank}` : '—',
       icon: TrendingUp,
       color: 'var(--color-dashboard-blue)',
     },
     {
-      label: 'Avg / Question',
+      label: 'Time per question',
       value: analytics?.avgSecondsPerQuestion ? `${analytics.avgSecondsPerQuestion}s` : '—',
       icon: Clock,
       color: 'var(--color-chemistry-orange)',
@@ -165,7 +189,7 @@ const StudentDashboard = () => {
       color: 'var(--color-biology-green)',
     },
     {
-      label: 'Tests Taken',
+      label: 'Tests taken',
       value: analytics?.testsAttempted ?? 0,
       icon: Calendar,
       color: 'var(--color-physics-red)',
@@ -176,22 +200,17 @@ const StudentDashboard = () => {
 
   return (
     <div className="dashboard-container animate-fade-in">
-      <div className="hero-banner animate-slide-up">
-        <div className="hero-content">
-          <h1>Welcome back, {firstName}! 👋</h1>
-          <p>
-            {loading
-              ? 'Loading your progress…'
-              : assignments.length > 0
-                ? `You have ${assignments.length} test${assignments.length === 1 ? '' : 's'} assigned.`
-                : 'No tests assigned right now — keep practising.'}
-          </p>
-        </div>
-        <div className="hero-decoration">
-          <div className="circle circle-1" />
-          <div className="circle circle-2" />
-        </div>
-      </div>
+      <header className="page-head">
+        <h1>Dashboard</h1>
+        <p>
+          {firstName} ·{' '}
+          {loading
+            ? 'loading your tests'
+            : assignments.length > 0
+              ? `${assignments.length} test${assignments.length === 1 ? '' : 's'} assigned`
+              : 'no tests assigned right now'}
+        </p>
+      </header>
 
       {launchError && (
         <div className="sd-launch-error" role="alert">
@@ -202,33 +221,25 @@ const StudentDashboard = () => {
         </div>
       )}
 
-      <div className="section-header animate-slide-up">
-        <h2>Performance Overview</h2>
+      <div className="section-header">
+        <h2>Performance</h2>
         <Link to="/student/analytics" className="view-all-link">
-          Detailed Analytics <ArrowRight size={16} />
+          Analytics <ArrowRight size={16} />
         </Link>
       </div>
 
-      <div className="kpi-grid animate-slide-up">
-        {kpis.map((kpi) => {
-          const Icon = kpi.icon;
-          return (
-            <div key={kpi.label} className="kpi-card glass">
-              <div className="kpi-icon-wrapper" style={{ backgroundColor: `${kpi.color}18`, color: kpi.color }}>
-                <Icon size={24} />
-              </div>
-              <div className="kpi-info">
-                <span className="kpi-label">{kpi.label}</span>
-                <span className="kpi-value">{loading ? '—' : kpi.value}</span>
-              </div>
-            </div>
-          );
-        })}
+      <div className="kpi-grid ink-cycle">
+        {kpis.map((kpi) => (
+          <div key={kpi.label} className="kpi-card marks-box">
+            <span className="kpi-label">{kpi.label}</span>
+            <span className="kpi-value figure">{loading ? '—' : kpi.value}</span>
+          </div>
+        ))}
       </div>
 
       {/* ── The route into an exam ─────────────────────────────────────────── */}
-      <div className="section-header mt-4 animate-slide-up">
-        <h2>Your Tests</h2>
+      <div className="section-header mt-4">
+        <h2>Your tests</h2>
       </div>
 
       {loading ? (
@@ -239,7 +250,7 @@ const StudentDashboard = () => {
           <p>No tests have been assigned to you yet.</p>
         </div>
       ) : (
-        <div className="sd-test-list animate-slide-up">
+        <div className="sd-test-list">
           {assignments.map((assignment) => {
             const test = assignment.tests || {};
             const attempt = attemptByTest.get(test.id);
@@ -248,21 +259,21 @@ const StudentDashboard = () => {
             const { state, start, end } = windowFor(assignment);
 
             return (
-              <div key={assignment.id} className="sd-test-card glass">
+              <div key={assignment.id} className="sd-test-card">
                 <div className="sd-test-main">
                   <div className="sd-test-head">
                     <h3>{test.title}</h3>
-                    {submitted && <span className="sd-badge done"><CheckCircle2 size={13} /> Completed</span>}
-                    {inProgress && <span className="sd-badge progress">In progress</span>}
-                    {!attempt && state === 'upcoming' && <span className="sd-badge upcoming"><Lock size={13} /> Not open yet</span>}
-                    {!attempt && state === 'closed' && <span className="sd-badge closed">Window closed</span>}
+                    {submitted && <span className="sd-badge stamp done"><CheckCircle2 size={13} /> Attempt Noted</span>}
+                    {inProgress && <span className="sd-badge stamp progress">In progress</span>}
+                    {!attempt && state === 'upcoming' && <span className="sd-badge stamp upcoming"><Lock size={13} /> Not open yet</span>}
+                    {!attempt && state === 'closed' && <span className="sd-badge stamp closed">Window closed</span>}
                   </div>
 
-                  <p className="sd-muted sd-test-desc">{test.description || 'No description provided.'}</p>
+                  {test.description && <p className="sd-muted sd-test-desc">{test.description}</p>}
 
                   <div className="sd-test-meta">
                     <span><Clock size={13} /> {test.duration_minutes} min</span>
-                    <span>{test.total_marks} marks</span>
+                    <span className="num">{test.total_marks} marks</span>
                     {start && (
                       <span>
                         {state === 'upcoming' ? 'Opens ' : 'Opened '}
@@ -278,14 +289,14 @@ const StudentDashboard = () => {
                 <div className="sd-test-action">
                   {submitted ? (
                     <button className="btn btn-primary" onClick={() => navigate(`/student/result/${attempt.id}`)}>
-                      View Result
+                      Attempt Noted · View result
                     </button>
                   ) : state === 'open' ? (
                     <button
                       className="btn btn-primary"
                       onClick={() => launchExam(test.id, setLaunchError)}
                     >
-                      <PlayCircle size={17} /> {inProgress ? 'Resume Test' : 'Start Test'}
+                      <PlayCircle size={16} /> {inProgress ? 'Resume test' : 'Start test'}
                     </button>
                   ) : (
                     <button className="btn btn-primary" disabled>
@@ -302,10 +313,10 @@ const StudentDashboard = () => {
       {/* ── Past attempts ──────────────────────────────────────────────────── */}
       {attempts.filter((a) => a.status === 'submitted').length > 0 && (
         <>
-          <div className="section-header mt-4 animate-slide-up">
-            <h2>Recent Results</h2>
+          <div className="section-header mt-4">
+            <h2>Recent results</h2>
           </div>
-          <div className="sd-history animate-slide-up">
+          <div className="sd-history">
             {attempts
               .filter((a) => a.status === 'submitted')
               .slice(0, 5)
@@ -323,11 +334,9 @@ const StudentDashboard = () => {
                       {a.submitted_at ? new Date(a.submitted_at).toLocaleDateString() : ''}
                     </span>
                     {a.results_published === false ? (
-                      <span className="sd-score" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontSize: '0.75rem', padding: '3px 8px' }}>
-                        Pending Approval
-                      </span>
+                      <span className="sd-score pending">Awaiting results</span>
                     ) : (
-                      <span className={`sd-score ${pct >= 75 ? 'good' : pct >= 40 ? 'mid' : 'bad'}`}>
+                      <span className={`sd-score figure ${pct >= 75 ? 'good' : pct >= 40 ? 'mid' : 'bad'}`}>
                         {a.total_score} / {max}
                       </span>
                     )}
@@ -339,11 +348,11 @@ const StudentDashboard = () => {
         </>
       )}
 
-      <div className="section-header mt-4 animate-slide-up">
-        <h2>Subject Modules</h2>
+      <div className="section-header mt-4">
+        <h2>Subjects</h2>
       </div>
 
-      <div className="subject-grid animate-slide-up">
+      <div className="subject-grid">
         {SUBJECTS.map((sub) => {
           const Icon = sub.icon;
           // Progress comes from real per-subject accuracy where it exists.
@@ -353,9 +362,9 @@ const StudentDashboard = () => {
           const progress = stat?.accuracy ?? 0;
 
           return (
-            <div key={sub.id} className={`subject-card glass ${sub.colorClass}`}>
+            <div key={sub.id} className={`subject-card ${sub.colorClass}`}>
               <div className="subject-card-top">
-                <div className="subject-icon-wrapper"><Icon size={28} /></div>
+                <Icon size={18} className="subject-icon" />
                 <h3>{sub.name}</h3>
               </div>
               <p>{sub.desc}</p>
@@ -370,8 +379,8 @@ const StudentDashboard = () => {
               </div>
 
               <div className="subject-actions">
-                <Link to={`/student/subject/${sub.id}`} className="btn btn-primary w-100 text-center">
-                  Continue Learning
+                <Link to={`/student/subject/${sub.id}`} className="btn-outline w-100">
+                  Open {sub.name}
                 </Link>
               </div>
             </div>

@@ -103,12 +103,12 @@ const Lectures = () => {
 
       <header className="lectures-header">
         <div>
-          <h1>Lecture Library</h1>
+          <h1>Lecture library</h1>
           <p className="lectures-muted">Recorded sessions and syllabus coverage by subject.</p>
         </div>
         {isStaff && (
           <button className="lectures-btn primary" onClick={() => setShowModal(true)}>
-            <Plus size={16} /> Add Lecture
+            <Plus size={16} /> Add lecture
           </button>
         )}
       </header>
@@ -142,7 +142,7 @@ const Lectures = () => {
               <p>{search || subject ? 'No lectures match these filters.' : 'No lectures uploaded yet.'}</p>
             </div>
           ) : (
-            <div className="lectures-grid">
+            <div className="lectures-grid ink-cycle ink-cards">
               {visible.map((lecture) => (
                 <article key={lecture.id} className="lecture-card">
                   <div className="lecture-card-top">
@@ -211,7 +211,7 @@ const Lectures = () => {
         <div className="lectures-modal-overlay" onClick={() => setShowModal(false)}>
           <div className="lectures-modal" onClick={(e) => e.stopPropagation()}>
             <div className="lectures-modal-header">
-              <h2>Add Lecture</h2>
+              <h2>Add lecture</h2>
               <button onClick={() => setShowModal(false)} aria-label="Close dialog" title="Close"><X size={18} /></button>
             </div>
 

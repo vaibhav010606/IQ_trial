@@ -14,6 +14,9 @@ let LeaderboardModule = class LeaderboardModule {
 };
 exports.LeaderboardModule = LeaderboardModule;
 exports.LeaderboardModule = LeaderboardModule = __decorate([
-    (0, common_1.Module)({ controllers: [leaderboard_controller_1.LeaderboardController], providers: [leaderboard_service_1.LeaderboardService] })
+    (0, common_1.Module)({
+        controllers: [leaderboard_controller_1.LeaderboardController],
+        providers: [leaderboard_service_1.LeaderboardService],
+    })
 ], LeaderboardModule);
 //# sourceMappingURL=leaderboard.module.js.map

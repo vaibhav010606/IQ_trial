@@ -36,7 +36,9 @@ const DEFAULT_THROTTLE_LIMIT = Number(process.env.THROTTLE_LIMIT) || 300;
     ConfigModule.forRoot({ isGlobal: true }),
 
     ThrottlerModule.forRoot({
-      throttlers: [{ ttl: DEFAULT_THROTTLE_TTL_MS, limit: DEFAULT_THROTTLE_LIMIT }],
+      throttlers: [
+        { ttl: DEFAULT_THROTTLE_TTL_MS, limit: DEFAULT_THROTTLE_LIMIT },
+      ],
     }),
 
     // Shared infrastructure (global — Redis-backed when REDIS_URL is set)

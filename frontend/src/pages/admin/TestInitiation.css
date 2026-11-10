@@ -17,16 +17,16 @@
   padding: 0 16px;
   border-radius: 9px;
   font-size: 0.86rem;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: var(--transition);
   outline: none;
   white-space: nowrap;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .ti-action-btn:hover {
-  transform: translateY(-2px);
+  transform: translateY(0);
   box-shadow: 0 5px 14px rgba(0, 0, 0, 0.1);
 }
 
@@ -40,86 +40,86 @@
 }
 
 .ti-btn-label {
-  letter-spacing: 0.2px;
+  letter-spacing: 0;
 }
 
 /* Assign Teachers Button */
 .ti-action-assign {
-  background: #f5f3ff;
-  color: #7c3aed;
-  border: 1.5px solid #c4b5fd;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1.5px solid var(--accent-line);
 }
 
 .ti-action-assign:hover {
-  background: #ede9fe;
-  border-color: #7c3aed;
-  color: #6d28d9;
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
 }
 
 /* Publish Test Button */
 .ti-action-publish {
-  background: #ecfdf5;
-  color: #059669;
-  border: 1.5px solid #6ee7b7;
+  background: var(--positive-soft);
+  color: var(--positive);
+  border: 1.5px solid var(--positive-line);
 }
 
 .ti-action-publish:hover {
-  background: #d1fae5;
-  border-color: #059669;
-  color: #047857;
+  background: var(--positive-soft);
+  border-color: var(--positive);
+  color: var(--positive);
 }
 
 /* Schedule / Batches Button */
 .ti-action-schedule {
-  background: #eff6ff;
-  color: #2563eb;
-  border: 1.5px solid #93c5fd;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1.5px solid var(--accent-line);
 }
 
 .ti-action-schedule:hover {
-  background: #dbeafe;
-  border-color: #2563eb;
-  color: #1d4ed8;
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
 }
 
 /* PDF Export Button */
 .ti-action-pdf {
-  background: #f8fafc;
-  color: #4338ca;
-  border: 1.5px solid #c7d2fe;
+  background: var(--surface-raised);
+  color: var(--accent-strong);
+  border: 1.5px solid var(--accent-line);
 }
 
 .ti-action-pdf:hover {
-  background: #e0e7ff;
-  border-color: #6366f1;
-  color: #3730a3;
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
 }
 
 /* Results Button */
 .ti-action-results {
   background: #fdf4ff;
-  color: #9333ea;
+  color: var(--accent);
   border: 1.5px solid #f0abfc;
 }
 
 .ti-action-results:hover {
   background: #fae8ff;
-  border-color: #a855f7;
-  color: #7e22ce;
+  border-color: var(--accent);
+  color: var(--accent-strong);
 }
 
 /* Delete Button */
 .ti-action-delete {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1.5px solid #fca5a5;
+  background: var(--negative-soft);
+  color: var(--negative);
+  border: 1.5px solid var(--negative-line);
   padding: 0 14px;
 }
 
 .ti-action-delete:hover {
-  background: #fee2e2;
-  border-color: #dc2626;
-  color: #b91c1c;
+  background: var(--negative-soft);
+  border-color: var(--negative);
+  color: var(--negative);
 }
 
 /* ── Large Spacious Initiate Test Modal ── */
@@ -128,7 +128,7 @@
   max-width: 1060px !important;
   max-height: 90vh !important;
   padding: 28px 32px !important;
-  border-radius: 18px !important;
+  border-radius: 14px !important;
   box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.25) !important;
   display: flex !important;
   flex-direction: column !important;
@@ -136,9 +136,9 @@
 
 .initiate-modal-title {
   font-size: 1.35rem !important;
-  font-weight: 800 !important;
-  color: #0f172a !important;
-  letter-spacing: -0.3px !important;
+  font-weight: 700 !important;
+  color: var(--ink-900) !important;
+  letter-spacing: 0;
 }
 
 .initiate-modal-body {
@@ -155,6 +155,6 @@
 }
 
 .initiate-modal-body::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--line-strong);
   border-radius: 4px;
 }

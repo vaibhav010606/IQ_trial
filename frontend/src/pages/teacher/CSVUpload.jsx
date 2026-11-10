@@ -201,7 +201,7 @@ const CSVUpload = () => {
           <div className="template-download">
             <p>Don't have the template?</p>
             <button className="download-link" onClick={downloadTemplate}>
-              <Download size={16} /> Download CSV Template
+              <Download size={16} /> Download CSV template
             </button>
           </div>
 
@@ -304,7 +304,7 @@ const CSVUpload = () => {
                 </span>
               </div>
             </div>
-            <button className="btn-outline-small" onClick={reset}>Upload Another</button>
+            <button className="btn-outline-small" onClick={reset}>Upload another</button>
           </div>
 
           <div className="preview-container upload-success">
@@ -314,7 +314,7 @@ const CSVUpload = () => {
                 <p>
                   Extraction is complete. Because the AI infers the text, topic, question type and
                   answer key, these {results.inserted} question(s) are waiting in the{' '}
-                  <strong>Review Queue</strong> and will not appear in tests until you approve them.
+                  <strong>Review queue</strong> and will not appear in tests until you approve them.
                 </p>
                 {results.byType && Object.keys(results.byType).length > 0 && (
                   <ul className="upload-type-breakdown">
@@ -338,7 +338,7 @@ const CSVUpload = () => {
               </button>
             ) : (
               <button className="btn-primary" onClick={() => navigate('/teacher/question-bank')}>
-                View Question Bank <ArrowRight size={18} />
+                View question bank <ArrowRight size={18} />
               </button>
             )}
           </div>

@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { supabase } from '../../config/supabase.config';
 import { CreateLectureDto, LectureQueryDto } from './dto/lecture.dto';
 
@@ -16,14 +20,18 @@ export class LecturesService {
 
     let query = supabase
       .from('lectures')
-      .select('id, subject, topic, title, drive_url, duration_minutes, created_at', {
-        count: 'exact',
-      })
+      .select(
+        'id, subject, topic, title, drive_url, duration_minutes, created_at',
+        {
+          count: 'exact',
+        },
+      )
       .order('created_at', { ascending: false })
       .range(from, from + limit - 1);
 
     if (filters.subject) query = query.eq('subject', filters.subject);
-    if (filters.topic) query = query.ilike('topic', `%${this.escapeLike(filters.topic)}%`);
+    if (filters.topic)
+      query = query.ilike('topic', `%${this.escapeLike(filters.topic)}%`);
 
     const { data, error, count } = await query;
     if (error) throw new Error(error.message);
@@ -65,7 +73,9 @@ export class LecturesService {
 
     if (!lecture) throw new NotFoundException('Lecture not found');
     if (user.role !== 'admin' && lecture.uploaded_by !== user.id) {
-      throw new ForbiddenException('Only the teacher who uploaded this lecture can delete it.');
+      throw new ForbiddenException(
+        'Only the teacher who uploaded this lecture can delete it.',
+      );
     }
 
     const { error } = await supabase.from('lectures').delete().eq('id', id);

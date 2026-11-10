@@ -27,7 +27,13 @@ import {
  */
 
 export const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
-export const QUESTION_TYPES = ['single_correct', 'multi_correct', 'numerical', 'assertion', 'subjective'] as const;
+export const QUESTION_TYPES = [
+  'single_correct',
+  'multi_correct',
+  'numerical',
+  'assertion',
+  'subjective',
+] as const;
 
 /** Enough for a long LaTeX question; short enough to bound a request body. */
 const MAX_QUESTION_TEXT = 8000;
@@ -65,7 +71,9 @@ export class CreateQuestionDto {
   options?: string[];
 
   /** `{ index }`, `{ indices: [] }` or `{ value }` — matched by the grader. */
-  @ApiProperty({ description: 'One of { index }, { indices: [...] } or { value }' })
+  @ApiProperty({
+    description: 'One of { index }, { indices: [...] } or { value }',
+  })
   @IsObject()
   correct_answer: Record<string, any>;
 
@@ -227,7 +235,10 @@ export class ReviewQueueQueryDto {
 }
 
 export class PdfUploadDto {
-  @ApiPropertyOptional({ enum: ['jee', 'neet', 'cbse', 'general'], default: 'jee' })
+  @ApiPropertyOptional({
+    enum: ['jee', 'neet', 'cbse', 'general'],
+    default: 'jee',
+  })
   @IsOptional()
   @IsIn(['jee', 'neet', 'cbse', 'general'])
   examType?: string;

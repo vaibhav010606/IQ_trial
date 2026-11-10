@@ -33,7 +33,10 @@ export class UsersService {
   async updateProfile(userId: string, body: { full_name: string }) {
     const { data, error } = await supabase
       .from('users')
-      .update({ full_name: body.full_name.trim(), updated_at: new Date().toISOString() })
+      .update({
+        full_name: body.full_name.trim(),
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', userId)
       .select('id, full_name, email, role')
       .single();
@@ -63,7 +66,9 @@ export class UsersService {
     if (!user?.email) throw new NotFoundException('User not found');
 
     if (body.currentPassword === body.newPassword) {
-      throw new BadRequestException('Your new password must be different from the current one.');
+      throw new BadRequestException(
+        'Your new password must be different from the current one.',
+      );
     }
 
     const authClient = createUserAuthClient();
@@ -107,7 +112,12 @@ export class UsersService {
     // than returning a short answer. Querying *from* the membership table with
     // an inner join keeps the filter server-side and the URL constant-length.
     const { students, total, error } = filters.batchId
-      ? await this.pageStudentsInBatch(filters.batchId, filters.search, from, limit)
+      ? await this.pageStudentsInBatch(
+          filters.batchId,
+          filters.search,
+          from,
+          limit,
+        )
       : await this.pageAllStudents(filters.search, from, limit);
 
     if (error) throw new Error(error);
@@ -121,7 +131,9 @@ export class UsersService {
     const attempts = await fetchAllIn<any>(studentIds, (idChunk) =>
       supabase
         .from('attempts')
-        .select('student_id, total_score, status, submitted_at, started_at, tests(total_marks)')
+        .select(
+          'student_id, total_score, status, submitted_at, started_at, tests(total_marks)',
+        )
         .in('student_id', idChunk),
     );
 
@@ -146,7 +158,8 @@ export class UsersService {
         const max = Number(attempt.tests?.total_marks) || 0;
         entry.testsTaken += 1;
         if (max > 0) {
-          entry.totalPercent += ((Number(attempt.total_score) || 0) / max) * 100;
+          entry.totalPercent +=
+            ((Number(attempt.total_score) || 0) / max) * 100;
         }
       }
 
@@ -175,7 +188,11 @@ export class UsersService {
   }
 
   /** One page of every student, newest-name-first, filtered by name. */
-  private async pageAllStudents(search: string | undefined, from: number, limit: number) {
+  private async pageAllStudents(
+    search: string | undefined,
+    from: number,
+    limit: number,
+  ) {
     let query = supabase
       .from('users')
       .select(
@@ -189,7 +206,8 @@ export class UsersService {
       .order('full_name', { ascending: true })
       .range(from, from + limit - 1);
 
-    if (search) query = query.ilike('full_name', `%${this.escapeLike(search)}%`);
+    if (search)
+      query = query.ilike('full_name', `%${this.escapeLike(search)}%`);
 
     const { data, error, count } = await query;
     return { students: data || [], total: count ?? 0, error: error?.message };
@@ -222,7 +240,8 @@ export class UsersService {
       .order('student_id', { ascending: true })
       .range(from, from + limit - 1);
 
-    if (search) query = query.ilike('users.full_name', `%${this.escapeLike(search)}%`);
+    if (search)
+      query = query.ilike('users.full_name', `%${this.escapeLike(search)}%`);
 
     const { data, error, count } = await query;
     if (error) return { students: [], total: 0, error: error.message };
@@ -231,7 +250,9 @@ export class UsersService {
     const students = (data || [])
       .map((row: any) => row.users)
       .filter(Boolean)
-      .sort((a: any, b: any) => String(a.full_name).localeCompare(String(b.full_name)));
+      .sort((a: any, b: any) =>
+        String(a.full_name).localeCompare(String(b.full_name)),
+      );
 
     return { students, total: count ?? students.length, error: undefined };
   }
@@ -240,10 +261,12 @@ export class UsersService {
   async getStudentProfile(studentId: string) {
     const { data: user, error } = await supabase
       .from('users')
-      .select(`
+      .select(
+        `
         id, full_name, email, role, created_at,
         batch_students(batch_id, joined_at, batches(name, subject_focus))
-      `)
+      `,
+      )
       .eq('id', studentId)
       .eq('role', 'student')
       .single();
@@ -335,15 +358,24 @@ export class UsersService {
     const email = body.email.trim().toLowerCase();
 
     // Create auth user
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password: body.password,
-      email_confirm: true,
-      user_metadata: {
-        full_name: body.full_name,
-        ...(body.role === 'teacher' && body.subject ? { subject: body.subject } : {}),
-      },
-    });
+    const { data: authData, error: authError } =
+      await supabase.auth.admin.createUser({
+        email,
+        password: body.password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: body.full_name,
+          ...(body.role === 'teacher' && body.subject
+            ? { subject: body.subject }
+            : {}),
+        },
+        // The subject that scopes a teacher's access lives in app_metadata, which
+        // only the service role can change. user_metadata keeps a copy for display.
+        app_metadata:
+          body.role === 'teacher' && body.subject
+            ? { subject: body.subject }
+            : {},
+      });
 
     if (authError) throw new BadRequestException(authError.message);
     const userId = authData.user.id;
@@ -388,7 +420,11 @@ export class UsersService {
     // Any session opened with the old password is no longer trustworthy.
     await supabase.auth.admin
       .signOut(userId, 'global')
-      .catch(() => this.logger.warn(`Could not revoke sessions for ${userId} after a reset.`));
+      .catch(() =>
+        this.logger.warn(
+          `Could not revoke sessions for ${userId} after a reset.`,
+        ),
+      );
 
     return { success: true, message: 'Password reset successfully' };
   }
@@ -408,7 +444,10 @@ export class UsersService {
     if (!target) throw new NotFoundException('User not found');
 
     // Delete from users table first
-    const { error: deleteError } = await supabase.from('users').delete().eq('id', userId);
+    const { error: deleteError } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
     if (deleteError) {
       throw new BadRequestException(
         'Cannot delete this user because they still have linked records. Remove or reassign those records first.',

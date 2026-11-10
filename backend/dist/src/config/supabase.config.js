@@ -64,7 +64,11 @@ exports.supabaseAuth = (0, supabase_js_1.createClient)(url, anonKey, {
 });
 function createUserAuthClient() {
     return (0, supabase_js_1.createClient)(url, anonKey, {
-        auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+            detectSessionInUrl: false,
+        },
     });
 }
 //# sourceMappingURL=supabase.config.js.map

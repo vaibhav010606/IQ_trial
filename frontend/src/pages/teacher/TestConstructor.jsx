@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
-  Check, ChevronRight, ChevronLeft, Search, Plus, Trash2, FileText,
-  Settings, ListChecks, CheckCircle2, Clock, Sparkles, AlertCircle,
-  Layers, ChevronDown, ChevronUp, FileDown,
-  Calendar, Users, Award, Info, ShieldAlert, Lock
+  Check, ChevronRight, ChevronLeft, Search, Plus, Trash2, FileText, Settings, ListChecks, CheckCircle2, Clock, AlertCircle, Layers, ChevronDown, ChevronUp, FileDown, Calendar, Users, Award, Info, ShieldAlert, Lock
 } from 'lucide-react';
 import { useAppData } from '../../context/AppDataContext';
 import { apiClient } from '../../api/client';
 import MathText from '../../components/MathText';
 import TestPDFExportModal from './TestPDFExportModal';
 import AutoGenerateTestModal from './AutoGenerateTestModal';
+import { extractRealInteger, getQuestionType } from '../../utils/autoFill';
+import {
+  getPattern, patternIdOf, patternTotals, kindOfQuestion, canonicalSubject,
+  subjectQuota, paperQuota, validatePaper, patternSummary, KIND_LABEL, STANDARD_PATTERN_IDS,
+} from '../../utils/examPatterns';
 import './TestConstructor.css';
-
-const MCQ_TYPES = ['mcq', 'single_correct', 'single', 'scq', 'multi_correct', 'multiple_correct', 'multi', 'multiple', 'assertion'];
-const NAT_TYPES = ['nat', 'integer', 'numerical', 'numeric', 'int'];
 
 // Chapter / topic list per subject — mirrors QuestionBank.jsx
 const CHAPTERS = {
@@ -110,39 +109,14 @@ const CHAPTERS = {
   Biology: [],
 };
 
-function extractRealInteger(val) {
-  if (val === null || val === undefined) return null;
-  const raw = String(typeof val === 'object' ? (val.value ?? '') : val).trim();
-  if (!raw) return null;
-  if (/^-?\d+$/.test(raw)) return raw;
-  const cleaned = raw
-    .replace(/\\text\{[^}]*\}/g, '')
-    .replace(/\\mathrm\{[^}]*\}/g, '')
-    .replace(/[\$\s]/g, '')
-    .replace(/(km\/h|m\/s|cm\/s|m\/s\^2|cm|mm|km|m|s|min|h|kg|g|N|J|W|V|A|C|T|Hz|rad\/s|rad|deg|degrees|°)/gi, '');
-  if (/^-?\d+$/.test(cleaned)) return cleaned;
-  if (/^-?\d+\.0+$/.test(cleaned)) return String(parseInt(cleaned, 10));
-  return null;
-}
-
-function getQuestionType(q) {
-  const key = String(q.q_type || q.type || '').trim().toLowerCase();
-  if (MCQ_TYPES.includes(key)) return 'mcq';
-  if (NAT_TYPES.includes(key)) {
-    // In numerical section only keep questions with real integer answer
-    return extractRealInteger(q.correct_answer) !== null ? 'nat' : 'subjective';
-  }
-  if (key === 'subjective') return 'subjective';
-  return Array.isArray(q.options) && q.options.length > 0 ? 'mcq' : 'subjective';
-}
-
 function getCleanSnippet(q, maxLen = 45) {
   const rawText = (typeof q === 'string') ? q : (q?.question_text || q?.text || '');
   if (!rawText) {
-    if (q?.image_url) return '🖼️ [Image Question]';
+    if (q?.image_url) return 'Image question';
     return 'Question';
   }
   let clean = rawText
+    .replace(/\s*\[\s*cite[^\]]*\]/gi, '') // AI citation leftovers
     .replace(/\\text\{([^}]*)\}/g, '$1')
     .replace(/\\mathrm\{([^}]*)\}/g, '$1')
     .replace(/\\mathbf\{([^}]*)\}/g, '$1')
@@ -308,10 +282,6 @@ const TestConstructor = () => {
   const [typeFilter, setTypeFilter] = useState('');
   const [sortBy, setSortBy] = useState('default');
 
-  // Topics come from the hardcoded chapter map (same source as QuestionBank)
-  const activeSubject = userSubject || (testData.subject && testData.subject !== 'Mixed' ? testData.subject : (subjectFilter || 'Physics'));
-  const availableTopics = CHAPTERS[activeSubject] || CHAPTERS[subjectFilter] || CHAPTERS['Physics'] || [];
-
   // ── Server-side paginated question bank ──────────────────────────────────
   const [bankPage, setBankPage]         = useState(1);
   const [bankPageSize, setBankPageSize] = useState(10);
@@ -390,23 +360,23 @@ const TestConstructor = () => {
     t_type: 'jee_main'
   });
 
+  // Topics come from the hardcoded chapter map (same source as QuestionBank).
+  // Must sit below `testData`: reading it any earlier is a TDZ ReferenceError
+  // that blanks the whole constructor.
+  const activeSubject = userSubject || (testData.subject && testData.subject !== 'Mixed' ? testData.subject : (subjectFilter || 'Physics'));
+  const availableTopics = CHAPTERS[activeSubject] || CHAPTERS[subjectFilter] || CHAPTERS['Physics'] || [];
+
   const [existingTest, setExistingTest] = useState(null);
   const isInitiator = !existingTest || existingTest.created_by === user.id;
 
   useEffect(() => {
     if (testId) {
       apiClient.get(`/tests/${testId}`).then(data => {
-        const text = `${data.title || ''} ${data.description || ''} ${data.instructions || ''} ${data.paper_pattern || ''} ${data.t_type || ''}`.toLowerCase();
-        let inferredPattern = data.paper_pattern || data.t_type;
-        if (text.includes('jee advanced') || text.includes('jee_advanced') || text.includes('jee adv')) {
-          inferredPattern = 'jee_advanced';
-        } else if (text.includes('jee main') || text.includes('jee_main') || text.includes('jee mains') || text.includes('jee')) {
-          inferredPattern = 'jee_main';
-        } else if (text.includes('neet')) {
-          inferredPattern = 'neet';
-        } else if (!inferredPattern || inferredPattern === 'quiz') {
-          inferredPattern = 'jee_main';
-        }
+        // Same rule the server uses (utils/examPatterns): the paper_pattern
+        // column, else the pattern written into the title / instructions.
+        const inferredPattern = patternIdOf(data)
+          || (data.paper_pattern === 'custom' || data.t_type === 'quiz' ? 'custom' : 'jee_main');
+        const inferredSpec = getPattern(inferredPattern);
 
         setExistingTest(data);
         setTestData(prev => ({
@@ -416,8 +386,8 @@ const TestConstructor = () => {
           paper_pattern: inferredPattern,
           t_type: inferredPattern,
           instructions: data.instructions || prev.instructions,
-          duration: data.duration_minutes || (inferredPattern === 'neet' ? 200 : 180),
-          totalMarks: data.total_marks || (inferredPattern === 'neet' ? 720 : 300),
+          duration: inferredSpec ? inferredSpec.durationMinutes : (data.duration_minutes || 60),
+          totalMarks: inferredSpec ? patternTotals(inferredSpec).marks : (data.total_marks || 100),
           // Read from the real columns, falling back to the old description
           // convention for tests created before the migration.
           negativeMarking: data.negative_marking ?? !!data.description?.includes('Negative Marking'),
@@ -492,34 +462,13 @@ const TestConstructor = () => {
         scheduled_end: scheduledEnd
       };
 
-      if (status === 'published') {
-        const effPattern = String(testData.paper_pattern || testData.t_type || existingTest?.paper_pattern || existingTest?.t_type || '').toLowerCase();
-        const effTitle = String(testData.title || existingTest?.title || '').toLowerCase();
-        const checkJeeAdv  = effPattern.includes('jee_advanced') || effPattern.includes('jee adv') || effTitle.includes('jee adv') || effTitle.includes('jee advanced');
-        const checkJeeMain = !checkJeeAdv && (effPattern.includes('jee_main') || effPattern.includes('jee main') || effTitle.includes('jee main') || effTitle.includes('jee mains') || effTitle.includes('jee'));
-        const checkNeet    = effPattern.includes('neet') || effTitle.includes('neet');
-
-        const subjects = [...new Set(selectedQuestions.map(q => q.subject))];
-        if (checkJeeMain || checkJeeAdv) {
-          const examLabel = checkJeeAdv ? 'JEE Advanced' : 'JEE Main';
-          for (const sub of subjects) {
-            const subQs = selectedQuestions.filter(q => q.subject === sub);
-            const mcqCount = subQs.filter(q => getQuestionType(q) === 'mcq').length;
-            const natCount = subQs.filter(q => getQuestionType(q) === 'nat').length;
-            if (mcqCount !== 20 || natCount !== 5) {
-              showToast(`Cannot publish: ${sub} must have exactly 20 MCQs and 5 Numericals under ${examLabel} norms (currently ${mcqCount}/20 MCQs and ${natCount}/5 Numericals).`);
-              return;
-            }
-          }
-        } else if (checkNeet) {
-          for (const sub of subjects) {
-            const subQs = selectedQuestions.filter(q => q.subject === sub);
-            const req = sub === 'Biology' ? 90 : 45;
-            if (subQs.length !== req) {
-              showToast(`Cannot publish: ${sub} must have exactly ${req} MCQs for NEET (currently ${subQs.length}/${req}).`);
-              return;
-            }
-          }
+      if (status === 'published' && pattern) {
+        // The official pattern, checked the same way the server checks it. A
+        // subject teacher's share is checked for their subject only.
+        const problems = validatePaper(pattern, selectedQuestions, isInitiator ? null : userSubject);
+        if (problems.length) {
+          showToast(`Cannot publish: this paper does not follow the official ${pattern.label} pattern — ${problems.slice(0, 3).join('; ')}${problems.length > 3 ? '…' : ''}`);
+          return;
         }
       }
 
@@ -569,22 +518,17 @@ const TestConstructor = () => {
   const handleSaveDraft = () => saveToBackend('draft');
   const handlePublish = () => saveToBackend('published');
 
-  // Quota & Target calculations for assigned test / step 2
-  const combinedContext = `${testData.paper_pattern || ''} ${testData.t_type || ''} ${existingTest?.paper_pattern || ''} ${existingTest?.t_type || ''} ${testData.title || ''} ${existingTest?.title || ''} ${testData.instructions || ''} ${existingTest?.instructions || ''} ${testData.description || ''} ${existingTest?.description || ''}`.toLowerCase();
-
+  // Quota & targets — all from the official blueprint (utils/examPatterns).
   const isCustom  = testData.paper_pattern === 'custom' || (testData.t_type === 'quiz' && !testData.paper_pattern);
-  const isJeeAdv  = !isCustom && (combinedContext.includes('jee_advanced') || combinedContext.includes('jee adv') || combinedContext.includes('jee advanced') || testData.t_type === 'jee_advanced' || testData.paper_pattern === 'jee_advanced');
-  const isNeet    = !isCustom && (combinedContext.includes('neet') || testData.t_type === 'neet' || testData.paper_pattern === 'neet');
-  const isJeeMain = !isCustom && !isJeeAdv && !isNeet && (
-    combinedContext.includes('jee_main') ||
-    combinedContext.includes('jee main') ||
-    combinedContext.includes('jee mains') ||
-    combinedContext.includes('jee') ||
-    testData.t_type === 'jee_main' ||
-    testData.paper_pattern === 'jee_main' ||
-    !testData.paper_pattern ||
-    testData.paper_pattern === 'jee_main'
-  );
+  const patternId = isCustom
+    ? null
+    : (STANDARD_PATTERN_IDS.includes(testData.paper_pattern)
+        ? testData.paper_pattern
+        : patternIdOf({ ...existingTest, title: testData.title || existingTest?.title }) || 'jee_main');
+  const pattern   = getPattern(patternId);
+  const isJeeAdv  = Boolean(patternId && patternId.startsWith('jee_advanced'));
+  const isNeet    = patternId === 'neet';
+  const isJeeMain = patternId === 'jee_main';
 
   const isSingleSubject = Boolean(
     (userSubject && userSubject !== 'All' && userSubject !== 'Mixed') ||
@@ -592,66 +536,52 @@ const TestConstructor = () => {
     (existingTest?.subject && existingTest?.subject !== 'Mixed' && existingTest?.subject !== 'All')
   );
 
+  // The subject this screen is filling: a subject teacher's own, or a
+  // single-subject paper's. Otherwise the whole paper.
+  const scopeSubject = pattern
+    ? canonicalSubject(userSubject || (isSingleSubject ? (testData.subject || existingTest?.subject) : null), pattern)
+    : null;
+  const quota = pattern
+    ? (scopeSubject ? subjectQuota(pattern, scopeSubject) : paperQuota(pattern))
+    : null;
+
   let targetTotal = 25;
   let targetMcq   = 20;
   let targetNat   = 5;
   let quotaPatternName = 'Custom Paper';
 
-  if (isJeeMain) {
-    quotaPatternName = 'JEE Main Pattern';
-    if (isSingleSubject) {
-      targetTotal = 25;
-      targetMcq   = 20;
-      targetNat   = 5;
-    } else {
-      targetTotal = 75;
-      targetMcq   = 60;
-      targetNat   = 15;
-    }
-  } else if (isJeeAdv) {
-    quotaPatternName = 'JEE Advanced Pattern';
-    if (isSingleSubject) {
-      targetTotal = 25;
-      targetMcq   = 20;
-      targetNat   = 5;
-    } else {
-      targetTotal = 75;
-      targetMcq   = 60;
-      targetNat   = 15;
-    }
-  } else if (isNeet) {
-    quotaPatternName = 'NEET Pattern';
-    if (activeSubject === 'Biology' || userSubject === 'Biology') {
-      targetTotal = 90;
-      targetMcq   = 90;
-      targetNat   = 0;
-    } else if (isSingleSubject) {
-      targetTotal = 45;
-      targetMcq   = 45;
-      targetNat   = 0;
-    } else {
-      targetTotal = 180;
-      targetMcq   = 180;
-      targetNat   = 0;
-    }
+  if (pattern) {
+    quotaPatternName = `${pattern.label} pattern`;
+    targetTotal = quota.total;
+    targetMcq   = quota.single + quota.multi;
+    targetNat   = quota.numerical;
   } else {
-    // Custom test: check if description holds a total count
-    quotaPatternName = 'Custom Paper';
-    const descMatch = existingTest?.description?.match(/Total Questions:\s*(\d+)/i);
+    // Custom test: use the total written into its instructions if there is one.
+    const descMatch = (existingTest?.instructions || existingTest?.description || '').match(/Total Questions:\s*(\d+)/i);
     if (descMatch) {
       targetTotal = parseInt(descMatch[1], 10);
       targetMcq   = Math.round(targetTotal * 0.8);
       targetNat   = targetTotal - targetMcq;
-    } else if (isSingleSubject) {
-      targetTotal = 25;
-      targetMcq   = 20;
-      targetNat   = 5;
-    } else {
-      targetTotal = 75;
-      targetMcq   = 60;
-      targetNat   = 15;
     }
   }
+
+  /** Why a question cannot be added under the pattern (null when it can). */
+  const patternBlockReason = (q, current = selectedQuestions) => {
+    if (!pattern) return null;
+    const subject = canonicalSubject(q.subject, pattern);
+    if (!subject) return `${q.subject || 'This subject'} is not part of ${pattern.label}`;
+    const kind = kindOfQuestion(q, pattern);
+    if (!kind) {
+      return pattern.numericAnswer === 'integer' && /numer|integer|nat/i.test(String(q.q_type || ''))
+        ? `${pattern.label} numericals need a whole-number answer`
+        : `${pattern.label} does not use this question type`;
+    }
+    const want = subjectQuota(pattern, subject)[kind];
+    const have = current.filter(sq => canonicalSubject(sq.subject, pattern) === subject && kindOfQuestion(sq, pattern) === kind).length;
+    if (want === 0) return `${pattern.label} has no ${KIND_LABEL[kind].toLowerCase()} questions`;
+    if (have >= want) return `${subject} ${KIND_LABEL[kind].toLowerCase()} full (${have}/${want})`;
+    return null;
+  };
 
   const toggleQuestion = (q) => {
     if (userSubject && userSubject !== q.subject) {
@@ -664,40 +594,10 @@ const TestConstructor = () => {
     if (isSelected) {
       setSelectedQuestions(selectedQuestions.filter(sq => sq.id !== q.id));
     } else {
-      const qType = getQuestionType(q);
-      const subjectQuestions = selectedQuestions.filter(sq => sq.subject === q.subject);
-      const currentMcqs = subjectQuestions.filter(sq => getQuestionType(sq) === 'mcq').length;
-      const currentNats = subjectQuestions.filter(sq => getQuestionType(sq) === 'nat').length;
-
-      if (isJeeMain || isJeeAdv) {
-        const examName = isJeeAdv ? 'JEE Advanced' : 'JEE Main';
-        if (qType === 'subjective') {
-          showToast(`${examName} paper only accepts MCQ and Numerical (integer answer) questions.`);
-          return;
-        }
-        // Strict ceiling: Cannot exceed 5 numericals or 20 MCQs per subject
-        if (qType === 'nat' && currentNats >= 5) {
-          showToast(`Cannot add more than 5 Numerical questions for ${q.subject}. ${examName} strictly caps Section B at 5 numerical questions.`);
-          return;
-        }
-        if (qType === 'mcq' && currentMcqs >= 20) {
-          showToast(`Cannot add more than 20 MCQ questions for ${q.subject}. ${examName} strictly caps Section A at 20 MCQs.`);
-          return;
-        }
-        if (subjectQuestions.length >= 25) {
-          showToast(`Cannot add more than 25 questions total for ${q.subject} in ${examName}.`);
-          return;
-        }
-      } else if (isNeet) {
-        if (qType !== 'mcq') {
-          showToast('NEET examination only accepts Single-Choice MCQs.');
-          return;
-        }
-        const neetLimit = q.subject === 'Biology' ? 90 : 45;
-        if (subjectQuestions.length >= neetLimit) {
-          showToast(`Cannot add more than ${neetLimit} questions for ${q.subject} in NEET.`);
-          return;
-        }
+      const blocked = patternBlockReason(q);
+      if (blocked) {
+        showToast(`Cannot add: ${blocked}.`);
+        return;
       }
 
       setSelectedQuestions([...selectedQuestions, q]);
@@ -726,8 +626,11 @@ const TestConstructor = () => {
   const questionsLeft = Math.max(0, targetTotal - addedCount);
   const progressPct   = Math.min(100, Math.round((addedCount / targetTotal) * 100));
 
-  const mcqAdded = relevantSelected.filter(q => getQuestionType(q) === 'mcq').length;
-  const natAdded = relevantSelected.filter(q => getQuestionType(q) === 'nat').length;
+  const kindOf = (q) => (pattern
+    ? kindOfQuestion(q, pattern)
+    : (getQuestionType(q) === 'nat' ? 'numerical' : getQuestionType(q) === 'mcq' ? 'single' : null));
+  const mcqAdded = relevantSelected.filter(q => ['single', 'multi'].includes(kindOf(q))).length;
+  const natAdded = relevantSelected.filter(q => kindOf(q) === 'numerical').length;
   const mcqLeft  = Math.max(0, targetMcq - mcqAdded);
   const natLeft  = Math.max(0, targetNat - natAdded);
 
@@ -744,11 +647,11 @@ const TestConstructor = () => {
             {step === 2 && (
               <button
                 type="button"
-                className="btn-magic-autofill"
+                className="btn-autofill"
                 onClick={() => setIsAutoModalOpen(true)}
                 title="Auto-fill questions using JEE Advanced / Main patterns & topic weightages"
               >
-                <Sparkles size={16} className="sparkle-icon" />
+                <ListChecks size={16} />
                 <span>Auto-Fill Test</span>
               </button>
             )}
@@ -756,12 +659,12 @@ const TestConstructor = () => {
               {isInitiator ? 'Save Draft' : 'Save Questions'}
             </button>
             {step < 3 ? (
-              <button className="btn-primary" onClick={handleNext}>Next Step <ChevronRight size={18} /></button>
+              <button className="btn-primary" onClick={handleNext}>Next step <ChevronRight size={18} /></button>
             ) : (
               isInitiator ? (
-                <button className="btn-primary success-bg" onClick={handlePublish}>Publish Test</button>
+                <button className="btn-primary success-bg" onClick={handlePublish}>Publish test</button>
               ) : (
-                <button className="btn-primary success-bg" onClick={handleSaveDraft}>Save Questions</button>
+                <button className="btn-primary success-bg" onClick={handleSaveDraft}>Save questions</button>
               )
             )}
           </div>
@@ -803,17 +706,17 @@ const TestConstructor = () => {
                 <div className="tc-meta-intro-left">
                   <div className="tc-meta-badge-tag">
                     <Settings size={14} />
-                    <span>Configuration Phase</span>
+                    <span>Configuration phase</span>
                   </div>
-                  <h2 className="tc-meta-main-title">Assessment Metadata & Settings</h2>
+                  <h2 className="tc-meta-main-title">Assessment metadata & settings</h2>
                   <p className="tc-meta-main-desc">
                     Review paper details, scoring rules, and assigned cohorts before building your question paper.
                   </p>
                 </div>
                 {(isJeeMain || isJeeAdv || isNeet) && (
                   <div className="tc-meta-pattern-badge">
-                    <Sparkles size={14} />
-                    <span>{isJeeAdv ? 'JEE Advanced Pattern' : isNeet ? 'NEET Pattern' : 'JEE Main Pattern'}</span>
+                    <FileText size={14} />
+                    <span>{pattern ? pattern.label : 'Custom'}</span>
                   </div>
                 )}
               </div>
@@ -849,7 +752,7 @@ const TestConstructor = () => {
                       <FileText size={17} />
                     </div>
                     <div>
-                      <h3 className="tc-meta-card-title">Paper Details</h3>
+                      <h3 className="tc-meta-card-title">Paper details</h3>
                       <span className="tc-meta-card-sub">Title, duration, and assessment format</span>
                     </div>
                     {userSubject && (
@@ -861,7 +764,7 @@ const TestConstructor = () => {
 
                   <div className="tc-meta-field">
                     <label className="tc-meta-label">
-                      <span>Test Title</span>
+                      <span>Test title</span>
                       <span className="tc-req">*</span>
                     </label>
                     <input
@@ -907,42 +810,31 @@ const TestConstructor = () => {
                   </div>
 
                   <div className="tc-meta-field">
-                    <label className="tc-meta-label">Assessment Pattern</label>
+                    <label className="tc-meta-label">Assessment pattern</label>
                     <div className="tc-pattern-tabs">
-                      <button
-                        type="button"
-                        className={`tc-pattern-tab ${isJeeMain ? 'active' : ''}`}
-                        onClick={() => isInitiator && setTestData({ ...testData, t_type: 'jee_main', paper_pattern: 'jee_main', duration: 180, totalMarks: 300 })}
-                        disabled={!isInitiator}
-                      >
-                        <span className="tc-pt-title">JEE Main</span>
-                        <span className="tc-pt-desc">25 Q/sub · 20 MCQs + 5 Numericals (300 marks)</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`tc-pattern-tab ${isJeeAdv ? 'active' : ''}`}
-                        onClick={() => isInitiator && setTestData({ ...testData, t_type: 'jee_advanced', paper_pattern: 'jee_advanced', duration: 180, totalMarks: 300 })}
-                        disabled={!isInitiator}
-                      >
-                        <span className="tc-pt-title">JEE Advanced</span>
-                        <span className="tc-pt-desc">25 Q/sub · 20 MCQs + 5 Numericals (300 marks)</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`tc-pattern-tab ${isNeet ? 'active' : ''}`}
-                        onClick={() => isInitiator && setTestData({ ...testData, t_type: 'neet', paper_pattern: 'neet', duration: 200, totalMarks: 720 })}
-                        disabled={!isInitiator}
-                      >
-                        <span className="tc-pt-title">NEET</span>
-                        <span className="tc-pt-desc">180 MCQs (45 Phys, 45 Chem, 90 Bio · 720 marks)</span>
-                      </button>
+                      {STANDARD_PATTERN_IDS.map(id => {
+                        const spec = getPattern(id);
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            className={`tc-pattern-tab ${patternId === id ? 'active' : ''}`}
+                            onClick={() => isInitiator && setTestData({ ...testData, t_type: id, paper_pattern: id, duration: spec.durationMinutes, totalMarks: patternTotals(spec).marks })}
+                            disabled={!isInitiator}
+                            title={`${spec.authority} · ${spec.edition}`}
+                          >
+                            <span className="tc-pt-title">{spec.label}</span>
+                            <span className="tc-pt-desc">{patternSummary(id)}</span>
+                          </button>
+                        );
+                      })}
                       <button
                         type="button"
                         className={`tc-pattern-tab ${isCustom ? 'active' : ''}`}
                         onClick={() => isInitiator && setTestData({ ...testData, t_type: 'quiz', paper_pattern: 'custom', duration: 60, totalMarks: 100 })}
                         disabled={!isInitiator}
                       >
-                        <span className="tc-pt-title">Custom / Quiz</span>
+                        <span className="tc-pt-title">Custom / quiz</span>
                         <span className="tc-pt-desc">Flexible question mix & custom quotas</span>
                       </button>
                     </div>
@@ -956,7 +848,7 @@ const TestConstructor = () => {
                       <Calendar size={17} />
                     </div>
                     <div>
-                      <h3 className="tc-meta-card-title">Schedule & Target Batches</h3>
+                      <h3 className="tc-meta-card-title">Schedule & target batches</h3>
                       <span className="tc-meta-card-sub">Window availability and assigned student cohorts</span>
                     </div>
                   </div>
@@ -986,7 +878,7 @@ const TestConstructor = () => {
 
                   <div className="tc-meta-field" style={{ marginTop: '12px' }}>
                     <div className="tc-batches-head">
-                      <label className="tc-meta-label" style={{ marginBottom: 0 }}>Target Batches</label>
+                      <label className="tc-meta-label" style={{ marginBottom: 0 }}>Target batches</label>
                       <span className="tc-batches-count">
                         {(testData.targetBatches || []).length} of {batches?.length || 0} Batches Selected
                       </span>
@@ -1056,7 +948,7 @@ const TestConstructor = () => {
                 <div className="tc-tracker-row-main">
                   {/* Left: Title + Context */}
                   <div className="tc-tracker-title-group">
-                    <h2 className="tc-tracker-title">Select Questions</h2>
+                    <h2 className="tc-tracker-title">Select questions</h2>
                     <div className="tc-tracker-paper-badge">
                       <span className="tc-t-name">{testData.title || existingTest?.title || (userSubject ? `${userSubject} Test` : 'JEE Main Mock Test')}</span>
                       <span className="tc-t-pattern">{quotaPatternName}</span>
@@ -1113,13 +1005,13 @@ const TestConstructor = () => {
                         onClick={() => { setTypeFilter(''); setBankPage(1); }}
                         title="Show all question types"
                       >
-                        All Types
+                        All types
                       </button>
                     )}
 
                     {/* Total Marks */}
                     <div className="tc-metric-pill marks" title="Total paper marks">
-                      <Sparkles size={12} />
+                      
                       <span>{selectedQuestions.reduce((sum, q) => sum + (q.marks || 4), 0)} pts</span>
                     </div>
                   </div>
@@ -1128,7 +1020,7 @@ const TestConstructor = () => {
                   <div className="tc-tracker-actions">
                     {questionsLeft === 0 ? (
                       <span className="tc-status-mini complete">
-                        <CheckCircle2 size={13} /> Quota Met
+                        <CheckCircle2 size={13} /> Quota met
                       </span>
                     ) : addedCount > targetTotal ? (
                       <span className="tc-status-mini exceed">
@@ -1192,7 +1084,7 @@ const TestConstructor = () => {
                       className="tc-select tc-select-topic"
                       title="Filter by Topic"
                     >
-                      <option value="">All Topics</option>
+                      <option value="">All topics</option>
                       {availableTopics.map(t => (
                         <option key={t} value={t}>{t}</option>
                       ))}
@@ -1204,7 +1096,7 @@ const TestConstructor = () => {
                       className="tc-select tc-select-type"
                       title="Filter by Question Type"
                     >
-                      <option value="">All Types</option>
+                      <option value="">All types</option>
                       <option value="mcq">MCQ</option>
                       <option value="nat">Numerical</option>
                     </select>
@@ -1231,9 +1123,9 @@ const TestConstructor = () => {
                       </div>
                     )}
                     {!bankLoading && bankError && (
-                      <div className="tc-empty-state" style={{ borderColor: '#fca5a5', background: '#fef2f2' }}>
-                        <p className="tc-empty-title" style={{ color: '#b91c1c' }}>Failed to load questions</p>
-                        <p className="tc-empty-sub" style={{ color: '#991b1b', marginBottom: 12 }}>{bankError}</p>
+                      <div className="tc-empty-state" style={{ borderColor: '#e2b6aa', background: '#f5e2da' }}>
+                        <p className="tc-empty-title" style={{ color: '#b3352b' }}>Failed to load questions</p>
+                        <p className="tc-empty-sub" style={{ color: '#b3352b', marginBottom: 12 }}>{bankError}</p>
                         <button
                           type="button"
                           className="btn-primary"
@@ -1280,47 +1172,9 @@ const TestConstructor = () => {
                       const hasCorrectTicked = hasOptions && rawOptions.some((_, idx) => ansDetails.isCorrectIndex(idx));
                       const isExpandedSol = !!expandedSolutions[q.id];
 
-                      const qSubjectQuestions = selectedQuestions.filter(sq => sq.subject === q.subject);
-                      const currentSubjectMcqs = qSubjectQuestions.filter(sq => getQuestionType(sq) === 'mcq').length;
-                      const currentSubjectNats = qSubjectQuestions.filter(sq => getQuestionType(sq) === 'nat').length;
-
-                      let isQuotaFull = false;
-                      let quotaReason = '';
-
-                      if (!isSelected) {
-                        if (isJeeMain) {
-                          if (qType === 'nat' && currentSubjectNats >= 5) {
-                            isQuotaFull = true;
-                            quotaReason = 'Sec B Full (5/5)';
-                          } else if (qType === 'mcq' && currentSubjectMcqs >= 20) {
-                            isQuotaFull = true;
-                            quotaReason = 'Sec A Full (20/20)';
-                          } else if (qSubjectQuestions.length >= 25) {
-                            isQuotaFull = true;
-                            quotaReason = 'Subject Full (25/25)';
-                          }
-                        } else if (isJeeAdv) {
-                          if (qType === 'nat' && currentSubjectNats >= 6) {
-                            isQuotaFull = true;
-                            quotaReason = 'Numerical Full (6/6)';
-                          } else if (qType === 'mcq' && currentSubjectMcqs >= 12) {
-                            isQuotaFull = true;
-                            quotaReason = 'MCQ Full (12/12)';
-                          } else if (qSubjectQuestions.length >= 18) {
-                            isQuotaFull = true;
-                            quotaReason = 'Subject Full (18/18)';
-                          }
-                        } else if (isNeet) {
-                          const limit = q.subject === 'Biology' ? 90 : 45;
-                          if (qType !== 'mcq') {
-                            isQuotaFull = true;
-                            quotaReason = 'MCQ Only';
-                          } else if (qSubjectQuestions.length >= limit) {
-                            isQuotaFull = true;
-                            quotaReason = `Quota Full (${limit}/${limit})`;
-                          }
-                        }
-                      }
+                      // Same rule as adding: the official blueprint's per-section counts.
+                      const quotaReason = !isSelected ? (patternBlockReason(q) || '') : '';
+                      const isQuotaFull = Boolean(quotaReason);
 
                       return (
                         <div key={q.id} className={`tc-q-card ${isSelected ? 'selected' : ''}`}>
@@ -1350,7 +1204,7 @@ const TestConstructor = () => {
                                   </>
                                 ) : (
                                   <>
-                                    <Plus size={14} /> Add Question
+                                    <Plus size={14} /> Add question
                                   </>
                                 )}
                               </button>
@@ -1558,7 +1412,7 @@ const TestConstructor = () => {
                     <span className="tc-review-paper-pill">{testData.title || 'Untitled Assessment'}</span>
                     <span className="tc-review-sub-pill">{testData.subject}</span>
                   </div>
-                  <h2>Review & Publish Test</h2>
+                  <h2>Review & publish test</h2>
                   <p className="tc-review-sub">
                     Verify your test parameters and inspect all {selectedQuestions.length} selected questions before finalizing.
                   </p>
@@ -1588,36 +1442,36 @@ const TestConstructor = () => {
                   <span className="subject-badge">{testData.subject}</span>
                 </div>
 
-                <div className="summary-grid">
+                <div className="summary-grid ink-cycle ink-stats">
                   <div className="summary-item">
                     <span className="label">Duration</span>
                     <span className="value">{testData.duration} mins</span>
                   </div>
                   <div className="summary-item">
-                    <span className="label">Total Marks</span>
+                    <span className="label">Total marks</span>
                     <span className="value">{testData.totalMarks}</span>
                   </div>
                   <div className="summary-item">
-                    <span className="label">Questions Selected</span>
+                    <span className="label">Questions selected</span>
                     <span className="value">{selectedQuestions.length}</span>
                   </div>
                   <div className="summary-item">
-                    <span className="label">Negative Marking</span>
+                    <span className="label">Negative marking</span>
                     <span className="value">{testData.negativeMarking ? `Yes (−${testData.negativeMarks})` : 'No'}</span>
                   </div>
                   <div className="summary-item">
-                    <span className="label">Scheduled Window</span>
+                    <span className="label">Scheduled window</span>
                     <span className="value">{testData.date ? `${testData.date} at ${testData.time}` : 'Unscheduled'}</span>
                   </div>
                   <div className="summary-item">
-                    <span className="label">Questions Added</span>
+                    <span className="label">Questions added</span>
                     <span className="value">{addedCount} / {targetTotal} Total</span>
                   </div>
                 </div>
 
                 {testData.targetBatches && testData.targetBatches.length > 0 && (
                   <div className="summary-section">
-                    <h4>Assigned Batches</h4>
+                    <h4>Assigned batches</h4>
                     <div className="batches-list">
                       {testData.targetBatches.map(bId => {
                         const batch = batches.find(b => b.id === bId);
@@ -1665,7 +1519,7 @@ const TestConstructor = () => {
                             className={`tc-review-sub-tab ${reviewSubjectTab === 'All' ? 'active' : ''}`}
                             onClick={() => setReviewSubjectTab('All')}
                           >
-                            <span>All Subjects</span>
+                            <span>All subjects</span>
                             <span className="count-badge">{selectedQuestions.length}</span>
                           </button>
                         </div>
@@ -1674,12 +1528,12 @@ const TestConstructor = () => {
 
                     {displayReviewQuestions.length === 0 ? (
                       <div className="tc-review-empty-state">
-                        <AlertCircle size={36} color="#94a3b8" />
+                        <AlertCircle size={36} color="#998f7d" />
                         <h4>No {reviewSubjectTab !== 'All' ? reviewSubjectTab : ''} Questions Selected Yet</h4>
                         <p>Go back to Step 2 to pick or auto-fill questions from the question bank.</p>
                         <button type="button" className="btn-primary" onClick={() => setStep(2)}>
                           <Plus size={16} />
-                          <span>Add Questions</span>
+                          <span>Add questions</span>
                         </button>
                       </div>
                     ) : (
@@ -1833,25 +1687,26 @@ const TestConstructor = () => {
     />
 
     {/* Smart Auto-Generate Test Modal */}
-    <AutoGenerateTestModal
-      isOpen={isAutoModalOpen}
-      onClose={() => setIsAutoModalOpen(false)}
-      subject={activeSubject}
-      userSubject={userSubject}
-      availableTopics={availableTopics}
-      currentSelected={selectedQuestions}
-      targetTotal={targetTotal}
-      targetMcq={targetMcq}
-      targetNat={targetNat}
-      patternName={quotaPatternName}
-      onApply={(newQuestions, proceedToReview = false) => {
-        setSelectedQuestions(newQuestions);
-        if (proceedToReview) {
-          setStep(3);
-        }
-      }}
-      showToast={showToast}
-    />
+    {isAutoModalOpen && (
+      <AutoGenerateTestModal
+        onClose={() => setIsAutoModalOpen(false)}
+        subject={activeSubject}
+        userSubject={userSubject}
+        availableTopics={availableTopics}
+        currentSelected={selectedQuestions}
+        targetTotal={targetTotal}
+        targetNat={targetNat}
+        patternName={quotaPatternName}
+        patternId={patternId}
+        onApply={(newQuestions, proceedToReview = false) => {
+          setSelectedQuestions(newQuestions);
+          if (proceedToReview) {
+            setStep(3);
+          }
+        }}
+        showToast={showToast}
+      />
+    )}
 
     {/* Image Lightbox */}
     {lightboxUrl && (

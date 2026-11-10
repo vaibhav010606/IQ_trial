@@ -15,6 +15,8 @@ export declare class AttemptsService {
     private getMarkingScheme;
     private resolveAssignmentWindow;
     private assertWritable;
+    private attemptsFor;
+    private hasOtherSubmittedAttempt;
     startAttempt(testId: string, studentId: string): Promise<{
         attemptId: string;
         testId: string;
@@ -91,12 +93,14 @@ export declare class AttemptsService {
         message?: undefined;
     }>;
     private gradeAndFinalise;
+    private isEmptyAnswer;
     private answersMatch;
     autoSubmitExpiredAttempts(): Promise<number>;
     getMyAttempts(studentId: string): Promise<{
         results_published: boolean;
         total_score: any;
         id: any;
+        test_id: any;
         status: any;
         started_at: any;
         submitted_at: any;

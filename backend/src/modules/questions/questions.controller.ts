@@ -14,7 +14,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiConsumes,
+} from '@nestjs/swagger';
 import { QuestionsService } from './questions.service';
 import { PdfProcessorService } from './pdf-processor.service';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
@@ -41,13 +46,22 @@ import {
 const MAX_CSV_BYTES = 5 * 1024 * 1024;
 const MAX_PDF_BYTES = 50 * 1024 * 1024;
 
-const CSV_MIME = ['text/csv', 'application/vnd.ms-excel', 'text/plain', 'application/csv'];
+const CSV_MIME = [
+  'text/csv',
+  'application/vnd.ms-excel',
+  'text/plain',
+  'application/csv',
+];
 const PDF_MIME = ['application/pdf'];
 
 /** Multer rejects on the declared type; the service re-checks the actual bytes. */
 const mimeFilter =
   (allowed: string[], label: string) =>
-  (_req: any, file: Express.Multer.File, cb: (e: Error | null, ok: boolean) => void) => {
+  (
+    _req: any,
+    file: Express.Multer.File,
+    cb: (e: Error | null, ok: boolean) => void,
+  ) => {
     if (!allowed.includes(file.mimetype)) {
       return cb(new BadRequestException(`Expected ${label}.`), false);
     }
@@ -65,15 +79,22 @@ export class QuestionsController {
     private readonly pdfProcessorService: PdfProcessorService,
   ) {}
 
-  @ApiOperation({ summary: 'List all questions with filters (server-side pagination)' })
+  @ApiOperation({
+    summary: 'List all questions with filters (server-side pagination)',
+  })
   @Get()
   findAll(@CurrentUser() user: any, @Query() query: QuestionQueryDto) {
     return this.questionsService.findAll(query, user);
   }
 
-  @ApiOperation({ summary: 'QA queue — AI-extracted questions awaiting verification' })
+  @ApiOperation({
+    summary: 'QA queue — AI-extracted questions awaiting verification',
+  })
   @Get('review-queue')
-  getReviewQueue(@CurrentUser() user: any, @Query() query: ReviewQueueQueryDto) {
+  getReviewQueue(
+    @CurrentUser() user: any,
+    @Query() query: ReviewQueueQueryDto,
+  ) {
     return this.questionsService.getReviewQueue(query, user);
   }
 
@@ -105,7 +126,8 @@ export class QuestionsController {
     }),
   )
   bulkUpload(@UploadedFile() file: Express.Multer.File) {
-    if (!file?.buffer?.length) throw new BadRequestException('No CSV file provided.');
+    if (!file?.buffer?.length)
+      throw new BadRequestException('No CSV file provided.');
     return this.questionsService.parseCSV(file.buffer, MAX_CSV_ROWS);
   }
 
@@ -115,7 +137,9 @@ export class QuestionsController {
     return this.questionsService.bulkInsert(body.rows, user);
   }
 
-  @ApiOperation({ summary: 'Upload PDF to extract and classify image questions' })
+  @ApiOperation({
+    summary: 'Upload PDF to extract and classify image questions',
+  })
   @ApiConsumes('multipart/form-data')
   @Post('bulk-upload-pdf')
   @UseInterceptors(
@@ -129,8 +153,13 @@ export class QuestionsController {
     @Body() body: PdfUploadDto,
     @CurrentUser() user,
   ) {
-    if (!file?.buffer?.length) throw new BadRequestException('No PDF file provided.');
-    return this.pdfProcessorService.processPdf(file.buffer, user.id, body.examType || 'jee');
+    if (!file?.buffer?.length)
+      throw new BadRequestException('No PDF file provided.');
+    return this.pdfProcessorService.processPdf(
+      file.buffer,
+      user.id,
+      body.examType || 'jee',
+    );
   }
 
   @ApiOperation({
@@ -176,7 +205,10 @@ export class QuestionsController {
     return this.questionsService.duplicate(id, user);
   }
 
-  @ApiOperation({ summary: 'Approve a question from the QA queue (optionally with corrections)' })
+  @ApiOperation({
+    summary:
+      'Approve a question from the QA queue (optionally with corrections)',
+  })
   @Patch(':id/approve')
   approve(
     @Param('id', ParseUUIDPipe) id: string,

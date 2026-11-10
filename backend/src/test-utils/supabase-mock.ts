@@ -17,7 +17,12 @@ export class SupabaseMock {
   /** table -> queued results, consumed FIFO. */
   private results = new Map<string, QueuedResult[]>();
   /** Every terminal operation, for assertions. `columns` is the select list. */
-  public calls: { table: string; op: string; payload?: any; columns?: string }[] = [];
+  public calls: {
+    table: string;
+    op: string;
+    payload?: any;
+    columns?: string;
+  }[] = [];
 
   reset() {
     this.results.clear();
@@ -61,10 +66,25 @@ export class SupabaseMock {
         if (opts?.head) currentOp = 'count';
         return builder;
       },
-      insert: (rows: any) => { currentOp = 'insert'; payload = rows; return builder; },
-      update: (row: any) => { currentOp = 'update'; payload = row; return builder; },
-      upsert: (rows: any) => { currentOp = 'upsert'; payload = rows; return builder; },
-      delete: () => { currentOp = 'delete'; return builder; },
+      insert: (rows: any) => {
+        currentOp = 'insert';
+        payload = rows;
+        return builder;
+      },
+      update: (row: any) => {
+        currentOp = 'update';
+        payload = row;
+        return builder;
+      },
+      upsert: (rows: any) => {
+        currentOp = 'upsert';
+        payload = rows;
+        return builder;
+      },
+      delete: () => {
+        currentOp = 'delete';
+        return builder;
+      },
 
       eq: () => builder,
       neq: () => builder,
@@ -93,7 +113,9 @@ export class SupabaseMock {
   storage = {
     from: () => ({
       upload: jest.fn().mockResolvedValue({ data: { path: 'x' }, error: null }),
-      getPublicUrl: jest.fn().mockReturnValue({ data: { publicUrl: 'https://cdn.test/x.png' } }),
+      getPublicUrl: jest
+        .fn()
+        .mockReturnValue({ data: { publicUrl: 'https://cdn.test/x.png' } }),
     }),
   };
 
@@ -101,7 +123,9 @@ export class SupabaseMock {
     admin: {
       signOut: jest.fn().mockResolvedValue({ error: null }),
       updateUserById: jest.fn().mockResolvedValue({ error: null }),
-      createUser: jest.fn().mockResolvedValue({ data: { user: { id: 'u1' } }, error: null }),
+      createUser: jest
+        .fn()
+        .mockResolvedValue({ data: { user: { id: 'u1' } }, error: null }),
       deleteUser: jest.fn().mockResolvedValue({ error: null }),
     },
     signInWithPassword: jest.fn(),

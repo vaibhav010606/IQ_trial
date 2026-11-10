@@ -103,7 +103,7 @@ const TestLibrary = () => {
       };
     }
     return {
-      label: 'Custom Paper',
+      label: 'Custom paper',
       icon: Settings,
       className: 'pattern-tag-custom',
       defaultDesc: 'Custom institutional exam shell with tailored subject sections and quotas.',
@@ -166,7 +166,7 @@ const TestLibrary = () => {
       {/* ── Page Header ── */}
       <div className="page-header">
         <div>
-          <h1 className="library-main-title">Test Library</h1>
+          <h1 className="library-main-title">Test library</h1>
           <p className="library-main-subtitle">
             Manage your exam papers, track question quotas, and review assessment analytics.
           </p>
@@ -174,7 +174,7 @@ const TestLibrary = () => {
         {user.role === 'admin' && (
           <button className="library-btn-primary" onClick={() => navigate('/admin/test-initiation')}>
             <Plus size={18} />
-            <span>Initiate New Test</span>
+            <span>Initiate new test</span>
           </button>
         )}
       </div>
@@ -210,10 +210,10 @@ const TestLibrary = () => {
       </div>
 
       {/* ── Tests Cards Grid ── */}
-      <div className="tests-grid">
+      <div className="tests-grid ink-cycle ink-cards">
         {filteredTests.length === 0 ? (
           <div className="empty-state">
-            <FileText size={48} color="#94a3b8" />
+            <FileText size={48} color="#998f7d" />
             <h3>No tests match your filter</h3>
             <p>
               {search
@@ -276,15 +276,15 @@ const TestLibrary = () => {
                     <Clock size={13} />
                     <span>{duration} mins</span>
                   </div>
-                  <div className="tc-metric-chip" title="Total Marks">
+                  <div className="tc-metric-chip" title="Total marks">
                     <Award size={13} />
                     <span>{marks} Marks</span>
                   </div>
-                  <div className="tc-metric-chip" title="Total Questions">
+                  <div className="tc-metric-chip" title="Total questions">
                     <FileText size={13} />
                     <span>{totalQ} Qs added</span>
                   </div>
-                  <div className="tc-metric-chip" title="Initiated Date">
+                  <div className="tc-metric-chip" title="Initiated date">
                     <Calendar size={13} />
                     <span>{formatDate(test.created_at)}</span>
                   </div>
@@ -299,7 +299,7 @@ const TestLibrary = () => {
                       </span>
                       <span
                         className="tc-progress-value"
-                        style={{ color: progress.isComplete ? '#059669' : '#4f46e5' }}
+                        style={{ color: progress.isComplete ? '#2f6b3a' : 'var(--accent)' }}
                       >
                         {progress.added} / {progress.target} Qs ({progress.pct}%)
                       </span>

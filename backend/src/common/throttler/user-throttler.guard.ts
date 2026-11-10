@@ -49,14 +49,20 @@ export class UserThrottlerGuard extends ThrottlerGuard {
 
   /** Pulls `sub` out of a bearer token's payload. Bucketing only — never trust. */
   private readSubject(authorization?: string): string | null {
-    if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ')) return null;
+    if (
+      typeof authorization !== 'string' ||
+      !authorization.startsWith('Bearer ')
+    )
+      return null;
 
     const token = authorization.slice('Bearer '.length).trim();
     const parts = token.split('.');
     if (parts.length !== 3) return null;
 
     try {
-      const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+      const payload = JSON.parse(
+        Buffer.from(parts[1], 'base64url').toString('utf8'),
+      );
       const sub = payload?.sub;
       if (typeof sub !== 'string' || !sub) return null;
       // Hashed so a raw user id never reaches a Redis key or a log line.

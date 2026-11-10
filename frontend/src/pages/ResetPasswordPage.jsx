@@ -78,7 +78,7 @@ const ResetPasswordPage = () => {
         <div className="login-form-card">
           {done ? (
             <>
-              <CheckCircle size={44} style={{ color: '#059669', marginBottom: '12px' }} />
+              <CheckCircle size={44} style={{ color: '#2f6b3a', marginBottom: '12px' }} />
               <h2>Password updated</h2>
               <p className="login-subtitle">Taking you to the sign-in page…</p>
             </>
@@ -89,7 +89,7 @@ const ResetPasswordPage = () => {
 
               <form onSubmit={handleSubmit} className="login-form">
                 <div className="form-group">
-                  <label>New Password</label>
+                  <label>New password</label>
                   <div className="password-wrapper">
                     <input
                       type={showPassword ? 'text' : 'password'}
@@ -105,7 +105,7 @@ const ResetPasswordPage = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Confirm Password</label>
+                  <label>Confirm password</label>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Repeat the password"
@@ -124,7 +124,7 @@ const ResetPasswordPage = () => {
 
               <Link
                 to="/forgot-password"
-                style={{ display: 'inline-block', marginTop: '18px', fontSize: '0.88rem', color: '#64748b', textDecoration: 'none' }}
+                style={{ display: 'inline-block', marginTop: '18px', fontSize: '0.88rem', color: '#736b5f', textDecoration: 'none' }}
               >
                 Request a new link
               </Link>

@@ -1,35 +1,144 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap');
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   IQ design tokens — the printed exam paper.
+   Warm paper and near-black ink. Titles are set in a serif over a double
+   rule, the way a question paper is headed. Ballpoint blue marks a choice
+   (the OMR bubble), red pen marks scores and anything that needs attention.
+   Every page reads from these tokens.
+
+   Direction and passes follow unslop by Damir Sokolovsky (@heydamir), CC BY 4.0.
+   ═══════════════════════════════════════════════════════════════════════════ */
 :root {
-  --font-family: 'Outfit', 'Inter', sans-serif;
+  /* Type */
+  --font-sans: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
-  /* Background & cards */
-  --bg-color: #f3f6fa;
-  --card-bg: rgba(255, 255, 255, 0.85);
-  --card-bg-solid: #ffffff;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --border-color: rgba(226, 232, 240, 0.6);
+  /* Paper and ink */
+  --bg: #efe9dc;              /* the desk the sheets sit on */
+  --surface: #fbf8f1;         /* a sheet */
+  --surface-raised: #f6f1e6;  /* hover, inputs at rest */
+  --surface-sunken: #ebe3d3;  /* selected row, wells */
+  --line: #ded4bf;            /* printed rule */
+  --line-strong: #c6b99e;
+  --hairline: rgba(27, 26, 23, 0.10);
+  --ink-900: #1b1a17;
+  --ink-800: #2a2722;
+  --ink-700: #34302a;
+  --ink-600: #47423b;
+  --ink-500: #5e574c;
+  --ink-400: #8a8070;
 
-  /* Primary vibrant colors */
-  --color-dashboard-blue: #3b82f6;
-  --color-dashboard-blue-hover: #2563eb;
-  --color-physics-red: #f43f5e;
-  --color-chemistry-orange: #f59e0b;
-  --color-math-teal: #0ea5e9;
-  --color-biology-green: #10b981;
+  /* Ballpoint blue: the choice you make */
+  --accent: #2b44a6;
+  --accent-strong: #1f3480;
+  --accent-soft: #e6e8f2;
+  --accent-line: #bcc4e2;
+  --on-accent: #ffffff;
+  --focus-ring: 0 0 0 3px rgba(43, 68, 166, 0.22);
 
-  --color-teacher-navy-dark: #0f172a;
-  --color-teacher-navy-mid: #1e293b;
-  --color-teacher-navy: #1e293b;
-  --color-teacher-slate: #334155;
-  --color-teacher-accent: #6366f1;
-  --color-teacher-accent-hover: #4f46e5;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
+  /* Red pen: marks, corrections, attention */
+  --mark: #b3352b;
+  --mark-soft: #f5e2da;
+  --mark-line: #e2b6aa;
 
-  /* Spacing system */
+  /* Meaning */
+  --positive: #2f6b3a;
+  --positive-soft: #e3ecd9;
+  --positive-line: #b6cba6;
+  --negative: var(--mark);
+  --negative-soft: var(--mark-soft);
+  --negative-line: var(--mark-line);
+  --warning: #8f5c0e;
+  --warning-soft: #f3e6c6;
+  --warning-line: #dfc68f;
+
+  /* Subjects — each has its own ink, used on tabs, tiles, chart series */
+  --subject-physics: #b04a3c;
+  --subject-physics-soft: #f6e4dc;
+  --subject-chemistry: #a06d12;
+  --subject-chemistry-soft: #f5e9cf;
+  --subject-math: #22708a;
+  --subject-math-soft: #dcecf0;
+  --subject-biology: #3f7a3c;
+  --subject-biology-soft: #e2eedb;
+
+  /* Portal paper and the deep ink the sidebar is printed in */
+  --portal-paper: #f0eef4;
+  --portal-deep: #1d2f73;
+
+  /* Categorical inks: stat cards, shortcuts and chart series cycle through
+     these so a page reads in colour, each hue a different thing. */
+  --c1: #2b44a6; --c1-soft: #e3e7f5;   /* ink blue */
+  --c2: #17697a; --c2-soft: #d9ecec;   /* teal */
+  --c3: #8f600c; --c3-soft: #f5e9cf;   /* ochre */
+  --c4: #5b3a9e; --c4-soft: #ebe4f4;   /* violet */
+  --c5: #b04a3c; --c5-soft: #f6e4dc;   /* brick */
+  --c6: #3f7a3c; --c6-soft: #e2eedb;   /* leaf */
+
+  /* Spacing (4px grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Radius: paper is cut square-ish — controls 6, sheets 8, panels 10 */
+  --radius-xs: 4px;
+  --radius-control: 6px;
+  --radius-card: 8px;
+  --radius-panel: 10px;
+
+  /* Depth: a sheet resting on the desk */
+  --shadow-1: 0 1px 0 rgba(27, 26, 23, 0.04), 0 1px 3px rgba(60, 45, 20, 0.06);
+  --shadow-2: 0 2px 0 rgba(27, 26, 23, 0.03), 0 10px 24px rgba(60, 45, 20, 0.10);
+  --shadow-3: 0 18px 44px rgba(60, 45, 20, 0.18);
+
+  /* Motion: one curve */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --transition: color 150ms var(--ease), background-color 150ms var(--ease),
+    border-color 150ms var(--ease), box-shadow 150ms var(--ease),
+    opacity 150ms var(--ease), transform 150ms var(--ease);
+
+  /* ── Legacy names, mapped onto the tokens above ──
+     Page stylesheets were written against these; keeping them as aliases means
+     every page picks up the new theme without a rename across 60 files. */
+  --font-family: var(--font-sans);
+  --bg-color: var(--bg);
+  --card-bg: var(--surface);
+  --card-bg-solid: var(--surface);
+  --text-primary: var(--ink-900);
+  --text-secondary: var(--ink-600);
+  --text-muted: var(--ink-500);
+  --border-color: var(--line);
+  --input-bg: var(--surface);
+  --bg-surface: var(--surface);
+  --primary-color: var(--accent);
+
+  --color-dashboard-blue: var(--accent);
+  --color-dashboard-blue-hover: var(--accent-strong);
+  --color-teacher-accent: var(--accent);
+  --color-teacher-accent-hover: var(--accent-strong);
+  --color-admin-purple: var(--accent);
+  --color-admin-purple-hover: var(--accent-strong);
+  --color-admin-purple-light: var(--accent-soft);
+  --color-teacher-navy-dark: var(--ink-900);
+  --color-teacher-navy-mid: var(--ink-800);
+  --color-teacher-navy: var(--ink-800);
+  --color-teacher-slate: var(--ink-700);
+  --color-physics-red: var(--subject-physics);
+  --color-chemistry-orange: var(--subject-chemistry);
+  --color-math-teal: var(--subject-math);
+  --color-biology-green: var(--subject-biology);
+  --color-success: var(--positive);
+  --color-warning: var(--warning);
+  --color-danger: var(--negative);
+
   --spacing-1: 8px;
   --spacing-2: 16px;
   --spacing-3: 24px;
@@ -37,18 +146,66 @@
   --spacing-5: 40px;
   --spacing-6: 48px;
 
-  /* Border radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --radius-xl: 24px;
+  --radius-sm: 6px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
   --radius-pill: 9999px;
 
-  /* Premium soft shadows */
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.02);
-  --shadow-md: 0 10px 20px -5px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
-  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.3);
+  --shadow-sm: var(--shadow-1);
+  --shadow-md: var(--shadow-1);
+  --shadow-lg: var(--shadow-2);
+  --shadow-glow: none;
+}
+
+/* Accent aliases are re-declared on <body> so they pick up the portal ink
+   (a custom property is resolved where it is declared, not where it is used). */
+body {
+  --primary-color: var(--accent);
+  --color-dashboard-blue: var(--accent);
+  --color-dashboard-blue-hover: var(--accent-strong);
+  --color-teacher-accent: var(--accent);
+  --color-teacher-accent-hover: var(--accent-strong);
+  --color-admin-purple: var(--accent);
+  --color-admin-purple-hover: var(--accent-strong);
+  --color-admin-purple-light: var(--accent-soft);
+}
+
+/* ═══ Portal inks ═══════════════════════════════════════════════════════════
+   Each portal writes in its own ink, set on <body data-portal="…"> by its
+   layout (and by the login role switch). Red pen stays the same everywhere.
+     student — ballpoint blue, the pen on the answer sheet
+     teacher — examiner's teal, the checker's ink
+     admin   — stamp violet, the institute's rubber stamp
+   ═══════════════════════════════════════════════════════════════════════════ */
+body[data-portal="student"] {
+  --portal-deep: #1d2f73;
+  --accent: #2b44a6;
+  --accent-strong: #1f3480;
+  --accent-soft: #e3e7f5;
+  --accent-line: #b9c3e6;
+  --focus-ring: 0 0 0 3px rgba(43, 68, 166, 0.22);
+  --portal-paper: #eeedf3;
+}
+
+body[data-portal="teacher"] {
+  --portal-deep: #0d4450;
+  --accent: #17697a;
+  --accent-strong: #0f4f5c;
+  --accent-soft: #dbeceb;
+  --accent-line: #a3cbcc;
+  --focus-ring: 0 0 0 3px rgba(23, 105, 122, 0.22);
+  --portal-paper: #ebf1ee;
+}
+
+body[data-portal="admin"] {
+  --portal-deep: #36215f;
+  --accent: #5b3a9e;
+  --accent-strong: #452b7b;
+  --accent-soft: #ebe4f4;
+  --accent-line: #c9b8e2;
+  --focus-ring: 0 0 0 3px rgba(91, 58, 158, 0.22);
+  --portal-paper: #f0ecf4;
 }
 
 * {
@@ -58,12 +215,14 @@
 }
 
 body {
-  font-family: var(--font-family);
-  background-color: var(--bg-color);
-  color: var(--text-primary);
-  line-height: 1.6;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  background-color: var(--bg);
+  color: var(--ink-900);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'tnum' 0;
 }
 
 a {
@@ -76,39 +235,59 @@ button {
   cursor: pointer;
   border: none;
   background: none;
-  transition: all 0.3s ease;
+  transition: var(--transition);
 }
 
-/* Global button utility classes */
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+input, select, textarea {
+  font-family: inherit;
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--ink-400);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Figures: marks, scores, ranks, timers, counts */
+.num, .mono, code, kbd {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
 .btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background-color: var(--color-teacher-accent, #6366f1);
-  color: #ffffff !important;
-  padding: 10px 20px;
-  border-radius: var(--radius-md, 12px);
+  height: 38px;
+  background-color: var(--accent);
+  color: var(--on-accent) !important;
+  padding: 0 18px;
+  border-radius: var(--radius-control);
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 14px;
   border: 1px solid transparent;
   cursor: pointer;
   text-decoration: none;
-  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.2);
-  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
+  transition: var(--transition);
 }
 
 .btn-primary:hover {
-  background-color: var(--color-teacher-accent-hover, #4f46e5);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  background-color: var(--accent-strong);
 }
 
 .btn-primary:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
 .btn-outline {
@@ -116,48 +295,178 @@ button {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background-color: #ffffff;
-  color: var(--text-primary, #0f172a) !important;
-  border: 1px solid var(--border-color, #e2e8f0);
-  padding: 10px 20px;
-  border-radius: var(--radius-md, 12px);
-  font-weight: 500;
-  font-size: 0.875rem;
+  height: 38px;
+  background-color: var(--surface);
+  color: var(--accent-strong) !important;
+  border: 1.5px solid var(--accent-line);
+  padding: 0 18px;
+  border-radius: var(--radius-control);
+  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
   text-decoration: none;
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
-  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  white-space: nowrap;
+  transition: var(--transition);
 }
 
 .btn-outline:hover {
-  background-color: var(--bg-color, #f8fafc);
-  border-color: #cbd5e1;
+  background-color: var(--surface-raised);
+  border-color: var(--ink-400);
 }
 
 .btn-outline:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
 }
 
-/* Typography */
+/* ── Typography ──────────────────────────────────────────────────────────── */
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-2);
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  color: var(--ink-900);
+  margin-bottom: var(--space-4);
+  line-height: 1.25;
+  letter-spacing: 0;
 }
+
+/* Titles and section heads are set like a printed paper */
+h1, h2 {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-weight: 600;
+}
+
+h1 { font-size: 34px; line-height: 1.15; letter-spacing: -0.01em; }
+h2 { font-size: 24px; line-height: 1.2; }
+h3 { font-size: 17px; }
+h4 { font-size: 15px; }
 
 p {
-  color: var(--text-secondary);
+  color: var(--ink-600);
 }
 
-/* Global utility classes */
+/* ── Page head: a coloured band in the portal's ink ─────────────────────── */
+.page-head {
+  position: relative;
+  margin-bottom: 32px;
+  padding: 20px 24px 20px 28px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+}
+
+.page-head::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: var(--accent);
+}
+
+.page-head h1 {
+  font-size: 36px;
+  font-weight: 600;
+  color: var(--accent-strong);
+  margin: 0 0 6px;
+}
+
+.page-head p {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-700);
+  margin: 0;
+}
+
+/* ── Section heads: serif, portal ink, with a ruled leader ───────────────── */
+.ruled,
+.section-header h2,
+.quick-actions h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--accent-strong);
+  flex: 1;
+}
+
+.ruled::after,
+.section-header h2::after,
+.quick-actions h2::after {
+  content: '';
+  flex: 1;
+  border-top: 2px solid var(--accent-line);
+  margin-top: 4px;
+}
+
+/* ── Colour cycle: grids of cards each take the next ink ────────────────── */
+.ink-cycle > :nth-child(6n+1) { --k: var(--c1); --k-soft: var(--c1-soft); }
+.ink-cycle > :nth-child(6n+2) { --k: var(--c2); --k-soft: var(--c2-soft); }
+.ink-cycle > :nth-child(6n+3) { --k: var(--c3); --k-soft: var(--c3-soft); }
+.ink-cycle > :nth-child(6n+4) { --k: var(--c4); --k-soft: var(--c4-soft); }
+.ink-cycle > :nth-child(6n+5) { --k: var(--c5); --k-soft: var(--c5-soft); }
+.ink-cycle > :nth-child(6n+6) { --k: var(--c6); --k-soft: var(--c6-soft); }
+
+/* ── Marks box: a stat set like the examiner's box on an answer sheet ─────── */
+.marks-box {
+  background: var(--surface);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-1);
+}
+
+.figure {
+  font-family: var(--font-serif);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* ── Stamp: status set like a rubber stamp on the paper ─────────────────── */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1.5px solid currentColor;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  background: transparent;
+  white-space: nowrap;
+}
+
+/* Red pen: a score or a figure that needs attention */
+.red-pen {
+  color: var(--mark);
+}
+
+/* ── OMR bubble: the selection mark used across the product ──────────────── */
+.omr-bubble {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  flex-shrink: 0;
+}
+
+.omr-bubble.filled {
+  background-color: currentColor;
+}
+
+/* ── Utilities ───────────────────────────────────────────────────────────── */
 .container {
-  max-width: 1280px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 0 var(--spacing-4);
+  padding: 0 var(--space-8);
 }
 
 .text-center { text-align: center; }
@@ -165,52 +474,199 @@ p {
 .align-center { align-items: center; }
 .justify-between { justify-content: space-between; }
 .justify-center { justify-content: center; }
-.gap-1 { gap: var(--spacing-1); }
-.gap-2 { gap: var(--spacing-2); }
-.gap-3 { gap: var(--spacing-3); }
-.gap-4 { gap: var(--spacing-4); }
+.gap-1 { gap: var(--space-2); }
+.gap-2 { gap: var(--space-4); }
+.gap-3 { gap: var(--space-6); }
+.gap-4 { gap: var(--space-8); }
 
-/* Glassmorphism utility */
+/* Kept for markup that still uses the class; it is a plain surface now. */
 .glass {
-  background: var(--card-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-color);
+  background: var(--surface);
+  border: 1px solid var(--line);
 }
 
-/* Animations */
+/* ── Motion: one entrance, short fade and rise ───────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.5s ease forwards;
+  animation: fadeIn 300ms var(--ease) forwards;
 }
 
 .animate-slide-up {
-  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slideUp 300ms var(--ease) forwards;
 }
-/* Global Toast Styles */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* ── Toast ───────────────────────────────────────────────────────────────── */
 .toast-notification {
-  background-color: #10b981;
-  color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
+  background-color: var(--ink-900);
+  color: var(--surface);
+  border-left: 3px solid var(--accent);
+  padding: 12px 16px;
+  border-radius: var(--radius-control);
+  font-size: 14px;
   position: fixed;
   bottom: 24px;
   right: 24px;
   z-index: 1000;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  animation: slideInUp 0.3s ease-out;
+  max-width: 420px;
+  box-shadow: var(--shadow-2);
+  animation: slideInUp 200ms var(--ease);
 }
 
 @keyframes slideInUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══ Inner pages ═══════════════════════════════════════════════════════════
+   Pages were written with their own header, stat and table classes. These
+   rules (scoped to .main-content so they outrank a page stylesheet) give all
+   of them the same coloured title band, coloured stats and ruled tables. */
+
+/* Title band — same as .page-head, for every page's own header wrapper */
+.main-content .page-header,
+.main-content .admin-page-header,
+.main-content .lectures-header,
+.main-content .settings-header,
+.main-content .analytics-header,
+.main-content .leaderboard-hero,
+.main-content .rq-header,
+.main-content .tl-header,
+.main-content .results-header {
+  position: relative;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 20px 24px 20px 30px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-panel);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.main-content .page-header::before,
+.main-content .admin-page-header::before,
+.main-content .lectures-header::before,
+.main-content .settings-header::before,
+.main-content .analytics-header::before,
+.main-content .leaderboard-hero::before,
+.main-content .rq-header::before,
+.main-content .tl-header::before,
+.main-content .results-header::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: var(--accent);
+}
+
+.main-content .leaderboard-hero::after {
+  display: none;
+}
+
+.main-content .page-header h1,
+.main-content .admin-page-header h1,
+.main-content .lectures-header h1,
+.main-content .settings-header h1,
+.main-content .analytics-header h1,
+.main-content .leaderboard-hero h1,
+.main-content .rq-header h1,
+.main-content .tl-header h1,
+.main-content .results-header h1 {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--accent-strong);
+  margin: 0 0 4px;
+}
+
+.main-content .page-header p,
+.main-content .admin-page-header p,
+.main-content .lectures-header p,
+.main-content .settings-header p,
+.main-content .analytics-header p,
+.main-content .leaderboard-hero p,
+.main-content .rq-header p,
+.main-content .tl-header p,
+.main-content .results-header p {
+  color: var(--ink-700);
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Card titles inside pages read in the portal ink */
+.main-content h2 {
+  color: var(--accent-strong);
+}
+
+/* Stat grids: each stat in the next ink, with a coloured cap and figure */
+.main-content .ink-stats > * {
+  border-top: 4px solid var(--k, var(--accent)) !important;
+}
+
+.main-content .ink-stats > * [class*="value"],
+.main-content .ink-stats > * [class*="number"],
+.main-content .ink-stats > * [class*="-num"],
+.main-content .ink-stats > * strong {
+  color: var(--k, var(--accent));
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.main-content .ink-stats > * [class*="label"],
+.main-content .ink-stats > * [class*="title"] {
+  color: var(--k, var(--accent));
+  font-weight: 600;
+}
+
+.main-content .ink-stats > * [class*="icon"] {
+  background: var(--k-soft, var(--accent-soft)) !important;
+  color: var(--k, var(--accent)) !important;
+}
+
+/* Card grids: each card gets a coloured top edge in the next ink */
+.main-content .ink-cards > * {
+  border-top: 4px solid var(--k, var(--accent)) !important;
+}
+
+.main-content .ink-cards > * h3,
+.main-content .ink-cards > * h4 {
+  color: var(--k, var(--accent-strong));
+}
+
+/* Tables: a coloured header row, ruled like a marks register */
+.main-content table thead th {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 700;
+  font-size: 13px;
+  border-bottom: 2px solid var(--accent-line);
+}
+
+.main-content table tbody tr:nth-child(even) td {
+  background-color: color-mix(in srgb, var(--surface-raised) 70%, transparent);
+}
+
+.main-content table tbody tr:hover td {
+  background-color: var(--accent-soft);
 }

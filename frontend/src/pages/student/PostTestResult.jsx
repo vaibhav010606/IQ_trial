@@ -72,12 +72,15 @@ const PostTestResult = () => {
           <ArrowLeft size={16} /> Back to Test Library
         </button>
         <div className="result-pending-card">
-          <div className="pending-icon-wrap">
-            <Clock size={44} color="#d97706" />
+          <div className="pending-icon-wrap" style={{ background: '#ecfdf5', borderColor: '#a7f3d0' }}>
+            <CheckCircle size={44} color="#059669" />
           </div>
-          <h2>Results Pending Administrator Approval</h2>
+          <span style={{ display: 'inline-block', padding: '4px 12px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#065f46', background: '#d1fae5', borderRadius: 9999, marginBottom: 12 }}>
+            Attempt Noted & Recorded
+          </span>
+          <h2>Your attempt has been noted</h2>
           <p className="pending-lead">
-            The results for <strong>{test.title || 'this test'}</strong> have not been published yet.
+            Your responses for <strong>{test.title || 'this test'}</strong> have been securely recorded. Each test can only be attempted once; no second attempt is permitted.
           </p>
           <div className="pending-details-box">
             <div className="pending-row">
@@ -93,8 +96,12 @@ const PostTestResult = () => {
               </span>
             </div>
             <div className="pending-row">
-              <span className="pending-k">Status:</span>
-              <span className="pending-v-badge">Pending Admin Approval</span>
+              <span className="pending-k">Submission Status:</span>
+              <span className="pending-v-badge" style={{ background: '#d1fae5', color: '#065f46', border: '1px solid #a7f3d0' }}>Recorded & Locked</span>
+            </div>
+            <div className="pending-row">
+              <span className="pending-k">Results:</span>
+              <span className="pending-v-badge">Pending admin approval</span>
             </div>
           </div>
           <p className="pending-info">
@@ -202,7 +209,7 @@ const PostTestResult = () => {
           </div>
           <div className="hero-stat">
             <Clock size={22} className="stat-icon clock" />
-            <div><span className="stat-label">Time Taken</span><strong>{fmt(totalTime)}</strong></div>
+            <div><span className="stat-label">Time taken</span><strong>{fmt(totalTime)}</strong></div>
           </div>
           <div className="hero-stat">
             <Target size={22} className="stat-icon target" />
@@ -252,8 +259,8 @@ const PostTestResult = () => {
                   <div className="accuracy-bar" style={{ width: `${s.accuracy}%` }} />
                 </div>
                 <div className="subj-breakdown">
-                  <span className="correct-text">✓ {s.correct} Correct</span>
-                  <span className="incorrect-text">✗ {s.incorrect} Wrong</span>
+                  <span className="correct-text num">{s.correct} correct</span>
+                  <span className="incorrect-text num">{s.incorrect} wrong</span>
                   <span className="unatt-text">— {s.unattempted} Skipped</span>
                 </div>
               </div>
@@ -270,22 +277,22 @@ const PostTestResult = () => {
               <YAxis allowDecimals={false} axisLine={false} tickLine={false} />
               <Tooltip />
               <Legend />
-              <Bar dataKey="Correct" fill="#22c55e" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Incorrect" fill="#ef4444" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Unattempted" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Correct" fill="#2f6b3a" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Incorrect" fill="#b3352b" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Unattempted" fill="#998f7d" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       <div className="answer-review-card">
-        <h2>Answer Review</h2>
+        <h2>Answer review</h2>
         <div className="table-responsive">
           <table className="answer-table">
             <thead>
               <tr>
                 <th>#</th><th>Question</th><th>Subject</th>
-                <th>Your Answer</th><th>Correct Answer</th><th>Time</th><th>Status</th>
+                <th>Your answer</th><th>Correct answer</th><th>Time</th><th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -327,7 +334,7 @@ const PostTestResult = () => {
           <ArrowLeft size={16} /> Back to Dashboard
         </button>
         <button className="btn-retake" onClick={() => navigate('/student/analytics')}>
-          View Full Analytics
+          View full analytics
         </button>
       </div>
     </div>

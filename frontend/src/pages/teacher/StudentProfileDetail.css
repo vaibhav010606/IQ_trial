@@ -46,13 +46,13 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-teacher-navy-dark), var(--color-teacher-accent));
+  background: var(--color-teacher-navy-dark);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2rem;
-  font-weight: 700;
+  font-weight: 600;
   box-shadow: var(--shadow-md);
 }
 
@@ -64,7 +64,7 @@
 
 .batch-tag {
   display: inline-block;
-  background-color: rgba(99, 102, 241, 0.1);
+  background-color: rgba(43, 68, 166, 0.1);
   color: var(--color-teacher-accent);
   padding: 4px 12px;
   border-radius: var(--radius-pill);
@@ -94,13 +94,13 @@
   border: 1px solid var(--color-teacher-accent);
   color: var(--color-teacher-accent);
   border-radius: var(--radius-md);
-  font-weight: 600;
-  background: white;
-  transition: all 0.2s;
+  font-weight: 500;
+  background: var(--surface);
+  transition: var(--transition);
 }
 
 .btn-primary-outline:hover {
-  background: rgba(99, 102, 241, 0.05);
+  background: rgba(43, 68, 166, 0.05);
 }
 
 /* Analytics Section */
@@ -159,7 +159,7 @@
 }
 
 .topic-name {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 6px;
   font-size: 0.9rem;
@@ -173,7 +173,7 @@
 
 .subject-sm {
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
 }
 .subject-sm.chemistry { color: var(--color-chemistry-orange); }
 .subject-sm.biology { color: var(--color-biology-green); }
@@ -183,12 +183,12 @@
   padding: 2px 6px;
   border-radius: 4px;
 }
-.confidence.low { background-color: rgba(239, 68, 68, 0.1); color: var(--color-danger); }
-.confidence.medium { background-color: rgba(245, 158, 11, 0.1); color: var(--color-warning); }
+.confidence.low { background-color: rgba(179, 53, 43, 0.1); color: var(--color-danger); }
+.confidence.medium { background-color: rgba(143, 92, 14, 0.1); color: var(--color-warning); }
 
 /* Notes */
 .teacher-notes-card {
-  background: #f8fafc;
+  background: var(--surface-raised);
   border-radius: var(--radius-lg);
   padding: var(--spacing-4);
   border: 1px solid var(--border-color);
@@ -213,12 +213,12 @@
   align-items: center;
   gap: 6px;
   color: var(--color-teacher-accent);
-  font-weight: 600;
+  font-weight: 500;
   font-size: 0.9rem;
   padding: 6px 12px;
   border-radius: var(--radius-md);
 }
-.btn-save:hover { background-color: rgba(99, 102, 241, 0.1); }
+.btn-save:hover { background-color: rgba(43, 68, 166, 0.1); }
 
 .notes-hint {
   font-size: 0.85rem;
@@ -236,13 +236,13 @@
   font-size: 0.95rem;
   color: var(--text-primary);
   resize: vertical;
-  background-color: white;
+  background-color: var(--surface);
 }
 
 .notes-textarea:focus {
   outline: none;
   border-color: var(--color-teacher-accent);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: var(--focus-ring);
 }
 
 @media (max-width: 900px) {
@@ -253,16 +253,16 @@
 
 /* ── Added: real-data KPIs, weak topics, attempts ────────────────────────── */
 
-.sp-muted { color: var(--text-secondary, #64748b); }
+.sp-muted { color: var(--text-secondary, var(--ink-500)); }
 .sp-small { font-size: 0.77rem; }
-.sp-error { color: #dc2626; margin-top: 16px; }
-.sp-inline-empty { font-size: 0.87rem; padding: 22px 2px; margin: 0; }
+.sp-error { color: var(--negative); margin-top: 16px; }
+.sp-inline-empty { font-size: 0.87rem; padding: 24px 2px; margin: 0; }
 
 .sp-meta-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 6px 0; }
 .sp-risk {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 10px; border-radius: 999px; font-size: 0.73rem; font-weight: 700;
-  background: rgba(239, 68, 68, 0.12); color: #dc2626;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 999px; font-size: 0.73rem; font-weight: 600;
+  background: rgba(179, 53, 43, 0.12); color: var(--negative);
 }
 
 .sp-kpi-grid {
@@ -271,28 +271,28 @@
 }
 .sp-kpi {
   display: flex; align-items: center; gap: 12px;
-  background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 12px; padding: 15px 18px; color: var(--color-teacher-accent, #6366f1);
+  background: var(--card-bg, #fff); border: 1px solid var(--border-color, var(--line));
+  border-radius: 12px; padding: 16px 20px; color: var(--color-teacher-accent, var(--accent));
 }
 .sp-kpi-label {
-  display: block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em;
-  text-transform: uppercase; color: var(--text-secondary, #64748b);
+  display: block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0;
+  text-transform: none; color: var(--text-secondary, var(--ink-500));
 }
-.sp-kpi-value { display: block; font-size: 1.35rem; font-weight: 700; color: var(--text-primary, #1e293b); }
+.sp-kpi-value { display: block; font-size: 1.35rem; font-weight: 700; color: var(--text-primary, var(--ink-800)); }
 
-.sp-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-bottom: 18px; }
+.sp-grid { display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 20px; }
 @media (min-width: 900px) { .sp-grid { grid-template-columns: 1fr 1fr; } }
 
 .sp-card {
-  background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 12px; padding: 18px 20px;
+  background: var(--card-bg, #fff); border: 1px solid var(--border-color, var(--line));
+  border-radius: 12px; padding: 20px 20px;
 }
 .sp-card h3 { margin: 0 0 14px; font-size: 1rem; }
 
 .sp-weak-list, .sp-attempt-list { list-style: none; margin: 0; padding: 0; }
 .sp-weak-list li, .sp-attempt-list li {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 11px 0; border-bottom: 1px solid var(--border-color, #f1f5f9);
+  padding: 12px 0; border-bottom: 1px solid var(--border-color, var(--surface-sunken));
 }
 .sp-weak-list li:last-child, .sp-attempt-list li:last-child { border-bottom: none; }
 .sp-weak-topic, .sp-attempt-title { font-weight: 600; font-size: 0.89rem; }
@@ -301,5 +301,5 @@
 .sp-pill {
   padding: 3px 10px; border-radius: 999px; font-size: 0.76rem; font-weight: 700; white-space: nowrap;
 }
-.sp-pill.mid { background: rgba(245, 158, 11, 0.14); color: #b45309; }
-.sp-pill.bad { background: rgba(239, 68, 68, 0.12);  color: #dc2626; }
+.sp-pill.mid { background: rgba(143, 92, 14, 0.14); color: var(--warning); }
+.sp-pill.bad { background: rgba(179, 53, 43, 0.12);  color: var(--negative); }

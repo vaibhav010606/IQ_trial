@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "backend", "run", "start:dev"],
+      "port": 3000
+    },
+    {
+      "name": "exam-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "exam/backend", "run", "start:dev"],
+      "port": 3001
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "exam-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "exam/frontend", "run", "dev"],
+      "port": 5175
+    }
+  ]
+}

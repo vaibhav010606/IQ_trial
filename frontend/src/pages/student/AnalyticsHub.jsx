@@ -90,17 +90,17 @@ const AnalyticsHub = () => {
   const atRisk = predictions.filter((p) => p.risk_flag && p.topic);
 
   const kpis = [
-    { label: 'Tests Attempted', value: testsAttempted, icon: Target, color: 'var(--color-dashboard-blue, #3b82f6)' },
-    { label: 'Total Score', value: totalScore, icon: TrendingUp, color: 'var(--color-biology-green, #10b981)' },
-    { label: 'Avg Accuracy', value: `${avgAccuracy}%`, icon: Brain, color: 'var(--color-chemistry-orange, #f59e0b)' },
-    { label: 'Avg / Question', value: `${avgSecondsPerQuestion}s`, icon: Clock, color: 'var(--color-physics-red, #f43f5e)' },
+    { label: 'Tests attempted', value: testsAttempted, icon: Target, color: 'var(--color-dashboard-blue, #2b44a6)' },
+    { label: 'Total score', value: totalScore, icon: TrendingUp, color: 'var(--color-biology-green, #2f6b3a)' },
+    { label: 'Avg accuracy', value: `${avgAccuracy}%`, icon: Brain, color: 'var(--color-chemistry-orange, #8f5c0e)' },
+    { label: 'Avg / question', value: `${avgSecondsPerQuestion}s`, icon: Clock, color: 'var(--color-physics-red, #b3352b)' },
   ];
 
   return (
     <div className="analytics-container animate-fade-in">
       <div className="analytics-header animate-slide-up">
         <h1>
-          Analytics Hub
+          Analytics hub
           <TrendingUp size={28} style={{ color: 'var(--color-dashboard-blue)', marginLeft: 8, verticalAlign: 'middle' }} />
         </h1>
         <p>Your performance, built from every question you have answered.</p>
@@ -114,7 +114,7 @@ const AnalyticsHub = () => {
         </div>
       ) : (
         <>
-          <div className="ah-kpi-grid animate-slide-up">
+          <div className="ah-kpi-grid animate-slide-up ink-cycle ink-stats">
             {kpis.map((k) => {
               const Icon = k.icon;
               return (
@@ -132,7 +132,7 @@ const AnalyticsHub = () => {
           </div>
 
           <div className="analytics-card glass animate-slide-up">
-            <div className="analytics-title">Score Trajectory</div>
+            <div className="analytics-title">Score trajectory</div>
             <div className="chart-container">
               {trajectory.length < 2 ? (
                 <p className="ah-muted ah-inline-empty">At least two completed tests are needed to plot a trend.</p>
@@ -171,7 +171,7 @@ const AnalyticsHub = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
                       <PolarGrid stroke="var(--border-color)" />
-                      <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--text-primary)', fontWeight: 600, fontSize: 13 }} />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--text-primary)', fontWeight: 500, fontSize: 13 }} />
                       <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
                       <Radar
                         name="Accuracy" dataKey="score"
@@ -187,7 +187,7 @@ const AnalyticsHub = () => {
 
             <div className="analytics-card glass animate-slide-up">
               <div className="analytics-title ah-title-row">
-                <span>Weak Topics</span>
+                <span>Weak topics</span>
                 {atRisk.length > 0 && <span className="alert-badge">{atRisk.length} at risk</span>}
               </div>
               <div className="weak-topics-list">
@@ -204,8 +204,8 @@ const AnalyticsHub = () => {
                           <div
                             className="weak-topic-icon-wrapper"
                             style={{
-                              backgroundColor: risky ? 'rgba(244,63,94,0.12)' : 'rgba(245,158,11,0.14)',
-                              color: risky ? '#e11d48' : '#b45309',
+                              backgroundColor: risky ? 'rgba(179, 53, 43,0.12)' : 'rgba(143, 92, 14,0.14)',
+                              color: risky ? '#b3352b' : '#8f5c0e',
                             }}
                           >
                             <AlertTriangle size={20} />

@@ -44,7 +44,7 @@ const ExamShell = () => {
   const [activeSection, setActiveSection] = useState(null);
   const [hasStarted, setHasStarted] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const [redirectCount, setRedirectCount] = useState(4);
+  const [redirectCount, setRedirectCount] = useState(15);
 
   const PORTAL_URL = getPortalUrl();
 
@@ -352,12 +352,51 @@ const ExamShell = () => {
 
   if (!lockAcquired) return null;
 
+  if (fatalError && /already submitted|already completed|taken only once/i.test(fatalError)) {
+    return (
+      <div className="exam-terminated exam-submitted-view">
+        <div className="exam-submitted-card">
+          <div className="exam-submitted-icon-wrap">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#2f6b3a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+          <div className="exam-pending-pill" style={{ marginBottom: 12 }}>
+            <span className="exam-pending-dot"></span>
+            Attempt Noted & Recorded
+          </div>
+          <h2>Your attempt has been noted</h2>
+          <p className="exam-submitted-message">
+            You have already submitted this exam. Each test can be taken only once, and second chances to start or retake this exam are not permitted.
+          </p>
+          <div className="exam-meta-grid" style={{ marginTop: 16, marginBottom: 20 }}>
+            <div className="exam-meta-row">
+              <span className="meta-k">Submission Status</span>
+              <span className="meta-v meta-v-success">Recorded & Finalised</span>
+            </div>
+            <div className="exam-meta-row">
+              <span className="meta-k">Policy</span>
+              <span className="meta-v">Single Attempt Only</span>
+            </div>
+          </div>
+          <button className="btn-close-exam" onClick={handleReturnToDashboard}>
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (fatalError) {
     return (
       <div className="exam-terminated error">
         <h2>Cannot start this exam</h2>
         <p>{fatalError}</p>
-        <button onClick={() => window.close()}>Close Tab</button>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 16 }}>
+          <button onClick={handleReturnToDashboard}>Return to Dashboard</button>
+          <button onClick={() => window.close()}>Close tab</button>
+        </div>
       </div>
     );
   }
@@ -367,26 +406,27 @@ const ExamShell = () => {
       <div className="exam-terminated">
         <h2>Ready to Begin?</h2>
         <p>The exam will open in full screen. Do not exit fullscreen or switch tabs during the test.</p>
-        <button onClick={handleStartExam}>Enter Fullscreen & Start Exam</button>
+        <button onClick={handleStartExam}>Enter fullscreen & start exam</button>
       </div>
     );
   }
   if (loading) return <div className="exam-loading">Loading secure environment...</div>;
-  if (isTerminated) return <div className="exam-terminated error"><h2>Exam Terminated</h2><p>Rule violations exceeded limit.</p><button onClick={handleReturnToDashboard}>Return to Dashboard</button></div>;
+  // A terminated attempt is final too: it was graded on the spot and cannot be restarted.
+  if (isTerminated) return <div className="exam-terminated error"><h2>Exam terminated</h2><p>You exceeded the limit of rule violations. Your attempt has been noted and submitted with the answers saved so far. Each test can be taken only once, so it cannot be restarted.</p><button onClick={handleReturnToDashboard}>Return to Dashboard</button></div>;
   if (isSubmitted) {
     const isApproved = result?.results_published === true && result?.score !== undefined;
     return (
       <div className="exam-terminated exam-submitted-view">
         <div className="exam-submitted-card">
           <div className="exam-submitted-icon-wrap">
-            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#2f6b3a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
               <polyline points="22 4 12 14.01 9 11.01" />
             </svg>
           </div>
-          <h2>Exam Submitted Successfully</h2>
+          <h2>Your attempt has been noted</h2>
           <p className="exam-submitted-message">
-            Your responses have been securely recorded and verified.
+            Your responses have been securely recorded and verified. Each test can be taken only once — no second chance or retake is permitted.
           </p>
 
           {isApproved ? (
@@ -404,7 +444,7 @@ const ExamShell = () => {
             <div className="exam-pending-box">
               <div className="exam-pending-pill">
                 <span className="exam-pending-dot"></span>
-                Results Pending Administrator Approval
+                Results pending administrator approval
               </div>
               <p className="exam-pending-desc">
                 Scores and question solutions are withheld until reviewed and officially approved by the examination administrator.
@@ -415,8 +455,8 @@ const ExamShell = () => {
                   <span className="meta-v">{examData?.title || 'JEE Test'}</span>
                 </div>
                 <div className="exam-meta-row">
-                  <span className="meta-k">Submission Status</span>
-                  <span className="meta-v meta-v-success">Recorded & Secured ✓</span>
+                  <span className="meta-k">Submission status</span>
+                  <span className="meta-v meta-v-success">Attempt Noted & Recorded</span>
                 </div>
                 <div className="exam-meta-row">
                   <span className="meta-k">Mode</span>
@@ -424,11 +464,11 @@ const ExamShell = () => {
                 </div>
                 <div className="exam-meta-row">
                   <span className="meta-k">Results</span>
-                  <span className="meta-v meta-v-amber">Awaiting Admin Release</span>
+                  <span className="meta-v meta-v-amber">Awaiting admin release</span>
                 </div>
               </div>
               <p className="exam-pending-portal-hint">
-                Once the administrator approves the results, your detailed scorecard, percentile, and solutions will be available in the <strong>Student Portal</strong>.
+                Once the administrator approves the results, your detailed scorecard, percentile, and solutions will be available in the <strong>Student portal</strong>.
               </p>
             </div>
           )}
@@ -459,7 +499,7 @@ const ExamShell = () => {
             <button onClick={() => {
               setViolationWarning(null);
               document.documentElement.requestFullscreen().catch(() => {});
-            }}>Resume Exam</button>
+            }}>Resume exam</button>
           </div>
         </div>
       )}
@@ -493,7 +533,7 @@ const ExamShell = () => {
           onClick={() => setShowSubmitModal(true)}
           title="Submit your exam"
         >
-          Submit Exam
+          Submit exam
         </button>
       </div>
 

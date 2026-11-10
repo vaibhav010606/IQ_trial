@@ -14,6 +14,7 @@ const common_1 = require("@nestjs/common");
 const supabase_config_1 = require("../../config/supabase.config");
 const query_util_1 = require("../../common/db/query.util");
 const cache_service_1 = require("../../common/cache/cache.service");
+const tests_service_1 = require("../tests/tests.service");
 const COHORT_TTL_SECONDS = Number(process.env.COHORT_TTL_SECONDS) || 120;
 const COHORT_CACHE_PREFIX = 'analytics:cohort:';
 let AnalyticsService = class AnalyticsService {
@@ -22,12 +23,14 @@ let AnalyticsService = class AnalyticsService {
         this.cache = cache;
     }
     async getStudentAnalytics(studentId) {
-        const attempts = await (0, query_util_1.fetchAll)(() => supabase_config_1.supabase
+        const submitted = await (0, query_util_1.fetchAll)(() => supabase_config_1.supabase
             .from('attempts')
-            .select('id, total_score, started_at, submitted_at, tests(title, total_marks)')
+            .select('id, test_id, total_score, started_at, submitted_at, tests(title, total_marks)')
             .eq('student_id', studentId)
             .eq('status', 'submitted')
             .order('submitted_at', { ascending: true }));
+        const released = await (0, tests_service_1.releasedTestIds)(submitted.map((a) => a.test_id));
+        const attempts = submitted.filter((a) => released.has(a.test_id));
         const attemptIds = attempts.map((a) => a.id);
         const answers = await (0, query_util_1.fetchAllIn)(attemptIds, (idChunk) => supabase_config_1.supabase
             .from('answers')
@@ -96,11 +99,15 @@ let AnalyticsService = class AnalyticsService {
         return {
             testsAttempted: attempts.length,
             totalScore: attempts.reduce((s, a) => s + (Number(a.total_score) || 0), 0),
-            avgAccuracy: totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0,
+            avgAccuracy: totalAnswered > 0
+                ? Math.round((totalCorrect / totalAnswered) * 100)
+                : 0,
             avgSecondsPerQuestion: timedAnswers > 0 ? Math.round(totalTimeSeconds / timedAnswers) : 0,
             subjectBreakdown,
             topicBreakdown,
-            weakTopics: topicBreakdown.filter((t) => t.totalAnswered >= 3).slice(0, 5),
+            weakTopics: topicBreakdown
+                .filter((t) => t.totalAnswered >= 3)
+                .slice(0, 5),
             scoreHistory,
             spacedRepetition: srState || [],
             predictions: predictions || [],
@@ -112,12 +119,24 @@ let AnalyticsService = class AnalyticsService {
     async computeCohortAnalytics(batchId) {
         let studentIds;
         if (batchId) {
-            const members = await (0, query_util_1.fetchAll)(() => supabase_config_1.supabase.from('batch_students').select('student_id').eq('batch_id', batchId));
+            const members = await (0, query_util_1.fetchAll)(() => supabase_config_1.supabase
+                .from('batch_students')
+                .select('student_id')
+                .eq('batch_id', batchId));
             const memberIds = [...new Set(members.map((m) => m.student_id))];
             if (!memberIds.length) {
-                return { totalStudents: 0, avgScore: 0, atRiskCount: 0, totalAttempts: 0 };
+                return {
+                    totalStudents: 0,
+                    avgScore: 0,
+                    atRiskCount: 0,
+                    totalAttempts: 0,
+                };
             }
-            const students = await (0, query_util_1.fetchAllIn)(memberIds, (idChunk) => supabase_config_1.supabase.from('users').select('id').eq('role', 'student').in('id', idChunk));
+            const students = await (0, query_util_1.fetchAllIn)(memberIds, (idChunk) => supabase_config_1.supabase
+                .from('users')
+                .select('id')
+                .eq('role', 'student')
+                .in('id', idChunk));
             studentIds = students.map((s) => s.id);
         }
         else {
@@ -125,7 +144,12 @@ let AnalyticsService = class AnalyticsService {
             studentIds = students.map((s) => s.id);
         }
         if (!studentIds.length) {
-            return { totalStudents: 0, avgScore: 0, atRiskCount: 0, totalAttempts: 0 };
+            return {
+                totalStudents: 0,
+                avgScore: 0,
+                atRiskCount: 0,
+                totalAttempts: 0,
+            };
         }
         const attempts = await (0, query_util_1.fetchAllIn)(studentIds, (idChunk) => supabase_config_1.supabase
             .from('attempts')
@@ -133,7 +157,8 @@ let AnalyticsService = class AnalyticsService {
             .in('student_id', idChunk)
             .eq('status', 'submitted'));
         const avgScore = attempts.length
-            ? Math.round(attempts.reduce((sum, a) => sum + (Number(a.total_score) || 0), 0) / attempts.length)
+            ? Math.round(attempts.reduce((sum, a) => sum + (Number(a.total_score) || 0), 0) /
+                attempts.length)
             : 0;
         const riskStudents = await (0, query_util_1.fetchAllIn)(studentIds, (idChunk) => supabase_config_1.supabase
             .from('predictions')

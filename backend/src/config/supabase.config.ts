@@ -61,6 +61,10 @@ export const supabaseAuth = createClient(url, anonKey, {
  */
 export function createUserAuthClient() {
   return createClient(url!, anonKey, {
-    auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
   });
 }

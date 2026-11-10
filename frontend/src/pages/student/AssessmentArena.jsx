@@ -31,6 +31,8 @@ const AssessmentArena = () => {
   const [timeLeft, setTimeLeft] = useState(null);
 
   const [loading, setLoading] = useState(true);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [submittedAttemptId, setSubmittedAttemptId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showAutoSubmit, setShowAutoSubmit] = useState(false);
@@ -94,9 +96,19 @@ const AssessmentArena = () => {
         questionEnteredAt.current = Date.now();
       } catch (err) {
         if (cancelled) return;
-        // The server finalises an attempt whose window elapsed while the student
-        // was away, and says so — send them to the result rather than a dead end.
-        alert(err.message || 'Error starting test');
+        const errMsg = err?.message || '';
+        if (/already submitted|already completed|taken only once/i.test(errMsg)) {
+          try {
+            const myAttempts = await apiClient.get('/attempts/my');
+            const found = (myAttempts || []).find(
+              (a) => (a.test_id === testId || a.tests?.id === testId) && a.status === 'submitted'
+            );
+            if (found && !cancelled) setSubmittedAttemptId(found.id);
+          } catch {}
+          if (!cancelled) setAlreadySubmitted(true);
+          return;
+        }
+        alert(errMsg || 'Error starting test');
         navigate('/student');
       } finally {
         if (!cancelled) setLoading(false);
@@ -318,6 +330,48 @@ const AssessmentArena = () => {
   const unansweredCount = testQuestions.length - answeredCount;
   const isWarning = timeLeft !== null && timeLeft < 300;
 
+  if (alreadySubmitted) {
+    return (
+      <div className="arena-wrapper arena-noted-wrapper">
+        <div className="arena-noted-card animate-fade-in">
+          <div className="arena-noted-icon">
+            <CheckCircle size={48} color="#059669" />
+          </div>
+          <span className="arena-noted-badge">Attempt Noted & Recorded</span>
+          <h2>Your attempt has been noted</h2>
+          <p className="arena-noted-lead">
+            You have already completed and submitted <strong>{test?.title || 'this test'}</strong>.
+          </p>
+          <div className="arena-noted-box">
+            <p>
+              Each test can only be attempted once. Second attempts are strictly prohibited, so you cannot restart or retake this exam.
+            </p>
+            {test && (
+              <div className="arena-noted-meta">
+                <span>Duration: {test.duration_minutes} min</span>
+                <span>•</span>
+                <span>Total Marks: {test.total_marks}</span>
+              </div>
+            )}
+          </div>
+          <div className="arena-noted-actions">
+            <button className="btn-noted-back" onClick={() => navigate('/student')}>
+              Back to Dashboard
+            </button>
+            {submittedAttemptId && (
+              <button
+                className="btn-noted-view"
+                onClick={() => navigate(`/student/result/${submittedAttemptId}`)}
+              >
+                View Submission
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading || !testQuestions.length) {
     return <div style={{ padding: 40, color: 'white' }}>Loading test…</div>;
   }
@@ -336,7 +390,7 @@ const AssessmentArena = () => {
         <div className={`timer-block ${isWarning ? 'timer-warning' : ''}`}>
           <Clock size={20} />
           <span className="timer-display">{formatTime(timeLeft)}</span>
-          {isWarning && <span className="warning-label">Time Running Low!</span>}
+          {isWarning && <span className="warning-label">Under 5 minutes left</span>}
         </div>
         <div className="header-right">
           <div className="progress-summary">
@@ -345,7 +399,7 @@ const AssessmentArena = () => {
             <span className="stat flagged-stat"><Flag size={14} /> {flagged.size} Flagged</span>
           </div>
           <button className="btn-submit-exam" onClick={() => setShowSubmitModal(true)}>
-            Submit Exam
+            Submit exam
           </button>
         </div>
       </header>
@@ -442,7 +496,7 @@ const AssessmentArena = () => {
                 className="nav-btn btn-clear-resp"
                 onClick={handleClearResponse}
               >
-                <RotateCcw size={16} /> Clear Response
+                <RotateCcw size={16} /> Clear response
               </button>
             )}
             <button
@@ -456,10 +510,10 @@ const AssessmentArena = () => {
         </div>
 
         <aside className="question-grid-panel">
-          <h3 className="grid-title">Question Navigator</h3>
+          <h3 className="grid-title">Question navigator</h3>
           <div className="grid-legend">
             <span className="legend-item"><span className="dot answered-dot" /> Answered</span>
-            <span className="legend-item"><span className="dot unanswered-dot" /> Not Answered</span>
+            <span className="legend-item"><span className="dot unanswered-dot" /> Not answered</span>
             <span className="legend-item"><span className="dot flagged-dot" /> Flagged</span>
           </div>
 
@@ -476,9 +530,9 @@ const AssessmentArena = () => {
           </div>
 
           <div className="grid-stats">
-            <div className="stat-row"><span>Total Questions</span><strong>{testQuestions.length}</strong></div>
+            <div className="stat-row"><span>Total questions</span><strong>{testQuestions.length}</strong></div>
             <div className="stat-row"><span>Answered</span><strong className="text-green">{answeredCount}</strong></div>
-            <div className="stat-row"><span>Not Answered</span><strong className="text-red">{unansweredCount}</strong></div>
+            <div className="stat-row"><span>Not answered</span><strong className="text-red">{unansweredCount}</strong></div>
             <div className="stat-row"><span>Flagged</span><strong className="text-orange">{flagged.size}</strong></div>
           </div>
         </aside>
@@ -509,7 +563,7 @@ const AssessmentArena = () => {
         <div className="modal-overlay">
           <div className="submit-modal auto-submit">
             <Clock size={40} className="modal-warning-icon" />
-            <h2>Time's Up!</h2>
+            <h2>Time is up</h2>
             <p>Your exam is being submitted automatically.</p>
             <button className="btn-confirm-submit" onClick={() => handleFinalSubmit(true)} disabled={submitting}>
               {submitting ? 'Submitting…' : 'View Results'}

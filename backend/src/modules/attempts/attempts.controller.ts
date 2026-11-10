@@ -29,9 +29,14 @@ import {
 export class AttemptsController {
   constructor(private readonly attemptsService: AttemptsService) {}
 
-  @ApiOperation({ summary: 'Start a test attempt (or resume if already started)' })
+  @ApiOperation({
+    summary: 'Start a test attempt (or resume if already started)',
+  })
   @Post('start/:testId')
-  startAttempt(@Param('testId', ParseUUIDPipe) testId: string, @CurrentUser() user) {
+  startAttempt(
+    @Param('testId', ParseUUIDPipe) testId: string,
+    @CurrentUser() user,
+  ) {
     return this.attemptsService.startAttempt(testId, user.id);
   }
 
@@ -51,7 +56,10 @@ export class AttemptsController {
     return this.attemptsService.saveAnswer(id, user.id, body);
   }
 
-  @ApiOperation({ summary: 'Record a proctoring violation — terminates the attempt on the 3rd' })
+  @ApiOperation({
+    summary:
+      'Record a proctoring violation — terminates the attempt on the 3rd',
+  })
   @Post(':id/violation')
   logViolation(
     @Param('id', ParseUUIDPipe) id: string,
@@ -68,7 +76,12 @@ export class AttemptsController {
     @CurrentUser() user,
     @Body() body: ToggleFlagDto,
   ) {
-    return this.attemptsService.toggleFlag(id, user.id, body.question_id, body.flagged);
+    return this.attemptsService.toggleFlag(
+      id,
+      user.id,
+      body.question_id,
+      body.flagged,
+    );
   }
 
   @ApiOperation({ summary: 'Submit the exam — backend calculates score' })
@@ -81,7 +94,9 @@ export class AttemptsController {
     return this.attemptsService.submitAttempt(id, user.id, body.autoSubmitted);
   }
 
-  @ApiOperation({ summary: 'Get result of a specific attempt (for PostTestResult page)' })
+  @ApiOperation({
+    summary: 'Get result of a specific attempt (for PostTestResult page)',
+  })
   @Get(':id')
   getResult(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user) {
     return this.attemptsService.getAttemptResult(id, user.id);

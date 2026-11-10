@@ -54,7 +54,7 @@ const AdminBatchManagement = () => {
     setSaving(true);
     try {
       await apiClient.post('/batches', newBatch);
-      showToast('Batch created!');
+      showToast('Batch created');
       setShowCreateModal(false);
       setNewBatch({ name: '', subject_focus: '' });
       fetchBatches();
@@ -76,7 +76,7 @@ const AdminBatchManagement = () => {
     setSaving(true);
     try {
       await apiClient.post(`/batches/${showAddStudentModal.id}/students`, { student_id: addStudentId });
-      showToast('Student added to batch!');
+      showToast('Student added to the batch');
       setShowAddStudentModal(null);
       setAddStudentId('');
       loadBatchStudents(showAddStudentModal.id);
@@ -102,18 +102,18 @@ const AdminBatchManagement = () => {
 
       <div className="admin-page-header">
         <div>
-          <h1>Batch Management</h1>
+          <h1>Batch management</h1>
           <p>Create and manage student batches across the platform.</p>
         </div>
         <button className="admin-btn admin-btn-primary" onClick={() => setShowCreateModal(true)}>
-          <Plus size={16} /> New Batch
+          <Plus size={16} /> New batch
         </button>
       </div>
 
       {loading ? (
         <p style={{ color: 'var(--text-secondary)' }}>Loading...</p>
       ) : batches.length === 0 ? (
-        <div className="admin-empty"><Users size={40} /><p>No batches yet. Create one!</p></div>
+        <div className="admin-empty"><Users size={40} /><p>No batches yet</p></div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {batches.map(b => {
@@ -125,11 +125,11 @@ const AdminBatchManagement = () => {
                   onClick={() => toggleExpand(b.id)}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(124,58,237,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Users size={18} color="#7c3aed" />
+                    <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(43, 68, 166,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Users size={18} color="var(--accent)" />
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{b.name}</div>
+                      <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>{b.name}</div>
                       {b.subject_focus && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{b.subject_focus}</div>}
                     </div>
                   </div>
@@ -139,7 +139,7 @@ const AdminBatchManagement = () => {
                       style={{ padding: '5px 10px', fontSize: 12 }}
                       onClick={e => { e.stopPropagation(); setShowAddStudentModal(b); }}
                     >
-                      <UserPlus size={13} /> Add Student
+                      <UserPlus size={13} /> Add student
                     </button>
                     <button
                       className="admin-btn admin-btn-danger"
@@ -154,7 +154,7 @@ const AdminBatchManagement = () => {
 
                 {isOpen && (
                   <div style={{ borderTop: '1px solid var(--border-color)', padding: '0 20px 16px' }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '14px 0 10px' }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'none', letterSpacing: 0, margin: '14px 0 10px' }}>
                       Students ({studentsInBatch.length})
                     </p>
                     {studentsInBatch.length === 0 ? (
@@ -162,11 +162,11 @@ const AdminBatchManagement = () => {
                     ) : studentsInBatch.map(s => (
                       <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg-color)', borderRadius: 8, marginBottom: 6 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(59,130,246,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#2563eb' }}>
+                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(43, 68, 166,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: 'var(--accent)' }}>
                             {(s.full_name || s.email || 'S')[0].toUpperCase()}
                           </div>
                           <div>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{s.full_name}</div>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{s.full_name}</div>
                             <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{s.email}</div>
                           </div>
                         </div>
@@ -188,11 +188,11 @@ const AdminBatchManagement = () => {
         <div className="admin-modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="admin-modal" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
             <div className="admin-modal-header">
-              <h2 className="admin-modal-title">Create New Batch</h2>
+              <h2 className="admin-modal-title">Create new batch</h2>
               <button className="admin-modal-close" onClick={() => setShowCreateModal(false)} aria-label="Close dialog" title="Close"><X size={18} /></button>
             </div>
             <div className="admin-form-group">
-              <label className="admin-form-label">Batch Name</label>
+              <label className="admin-form-label">Batch name</label>
               <input className="admin-form-input" placeholder="e.g. JEE 2026 Batch A" value={newBatch.name} onChange={e => setNewBatch({ ...newBatch, name: e.target.value })} />
             </div>
             <div className="admin-form-group">
@@ -216,7 +216,7 @@ const AdminBatchManagement = () => {
               <button className="admin-modal-close" onClick={() => setShowAddStudentModal(null)} aria-label="Close dialog" title="Close"><X size={18} /></button>
             </div>
             <div className="admin-form-group">
-              <label className="admin-form-label">Select Student</label>
+              <label className="admin-form-label">Select student</label>
               <select className="admin-form-select" value={addStudentId} onChange={e => setAddStudentId(e.target.value)}>
                 <option value="">— Choose a student —</option>
                 {availableStudents.map(s => (

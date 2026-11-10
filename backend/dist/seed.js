@@ -132,7 +132,7 @@ async function seed() {
                 }
             }
             else {
-                console.error(`❌ Error creating ${u.email} in Auth:`, authError.message);
+                console.error('❌ Error creating', u.email, 'in Auth:', authError.message);
                 continue;
             }
         }
@@ -152,7 +152,7 @@ async function seed() {
             role: u.role,
         }, { onConflict: 'id' });
         if (dbError) {
-            console.error(`❌ Error upserting ${u.email} to public.users:`, dbError.message);
+            console.error('❌ Error upserting', u.email, 'to public.users:', dbError.message);
         }
         else {
             console.log(`✅ Upserted ${u.email} into public.users table.`);

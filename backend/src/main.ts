@@ -38,13 +38,22 @@ async function bootstrap() {
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
-    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    res.setHeader(
+      'Permissions-Policy',
+      'geolocation=(), microphone=(), camera=()',
+    );
     // Nothing here is ever a document; stop a response being framed or sniffed
     // into one.
-    res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'none'; frame-ancestors 'none'",
+    );
     res.removeHeader('X-Powered-By');
     if (isProd) {
-      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+      res.setHeader(
+        'Strict-Transport-Security',
+        'max-age=31536000; includeSubDomains',
+      );
     }
     next();
   });
@@ -71,18 +80,29 @@ async function bootstrap() {
       // Same-origin / server-to-server requests carry no Origin header.
       if (!origin) return callback(null, true);
 
-      if (allowList.includes('*') || allowList.includes(origin) || origin.endsWith('.vercel.app')) return callback(null, true);
+      if (
+        allowList.includes('*') ||
+        allowList.includes(origin) ||
+        origin.endsWith('.vercel.app')
+      )
+        return callback(null, true);
 
       if (!isProd) {
         try {
           const u = new URL(origin);
-          if ((u.protocol === 'http:' || u.protocol === 'https:') && (u.hostname === 'localhost' || u.hostname === '127.0.0.1')) {
+          if (
+            (u.protocol === 'http:' || u.protocol === 'https:') &&
+            (u.hostname === 'localhost' || u.hostname === '127.0.0.1')
+          ) {
             return callback(null, true);
           }
         } catch {}
       }
 
-      return callback(new Error(`Origin ${origin} is not allowed by CORS`), false);
+      return callback(
+        new Error(`Origin ${origin} is not allowed by CORS`),
+        false,
+      );
     },
     credentials: true,
   });
@@ -136,11 +156,12 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
   logger.log(`EduCommand Backend running on port ${port}`);
-  logger.log(`Health probe at /api/health${enableSwagger ? ' · API docs at /api/docs' : ''}`);
+  logger.log(
+    `Health probe at /api/health${enableSwagger ? ' · API docs at /api/docs' : ''}`,
+  );
 }
 
 bootstrap().catch((e) => {
-  // eslint-disable-next-line no-console
   console.error('Failed to start:', e);
   process.exit(1);
 });

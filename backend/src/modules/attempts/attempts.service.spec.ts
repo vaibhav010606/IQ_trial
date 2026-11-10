@@ -8,7 +8,9 @@ jest.mock('../../config/supabase.config', () => ({
 
 import { AttemptsService } from './attempts.service';
 
-const srsStub = { processAttempt: jest.fn().mockResolvedValue(undefined) } as any;
+const srsStub = {
+  processAttempt: jest.fn().mockResolvedValue(undefined),
+} as any;
 const cacheStub = { invalidate: jest.fn().mockResolvedValue(undefined) } as any;
 
 const STUDENT = 'student-1';
@@ -35,12 +37,15 @@ describe('AttemptsService', () => {
 
   describe('startAttempt', () => {
     /** Assignment rows come back as a list — a student can be in several batches. */
-    const assignments = (...rows: any[]) => supabaseMock.queueResult('test_assignments', { data: rows });
+    const assignments = (...rows: any[]) =>
+      supabaseMock.queueResult('test_assignments', { data: rows });
 
     it('refuses a test the student is not assigned', async () => {
       assignments();
 
-      await expect(service.startAttempt(TEST_ID, STUDENT)).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(
+        service.startAttempt(TEST_ID, STUDENT),
+      ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
     it('refuses to open before the scheduled start', async () => {
@@ -50,7 +55,9 @@ describe('AttemptsService', () => {
         scheduled_end: new Date(Date.now() + 120 * 60_000).toISOString(),
       });
 
-      await expect(service.startAttempt(TEST_ID, STUDENT)).rejects.toThrow(/opens at/i);
+      await expect(service.startAttempt(TEST_ID, STUDENT)).rejects.toThrow(
+        /opens at/i,
+      );
     });
 
     it('refuses to open after the window has closed', async () => {
@@ -60,7 +67,9 @@ describe('AttemptsService', () => {
         scheduled_end: new Date(Date.now() - 60 * 60_000).toISOString(),
       });
 
-      await expect(service.startAttempt(TEST_ID, STUDENT)).rejects.toThrow(/window .* closed/i);
+      await expect(service.startAttempt(TEST_ID, STUDENT)).rejects.toThrow(
+        /window .* closed/i,
+      );
     });
 
     // The dashboard listed the test but starting it said "not assigned": a student
@@ -78,9 +87,11 @@ describe('AttemptsService', () => {
           scheduled_end: new Date(Date.now() + 5 * 60_000).toISOString(),
         },
       );
-      supabaseMock.queueResult('attempts', { data: null });                    // no prior attempt
-      supabaseMock.queueResult('tests', { data: { duration_minutes: 60 } });
-      supabaseMock.queueResult('attempts', { data: { id: ATTEMPT_ID } });      // insert
+      supabaseMock.queueResult('attempts', { data: null }); // no prior attempt
+      supabaseMock.queueResult('tests', {
+        data: { duration_minutes: 60, status: 'published' },
+      });
+      supabaseMock.queueResult('attempts', { data: { id: ATTEMPT_ID } }); // insert
 
       const result = await service.startAttempt(TEST_ID, STUDENT);
 
@@ -104,25 +115,35 @@ describe('AttemptsService', () => {
         },
       );
       supabaseMock.queueResult('attempts', { data: null });
-      supabaseMock.queueResult('tests', { data: { duration_minutes: 60 } });
+      supabaseMock.queueResult('tests', {
+        data: { duration_minutes: 60, status: 'published' },
+      });
       supabaseMock.queueResult('attempts', { data: { id: ATTEMPT_ID } });
 
-      await expect(service.startAttempt(TEST_ID, STUDENT)).resolves.toMatchObject({
+      await expect(
+        service.startAttempt(TEST_ID, STUDENT),
+      ).resolves.toMatchObject({
         attemptId: ATTEMPT_ID,
       });
     });
 
     it('rejects a second attempt once submitted', async () => {
       assignments({ id: 'a1', scheduled_start: null, scheduled_end: null });
-      supabaseMock.queueResult('attempts', { data: { id: ATTEMPT_ID, status: 'submitted' } });
+      supabaseMock.queueResult('attempts', {
+        data: { id: ATTEMPT_ID, status: 'submitted' },
+      });
 
-      await expect(service.startAttempt(TEST_ID, STUDENT)).rejects.toBeInstanceOf(BadRequestException);
+      await expect(
+        service.startAttempt(TEST_ID, STUDENT),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('returns saved answers when resuming an open attempt', async () => {
       assignments({ id: 'a1', scheduled_start: null, scheduled_end: null });
       supabaseMock.queueResult('attempts', { data: openAttempt(10) });
-      supabaseMock.queueResult('tests', { data: { duration_minutes: 60 } });
+      supabaseMock.queueResult('tests', {
+        data: { duration_minutes: 60, status: 'published' },
+      });
       supabaseMock.queueResult('answers', {
         data: [
           {
@@ -143,6 +164,124 @@ describe('AttemptsService', () => {
       // ~50 minutes of a 60 minute exam should remain.
       expect(result.timeLeftSeconds).toBeGreaterThan(2900);
       expect(result.timeLeftSeconds).toBeLessThanOrEqual(3000);
+    });
+  });
+
+  /**
+   * Each test can be taken once. These cover every route by which a student
+   * could otherwise end up with a second attempt or a second result.
+   */
+  describe('one attempt per test', () => {
+    const published = () =>
+      supabaseMock.queueResult('tests', { data: { duration_minutes: 60, status: 'published' } });
+    const assigned = () =>
+      supabaseMock.queueResult('test_assignments', {
+        data: [{ id: 'a1', scheduled_start: null, scheduled_end: null }],
+      });
+
+    it('refuses to start again once the test is submitted', async () => {
+      assigned();
+      supabaseMock.queueResult('attempts', {
+        data: [{ id: ATTEMPT_ID, status: 'submitted', started_at: new Date().toISOString() }],
+      });
+
+      await expect(service.startAttempt(TEST_ID, STUDENT)).rejects.toThrow(/only once/i);
+      expect(supabaseMock.calls.some((c) => c.table === 'attempts' && c.op === 'insert')).toBe(false);
+    });
+
+    // The old check read only the newest attempt. With a stray duplicate, a
+    // student who had submitted the older one could reopen the newer one.
+    it('refuses even when a newer duplicate attempt is still open', async () => {
+      assigned();
+      supabaseMock.queueResult('attempts', {
+        data: [
+          { id: 'older', status: 'submitted', started_at: new Date(Date.now() - 60_000).toISOString() },
+          { id: 'newer', status: 'in_progress', started_at: new Date().toISOString() },
+        ],
+      });
+
+      await expect(service.startAttempt(TEST_ID, STUDENT)).rejects.toThrow(/only once/i);
+    });
+
+    // Two tabs / a double-click racing the start on a database without the
+    // unique key: the loser drops its own empty row and joins the winner's.
+    it('collapses a racing duplicate start onto the earliest attempt', async () => {
+      assigned();
+      supabaseMock.queueResult('attempts', { data: [] }); // nothing before the insert
+      published();
+      supabaseMock.queueResult('attempts', { data: { id: 'mine' } }); // our insert
+      supabaseMock.queueResult('attempts', {
+        data: [
+          { id: 'theirs', status: 'in_progress', started_at: new Date(Date.now() - 1_000).toISOString() },
+          { id: 'mine', status: 'in_progress', started_at: new Date().toISOString() },
+        ],
+      });
+      supabaseMock.queueResult('attempts', { data: null }); // delete of our row
+      supabaseMock.queueResult('answers', { data: [] }); // resume reads saved answers
+
+      const result = await service.startAttempt(TEST_ID, STUDENT);
+
+      expect(result.attemptId).toBe('theirs');
+      expect(result.resumed).toBe(true);
+      expect(supabaseMock.calls.some((c) => c.table === 'attempts' && c.op === 'delete')).toBe(true);
+    });
+
+    it('refuses to submit a second attempt on the same test', async () => {
+      supabaseMock.queueResult('attempts', { data: openAttempt(10) }); // the attempt being submitted
+      supabaseMock.queueResult('attempts', {
+        data: [
+          { id: 'first', status: 'submitted', started_at: new Date(Date.now() - 3_600_000).toISOString() },
+          { id: ATTEMPT_ID, status: 'in_progress', started_at: new Date().toISOString() },
+        ],
+      });
+
+      await expect(service.submitAttempt(ATTEMPT_ID, STUDENT)).rejects.toThrow(/only once/i);
+      // Nothing was graded or written.
+      expect(supabaseMock.calls.some((c) => c.table === 'attempts' && c.op === 'update')).toBe(false);
+    });
+
+    it('lets the expiry sweeper discard, not grade, a stray duplicate', async () => {
+      supabaseMock.queueResult('attempts', {
+        data: [
+          {
+            id: 'stray',
+            test_id: TEST_ID,
+            student_id: STUDENT,
+            started_at: new Date(Date.now() - 3 * 3_600_000).toISOString(),
+            tests: { duration_minutes: 60 },
+          },
+        ],
+      });
+      supabaseMock.queueResult('attempts', {
+        data: [
+          { id: 'first', status: 'submitted', started_at: new Date(Date.now() - 4 * 3_600_000).toISOString() },
+          { id: 'stray', status: 'in_progress', started_at: new Date(Date.now() - 3 * 3_600_000).toISOString() },
+        ],
+      });
+
+      const graded = await service.autoSubmitExpiredAttempts();
+
+      expect(graded).toBe(0);
+      expect(supabaseMock.calls.some((c) => c.table === 'attempts' && c.op === 'update')).toBe(false);
+      expect(supabaseMock.calls.some((c) => c.table === 'attempts' && c.op === 'delete')).toBe(true);
+    });
+  });
+
+  describe('startAttempt on an unpublished test', () => {
+    // An admin may schedule batches on a draft before publishing it. The start
+    // endpoint must refuse it, not just the dashboard that hides it.
+    it('refuses a draft even when the student is assigned', async () => {
+      supabaseMock.queueResult('test_assignments', {
+        data: [{ id: 'a1', scheduled_start: null, scheduled_end: null }],
+      });
+      supabaseMock.queueResult('attempts', { data: null });
+      supabaseMock.queueResult('tests', {
+        data: { duration_minutes: 60, status: 'draft' },
+      });
+
+      await expect(
+        service.startAttempt(TEST_ID, STUDENT),
+      ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
 
@@ -195,8 +334,14 @@ describe('AttemptsService', () => {
   // Migration 005 adds answers.status and attempt_violations. Until it is run,
   // the exam must keep working rather than 500-ing on every answer.
   describe('when migration 005 has not been applied', () => {
-    const missingColumn = { message: 'column answers.status does not exist', code: '42703' };
-    const missingTable = { message: "Could not find the table 'public.attempt_violations'", code: 'PGRST205' };
+    const missingColumn = {
+      message: 'column answers.status does not exist',
+      code: '42703',
+    };
+    const missingTable = {
+      message: "Could not find the table 'public.attempt_violations'",
+      code: 'PGRST205',
+    };
 
     it('still saves the answer when answers.status is missing', async () => {
       supabaseMock.queueResult('attempts', { data: openAttempt(5) });
@@ -219,39 +364,56 @@ describe('AttemptsService', () => {
 
     it('reports violations as degraded rather than failing the request', async () => {
       supabaseMock.queueResult('attempts', { data: openAttempt(5) });
-      supabaseMock.queueResult('attempt_violations', { data: null, error: missingTable });
+      supabaseMock.queueResult('attempt_violations', {
+        data: null,
+        error: missingTable,
+      });
 
       await expect(
         service.logViolation(ATTEMPT_ID, STUDENT, { type: 'tab_hidden' }),
-      ).resolves.toEqual({ terminated: false, strikes: 0, limit: 3, degraded: true });
+      ).resolves.toEqual({
+        terminated: false,
+        strikes: 0,
+        limit: 3,
+        degraded: true,
+      });
     });
   });
 
   describe('logViolation', () => {
     const queueStrike = (count: number) => {
-      supabaseMock.queueResult('attempts', { data: openAttempt(5) });     // ownership lookup
-      supabaseMock.queueResult('attempt_violations', { data: null });     // insert
-      supabaseMock.queueResult('attempt_violations', { count });          // running total
+      supabaseMock.queueResult('attempts', { data: openAttempt(5) }); // ownership lookup
+      supabaseMock.queueResult('attempt_violations', { data: null }); // insert
+      supabaseMock.queueResult('attempt_violations', { count }); // running total
     };
 
     it('warns but does not terminate below the limit', async () => {
       queueStrike(2);
 
-      await expect(service.logViolation(ATTEMPT_ID, STUDENT, { type: 'tab_hidden' })).resolves.toEqual(
-        { terminated: false, strikes: 2, limit: 3 },
-      );
+      await expect(
+        service.logViolation(ATTEMPT_ID, STUDENT, { type: 'tab_hidden' }),
+      ).resolves.toEqual({ terminated: false, strikes: 2, limit: 3 });
     });
 
     it('terminates and grades the attempt on the third strike', async () => {
       queueStrike(3);
+      supabaseMock.queueResult('attempts', { data: [openAttempt(5)] }); // no other submitted attempt
       // gradeAndFinalise reads the duration, marking scheme, paper and answers.
       supabaseMock.queueResult('tests', { data: { duration_minutes: 60 } });
-      supabaseMock.queueResult('tests', { data: { negative_marking: false, negative_marks: 0, results_published: true } });
+      supabaseMock.queueResult('tests', {
+        data: {
+          negative_marking: false,
+          negative_marks: 0,
+          results_published: true,
+        },
+      });
       supabaseMock.queueResult('test_questions', { data: [] });
       supabaseMock.queueResult('answers', { data: [] });
       supabaseMock.queueResult('attempts', { data: { id: ATTEMPT_ID } });
 
-      const result = await service.logViolation(ATTEMPT_ID, STUDENT, { type: 'fullscreen_exit' });
+      const result = await service.logViolation(ATTEMPT_ID, STUDENT, {
+        type: 'fullscreen_exit',
+      });
 
       expect(result.terminated).toBe(true);
       // The attempt must not be left dangling open — it is graded on the spot.
@@ -262,7 +424,9 @@ describe('AttemptsService', () => {
       supabaseMock.queueResult('attempts', { data: null });
 
       await expect(
-        service.logViolation(ATTEMPT_ID, 'someone-else', { type: 'tab_hidden' }),
+        service.logViolation(ATTEMPT_ID, 'someone-else', {
+          type: 'tab_hidden',
+        }),
       ).rejects.toThrow(/not found/i);
     });
   });
@@ -272,9 +436,9 @@ describe('AttemptsService', () => {
       // Ownership is enforced by the student_id filter — no row comes back.
       supabaseMock.queueResult('attempts', { data: null });
 
-      await expect(service.toggleFlag(ATTEMPT_ID, 'someone-else', 'q1', true)).rejects.toThrow(
-        /not found/i,
-      );
+      await expect(
+        service.toggleFlag(ATTEMPT_ID, 'someone-else', 'q1', true),
+      ).rejects.toThrow(/not found/i);
     });
   });
 
@@ -284,16 +448,20 @@ describe('AttemptsService', () => {
       negativeMarking?: boolean;
       negativeMarks?: number;
       resultsPublished?: boolean;
+      paperPattern?: string;
       testQuestions: any[];
       studentAnswers: any[];
     }) => {
-      supabaseMock.queueResult('attempts', { data: openAttempt(10) });        // submitAttempt lookup
-      supabaseMock.queueResult('tests', { data: { duration_minutes: 60 } });  // duration
-      supabaseMock.queueResult('tests', {                                     // marking scheme
+      supabaseMock.queueResult('attempts', { data: openAttempt(10) }); // submitAttempt lookup
+      supabaseMock.queueResult('attempts', { data: [openAttempt(10)] }); // no other submitted attempt
+      supabaseMock.queueResult('tests', { data: { duration_minutes: 60 } }); // duration
+      supabaseMock.queueResult('tests', {
+        // marking scheme
         data: {
           negative_marking: opts.negativeMarking ?? false,
           negative_marks: opts.negativeMarks ?? 0,
           results_published: opts.resultsPublished ?? true,
+          paper_pattern: opts.paperPattern ?? null,
         },
       });
       supabaseMock.queueResult('test_questions', { data: opts.testQuestions });
@@ -306,12 +474,102 @@ describe('AttemptsService', () => {
       supabaseMock.queueResult('attempts', { data: { id: ATTEMPT_ID } });
     };
 
+    /**
+     * An official paper is marked by its sections, not a flat +4/−n. JEE
+     * Advanced Paper 1 Physics: Section 1 +3/−1, Section 2 +4 with partial
+     * credit/−2, Section 3 +4/0, Section 4 (matching) +4/−1.
+     */
+    it('grades a JEE Advanced paper section by section', async () => {
+      const q = (id: string, order: number, q_type: string, correct_answer: any) => ({
+        question_id: id,
+        question_order: order,
+        marks_override: null,
+        questions: { correct_answer, marks: 4, subject: 'Physics', q_type, options: ['a', 'b', 'c', 'd'] },
+      });
+      queueGrading({
+        paperPattern: 'jee_advanced',
+        testQuestions: [
+          q('s1', 1, 'single_correct', { index: 0 }),
+          q('s2', 2, 'single_correct', { index: 1 }),
+          q('s3', 3, 'single_correct', { index: 2 }),
+          q('s4', 4, 'single_correct', { index: 3 }),
+          q('m1', 5, 'multi_correct', { indices: [0, 1, 3] }),
+          q('n1', 6, 'numerical', { value: '2.35' }),
+          q('n2', 7, 'numerical', { value: '10' }),
+          q('x1', 8, 'single_correct', { index: 2 }), // 5th single -> Section 4 (matching)
+        ],
+        studentAnswers: [
+          { question_id: 's1', selected_answer: { index: 0 } },      // Sec 1 right: +3
+          { question_id: 's2', selected_answer: { index: 0 } },      // Sec 1 wrong: −1
+          { question_id: 'm1', selected_answer: { indices: [0, 1] } }, // partial: +2
+          { question_id: 'n1', selected_answer: { value: '2.354' } }, // to 2 dp: +4
+          { question_id: 'n2', selected_answer: { value: '11' } },    // wrong, no negative: 0
+          { question_id: 'x1', selected_answer: { index: 2 } },      // Sec 4 right: +4
+        ],
+      });
+
+      const result: any = await service.submitAttempt(ATTEMPT_ID, STUDENT);
+
+      expect(result.score).toBe(3 - 1 + 2 + 4 + 0 + 4);
+      // 4 × 3 + 4 + 2 × 4 + 4 for the questions on this (partial) paper.
+      expect(result.maxScore).toBe(12 + 4 + 8 + 4);
+    });
+
+    // Unticking every option, or pressing Clear on the numeric keypad, saves an
+    // empty response. That is a skipped question, not a wrong one.
+    it('does not apply negative marking to cleared responses', async () => {
+      queueGrading({
+        negativeMarking: true,
+        negativeMarks: 1,
+        testQuestions: [
+          {
+            question_id: 'q1',
+            marks_override: null,
+            questions: { correct_answer: { indices: [0, 2] }, marks: 4 },
+          },
+          {
+            question_id: 'q2',
+            marks_override: null,
+            questions: { correct_answer: { value: '12' }, marks: 4 },
+          },
+          {
+            question_id: 'q3',
+            marks_override: null,
+            questions: { correct_answer: { index: 1 }, marks: 4 },
+          },
+        ],
+        studentAnswers: [
+          { question_id: 'q1', selected_answer: { indices: [] } },
+          { question_id: 'q2', selected_answer: { value: '' } },
+          { question_id: 'q3', selected_answer: { index: 3 } }, // genuinely wrong
+        ],
+      });
+
+      const result: any = await service.submitAttempt(ATTEMPT_ID, STUDENT);
+
+      expect(result.score).toBe(-1);
+      expect(result.unattempted).toBe(2);
+      expect(result.incorrect).toBe(1);
+    });
+
     it('awards marks for correct answers only', async () => {
       queueGrading({
         testQuestions: [
-          { question_id: 'q1', marks_override: null, questions: { correct_answer: { index: 0 }, marks: 4 } },
-          { question_id: 'q2', marks_override: null, questions: { correct_answer: { index: 1 }, marks: 4 } },
-          { question_id: 'q3', marks_override: null, questions: { correct_answer: { index: 2 }, marks: 4 } },
+          {
+            question_id: 'q1',
+            marks_override: null,
+            questions: { correct_answer: { index: 0 }, marks: 4 },
+          },
+          {
+            question_id: 'q2',
+            marks_override: null,
+            questions: { correct_answer: { index: 1 }, marks: 4 },
+          },
+          {
+            question_id: 'q3',
+            marks_override: null,
+            questions: { correct_answer: { index: 2 }, marks: 4 },
+          },
         ],
         studentAnswers: [
           { question_id: 'q1', selected_answer: { index: 0 } }, // correct
@@ -334,9 +592,21 @@ describe('AttemptsService', () => {
         negativeMarking: true,
         negativeMarks: 1,
         testQuestions: [
-          { question_id: 'q1', marks_override: null, questions: { correct_answer: { index: 0 }, marks: 4 } },
-          { question_id: 'q2', marks_override: null, questions: { correct_answer: { index: 1 }, marks: 4 } },
-          { question_id: 'q3', marks_override: null, questions: { correct_answer: { index: 2 }, marks: 4 } },
+          {
+            question_id: 'q1',
+            marks_override: null,
+            questions: { correct_answer: { index: 0 }, marks: 4 },
+          },
+          {
+            question_id: 'q2',
+            marks_override: null,
+            questions: { correct_answer: { index: 1 }, marks: 4 },
+          },
+          {
+            question_id: 'q3',
+            marks_override: null,
+            questions: { correct_answer: { index: 2 }, marks: 4 },
+          },
         ],
         studentAnswers: [
           { question_id: 'q1', selected_answer: { index: 0 } }, // +4
@@ -354,7 +624,13 @@ describe('AttemptsService', () => {
     it('marks a late submission as auto-submitted and clamps the reported time', async () => {
       supabaseMock.queueResult('attempts', { data: openAttempt(120) }); // 2h into a 1h test
       supabaseMock.queueResult('tests', { data: { duration_minutes: 60 } });
-      supabaseMock.queueResult('tests', { data: { negative_marking: false, negative_marks: 0, results_published: true } });
+      supabaseMock.queueResult('tests', {
+        data: {
+          negative_marking: false,
+          negative_marks: 0,
+          results_published: true,
+        },
+      });
       supabaseMock.queueResult('test_questions', { data: [] });
       supabaseMock.queueResult('answers', { data: [] });
       supabaseMock.queueResult('attempts', { data: { id: ATTEMPT_ID } });
@@ -368,9 +644,15 @@ describe('AttemptsService', () => {
     it('matches numeric answers regardless of formatting', async () => {
       queueGrading({
         testQuestions: [
-          { question_id: 'q1', marks_override: null, questions: { correct_answer: { value: '2.50' }, marks: 4 } },
+          {
+            question_id: 'q1',
+            marks_override: null,
+            questions: { correct_answer: { value: '2.50' }, marks: 4 },
+          },
         ],
-        studentAnswers: [{ question_id: 'q1', selected_answer: { value: ' 2.5 ' } }],
+        studentAnswers: [
+          { question_id: 'q1', selected_answer: { value: ' 2.5 ' } },
+        ],
       });
 
       const result = await service.submitAttempt(ATTEMPT_ID, STUDENT);
@@ -380,9 +662,15 @@ describe('AttemptsService', () => {
     it('treats multi-select answers as order-insensitive', async () => {
       queueGrading({
         testQuestions: [
-          { question_id: 'q1', marks_override: null, questions: { correct_answer: { indices: [0, 2] }, marks: 4 } },
+          {
+            question_id: 'q1',
+            marks_override: null,
+            questions: { correct_answer: { indices: [0, 2] }, marks: 4 },
+          },
         ],
-        studentAnswers: [{ question_id: 'q1', selected_answer: { indices: [2, 0] } }],
+        studentAnswers: [
+          { question_id: 'q1', selected_answer: { indices: [2, 0] } },
+        ],
       });
 
       const result = await service.submitAttempt(ATTEMPT_ID, STUDENT);
@@ -393,18 +681,22 @@ describe('AttemptsService', () => {
       queueGrading({
         resultsPublished: false,
         testQuestions: [
-          { question_id: 'q1', marks_override: null, questions: { correct_answer: { index: 0 }, marks: 4 } },
+          {
+            question_id: 'q1',
+            marks_override: null,
+            questions: { correct_answer: { index: 0 }, marks: 4 },
+          },
         ],
-        studentAnswers: [
-          { question_id: 'q1', selected_answer: { index: 0 } },
-        ],
+        studentAnswers: [{ question_id: 'q1', selected_answer: { index: 0 } }],
       });
 
       const result = await service.submitAttempt(ATTEMPT_ID, STUDENT);
 
       expect(result.results_published).toBe(false);
       expect((result as any).score).toBeUndefined();
-      expect(result.message).toContain('Results will be released once approved by the administrator');
+      expect(result.message).toContain(
+        'Results will be released once approved by the administrator',
+      );
     });
 
     it('refuses to submit an attempt twice', async () => {
@@ -412,15 +704,19 @@ describe('AttemptsService', () => {
         data: { ...openAttempt(), status: 'submitted' },
       });
 
-      await expect(service.submitAttempt(ATTEMPT_ID, STUDENT)).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        service.submitAttempt(ATTEMPT_ID, STUDENT),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('updates spaced repetition and drops the cached leaderboard', async () => {
       queueGrading({
         testQuestions: [
-          { question_id: 'q1', marks_override: null, questions: { correct_answer: { index: 0 }, marks: 4 } },
+          {
+            question_id: 'q1',
+            marks_override: null,
+            questions: { correct_answer: { index: 0 }, marks: 4 },
+          },
         ],
         studentAnswers: [{ question_id: 'q1', selected_answer: { index: 0 } }],
       });
@@ -454,7 +750,8 @@ describe('AttemptsService', () => {
       await service.submitAttempt(ATTEMPT_ID, STUDENT);
 
       const writes = supabaseMock.calls.filter(
-        (c) => c.table === 'answers' && (c.op === 'upsert' || c.op === 'update'),
+        (c) =>
+          c.table === 'answers' && (c.op === 'upsert' || c.op === 'update'),
       );
       expect(writes).toHaveLength(1);
       expect(writes[0].payload).toHaveLength(90);
@@ -464,7 +761,11 @@ describe('AttemptsService', () => {
     it('writes nothing back when the student answered nothing', async () => {
       queueGrading({
         testQuestions: [
-          { question_id: 'q1', marks_override: null, questions: { correct_answer: { index: 0 }, marks: 4 } },
+          {
+            question_id: 'q1',
+            marks_override: null,
+            questions: { correct_answer: { index: 0 }, marks: 4 },
+          },
         ],
         studentAnswers: [],
       });
@@ -473,7 +774,9 @@ describe('AttemptsService', () => {
 
       expect(result.unattempted).toBe(1);
       expect(
-        supabaseMock.calls.filter((c) => c.table === 'answers' && c.op === 'upsert'),
+        supabaseMock.calls.filter(
+          (c) => c.table === 'answers' && c.op === 'upsert',
+        ),
       ).toHaveLength(0);
     });
 
@@ -485,13 +788,25 @@ describe('AttemptsService', () => {
     it('does not re-run post-submit work when another submit won the race', async () => {
       supabaseMock.queueResult('attempts', { data: openAttempt(10) });
       supabaseMock.queueResult('tests', { data: { duration_minutes: 60 } });
-      supabaseMock.queueResult('tests', { data: { negative_marking: false, negative_marks: 0, results_published: true } });
+      supabaseMock.queueResult('tests', {
+        data: {
+          negative_marking: false,
+          negative_marks: 0,
+          results_published: true,
+        },
+      });
       supabaseMock.queueResult('test_questions', {
         data: [
-          { question_id: 'q1', marks_override: null, questions: { correct_answer: { index: 0 }, marks: 4 } },
+          {
+            question_id: 'q1',
+            marks_override: null,
+            questions: { correct_answer: { index: 0 }, marks: 4 },
+          },
         ],
       });
-      supabaseMock.queueResult('answers', { data: [{ question_id: 'q1', selected_answer: { index: 0 } }] });
+      supabaseMock.queueResult('answers', {
+        data: [{ question_id: 'q1', selected_answer: { index: 0 } }],
+      });
       supabaseMock.queueResult('answers', { data: null });
       // The conditional update matches no row: someone else already finalised it.
       supabaseMock.queueResult('attempts', { data: null });
@@ -511,12 +826,18 @@ describe('AttemptsService', () => {
 
       queueGrading({
         testQuestions: [
-          { question_id: 'q1', marks_override: null, questions: { correct_answer: { index: 0 }, marks: 4 } },
+          {
+            question_id: 'q1',
+            marks_override: null,
+            questions: { correct_answer: { index: 0 }, marks: 4 },
+          },
         ],
         studentAnswers: [{ question_id: 'q1', selected_answer: { index: 0 } }],
       });
 
-      await expect(service.submitAttempt(ATTEMPT_ID, STUDENT)).resolves.toMatchObject({ score: 4 });
+      await expect(
+        service.submitAttempt(ATTEMPT_ID, STUDENT),
+      ).resolves.toMatchObject({ score: 4 });
     });
   });
 });

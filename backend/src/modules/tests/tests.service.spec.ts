@@ -14,7 +14,8 @@ const TEACHER = { id: 'teacher-1', role: 'teacher' };
 const OTHER_TEACHER = { id: 'teacher-2', role: 'teacher' };
 const ADMIN = { id: 'admin-1', role: 'admin' };
 
-const minutesFromNow = (m: number) => new Date(Date.now() + m * 60_000).toISOString();
+const minutesFromNow = (m: number) =>
+  new Date(Date.now() + m * 60_000).toISOString();
 
 describe('TestsService', () => {
   let service: TestsService;
@@ -32,57 +33,85 @@ describe('TestsService', () => {
    * next week — simply by knowing its id.
    */
   describe('getTestQuestionsForStudent', () => {
-    const publishedTest = () => supabaseMock.queueResult('tests', { data: { id: TEST_ID, status: 'published' } });
+    const publishedTest = () =>
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, status: 'published' },
+      });
 
     it('refuses a student who has no assignment', async () => {
       publishedTest();
       supabaseMock.queueResult('test_assignments', { data: [] });
 
-      await expect(service.getTestQuestionsForStudent(TEST_ID, STUDENT.id)).rejects.toThrow(
-        /not assigned/i,
-      );
+      await expect(
+        service.getTestQuestionsForStudent(TEST_ID, STUDENT.id),
+      ).rejects.toThrow(/not assigned/i);
     });
 
     it('refuses to hand over the paper before the window opens', async () => {
       publishedTest();
       supabaseMock.queueResult('test_assignments', {
-        data: [{ scheduled_start: minutesFromNow(60), scheduled_end: minutesFromNow(120) }],
+        data: [
+          {
+            scheduled_start: minutesFromNow(60),
+            scheduled_end: minutesFromNow(120),
+          },
+        ],
       });
 
-      await expect(service.getTestQuestionsForStudent(TEST_ID, STUDENT.id)).rejects.toBeInstanceOf(
-        ForbiddenException,
-      );
+      await expect(
+        service.getTestQuestionsForStudent(TEST_ID, STUDENT.id),
+      ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
     it('refuses once the window has closed', async () => {
       publishedTest();
       supabaseMock.queueResult('test_assignments', {
-        data: [{ scheduled_start: minutesFromNow(-180), scheduled_end: minutesFromNow(-60) }],
+        data: [
+          {
+            scheduled_start: minutesFromNow(-180),
+            scheduled_end: minutesFromNow(-60),
+          },
+        ],
       });
 
-      await expect(service.getTestQuestionsForStudent(TEST_ID, STUDENT.id)).rejects.toThrow(
-        /closed/i,
-      );
+      await expect(
+        service.getTestQuestionsForStudent(TEST_ID, STUDENT.id),
+      ).rejects.toThrow(/closed/i);
     });
 
     it('refuses a test that is still a draft', async () => {
-      supabaseMock.queueResult('tests', { data: { id: TEST_ID, status: 'draft' } });
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, status: 'draft' },
+      });
 
-      await expect(service.getTestQuestionsForStudent(TEST_ID, STUDENT.id)).rejects.toThrow(
-        /not available/i,
-      );
+      await expect(
+        service.getTestQuestionsForStudent(TEST_ID, STUDENT.id),
+      ).rejects.toThrow(/not available/i);
     });
 
     it('serves the paper inside the window, without correct answers', async () => {
       publishedTest();
       supabaseMock.queueResult('test_assignments', {
-        data: [{ scheduled_start: minutesFromNow(-10), scheduled_end: minutesFromNow(50) }],
+        data: [
+          {
+            scheduled_start: minutesFromNow(-10),
+            scheduled_end: minutesFromNow(50),
+          },
+        ],
       });
       supabaseMock.queueResult('test_questions', {
-        data: [{ question_order: 1, questions: { id: 'q1', question_text: 'What?' } }],
+        data: [
+          {
+            question_order: 1,
+            questions: { id: 'q1', question_text: 'What?' },
+          },
+        ],
       });
 
-      const paper = await service.getTestQuestionsForStudent(TEST_ID, STUDENT.id);
+      const paper = await service.getTestQuestionsForStudent(
+        TEST_ID,
+        STUDENT.id,
+      );
 
       expect(paper).toHaveLength(1);
       expect(JSON.stringify(paper)).not.toContain('correct_answer');
@@ -93,31 +122,94 @@ describe('TestsService', () => {
       publishedTest();
       supabaseMock.queueResult('test_assignments', {
         data: [
-          { scheduled_start: minutesFromNow(30), scheduled_end: minutesFromNow(90) },
-          { scheduled_start: minutesFromNow(-30), scheduled_end: minutesFromNow(30) },
+          {
+            scheduled_start: minutesFromNow(30),
+            scheduled_end: minutesFromNow(90),
+          },
+          {
+            scheduled_start: minutesFromNow(-30),
+            scheduled_end: minutesFromNow(30),
+          },
         ],
       });
       supabaseMock.queueResult('test_questions', { data: [] });
 
-      await expect(service.getTestQuestionsForStudent(TEST_ID, STUDENT.id)).resolves.toEqual([]);
+      await expect(
+        service.getTestQuestionsForStudent(TEST_ID, STUDENT.id),
+      ).resolves.toEqual([]);
     });
   });
 
   describe('findOne', () => {
-    it('routes a student through the assignment check', async () => {
-      supabaseMock.queueResult('tests', { data: { id: TEST_ID, status: 'published' } });
-      supabaseMock.queueResult('test_assignments', { data: [] });
+    // Both exam screens call GET /tests/:id while the exam is running. The
+    // answer key must not be in that response — it used to be.
+    it('never selects correct_answer for a student', async () => {
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, status: 'published' },
+      });
+      supabaseMock.queueResult('test_assignments', {
+        data: [
+          {
+            scheduled_start: minutesFromNow(-10),
+            scheduled_end: minutesFromNow(50),
+          },
+        ],
+      });
+      supabaseMock.queueResult('tests', { data: [] }); // paper_pattern probe
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, test_questions: [] },
+      });
 
-      await expect(service.findOne(TEST_ID, STUDENT)).rejects.toThrow(/not assigned/i);
+      await service.findOne(TEST_ID, STUDENT);
+
+      const paperRead = supabaseMock.calls.find(
+        (c) =>
+          c.table === 'tests' &&
+          String(c.columns || '').includes('test_questions'),
+      );
+      expect(paperRead?.columns).toContain('question_text');
+      expect(paperRead?.columns).not.toContain('correct_answer');
     });
 
-    it("refuses a teacher who neither created the test nor collaborates on it", async () => {
-      supabaseMock.queueResult('tests', { data: { id: TEST_ID, created_by: TEACHER.id } });
+    it('still gives staff the answer key for editing', async () => {
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, created_by: ADMIN.id },
+      });
+      supabaseMock.queueResult('tests', { data: [] }); // paper_pattern probe
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, test_questions: [] },
+      });
+
+      await service.findOne(TEST_ID, ADMIN);
+
+      const paperRead = supabaseMock.calls.find(
+        (c) =>
+          c.table === 'tests' &&
+          String(c.columns || '').includes('test_questions'),
+      );
+      expect(paperRead?.columns).toContain('correct_answer');
+    });
+
+    it('routes a student through the assignment check', async () => {
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, status: 'published' },
+      });
+      supabaseMock.queueResult('test_assignments', { data: [] });
+
+      await expect(service.findOne(TEST_ID, STUDENT)).rejects.toThrow(
+        /not assigned/i,
+      );
+    });
+
+    it('refuses a teacher who neither created the test nor collaborates on it', async () => {
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, created_by: TEACHER.id },
+      });
       supabaseMock.queueResult('test_teachers', { data: null });
 
-      await expect(service.findOne(TEST_ID, OTHER_TEACHER)).rejects.toBeInstanceOf(
-        ForbiddenException,
-      );
+      await expect(
+        service.findOne(TEST_ID, OTHER_TEACHER),
+      ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
 
@@ -130,33 +222,43 @@ describe('TestsService', () => {
     it('404s on a test that does not exist rather than allowing the write', async () => {
       supabaseMock.queueResult('tests', { data: null });
 
-      await expect(service.update(TEST_ID, { title: 'x' }, TEACHER)).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        service.update(TEST_ID, { title: 'x' }, TEACHER),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it("refuses to let one teacher edit another teacher's test", async () => {
-      supabaseMock.queueResult('tests', { data: { id: TEST_ID, created_by: TEACHER.id } });
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, created_by: TEACHER.id },
+      });
 
-      await expect(service.update(TEST_ID, { title: 'x' }, OTHER_TEACHER)).rejects.toBeInstanceOf(
-        ForbiddenException,
-      );
+      await expect(
+        service.update(TEST_ID, { title: 'x' }, OTHER_TEACHER),
+      ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
     it('lets an admin through', async () => {
-      supabaseMock.queueResult('tests', { data: { id: TEST_ID, created_by: TEACHER.id } });
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, created_by: TEACHER.id },
+      });
       supabaseMock.queueResult('tests', { data: { id: TEST_ID, title: 'x' } });
 
-      await expect(service.update(TEST_ID, { title: 'x' }, ADMIN)).resolves.toMatchObject({
+      await expect(
+        service.update(TEST_ID, { title: 'x' }, ADMIN),
+      ).resolves.toMatchObject({
         id: TEST_ID,
       });
     });
 
     it('lets the creator manage their own test', async () => {
-      supabaseMock.queueResult('tests', { data: { id: TEST_ID, created_by: TEACHER.id } });
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, created_by: TEACHER.id },
+      });
       supabaseMock.queueResult('tests', { data: { id: TEST_ID, title: 'x' } });
 
-      await expect(service.update(TEST_ID, { title: 'x' }, TEACHER)).resolves.toMatchObject({
+      await expect(
+        service.update(TEST_ID, { title: 'x' }, TEACHER),
+      ).resolves.toMatchObject({
         id: TEST_ID,
       });
     });
@@ -171,19 +273,32 @@ describe('TestsService', () => {
   describe('assigned teachers can contribute but not administer', () => {
     /** The ownership lookup, then the `test_teachers` membership lookup. */
     const assignedCollaborator = () => {
-      supabaseMock.queueResult('tests', { data: { id: TEST_ID, created_by: ADMIN.id } });
-      supabaseMock.queueResult('test_teachers', { data: { teacher_id: OTHER_TEACHER.id } });
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, created_by: ADMIN.id },
+      });
+      supabaseMock.queueResult('test_teachers', {
+        data: { teacher_id: OTHER_TEACHER.id },
+      });
     };
 
     /** Ownership lookup only — administer-level never consults test_teachers. */
     const adminOwnedTest = () =>
-      supabaseMock.queueResult('tests', { data: { id: TEST_ID, created_by: ADMIN.id } });
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, created_by: ADMIN.id },
+      });
 
     it('lets an assigned teacher add questions', async () => {
       assignedCollaborator();
       supabaseMock.queueResult('test_questions', { data: [] }); // existing links
       supabaseMock.queueResult('questions', {
-        data: [{ id: 'q1', subject: 'Physics', review_status: 'approved', is_active: true }],
+        data: [
+          {
+            id: 'q1',
+            subject: 'Physics',
+            review_status: 'approved',
+            is_active: true,
+          },
+        ],
       });
       supabaseMock.queueResult('test_questions', { data: null }); // delete
       supabaseMock.queueResult('test_questions', { data: null }); // insert
@@ -191,19 +306,38 @@ describe('TestsService', () => {
       supabaseMock.queueResult('tests', { data: null }); // total_marks write
 
       await expect(
-        service.addQuestions(TEST_ID, ['q1'], { ...OTHER_TEACHER, subject: 'Physics' }),
+        service.addQuestions(TEST_ID, ['q1'], {
+          ...OTHER_TEACHER,
+          subject: 'Physics',
+        }),
       ).resolves.toMatchObject({ message: 'Questions updated' });
     });
 
     it('preserves other subjects questions when a subject teacher contributes to a mixed test', async () => {
       assignedCollaborator();
       supabaseMock.queueResult('test_questions', {
-        data: [{ question_id: 'q_phys', question_order: 1, questions: { id: 'q_phys', subject: 'Physics' } }],
+        data: [
+          {
+            question_id: 'q_phys',
+            question_order: 1,
+            questions: { id: 'q_phys', subject: 'Physics' },
+          },
+        ],
       });
       supabaseMock.queueResult('questions', {
         data: [
-          { id: 'q_phys', subject: 'Physics', review_status: 'approved', is_active: true },
-          { id: 'q_chem', subject: 'Chemistry', review_status: 'approved', is_active: true },
+          {
+            id: 'q_phys',
+            subject: 'Physics',
+            review_status: 'approved',
+            is_active: true,
+          },
+          {
+            id: 'q_chem',
+            subject: 'Chemistry',
+            review_status: 'approved',
+            is_active: true,
+          },
         ],
       });
       supabaseMock.queueResult('test_questions', { data: null });
@@ -212,7 +346,10 @@ describe('TestsService', () => {
       supabaseMock.queueResult('tests', { data: null });
 
       await expect(
-        service.addQuestions(TEST_ID, ['q_chem'], { ...OTHER_TEACHER, subject: 'Chemistry' }),
+        service.addQuestions(TEST_ID, ['q_chem'], {
+          ...OTHER_TEACHER,
+          subject: 'Chemistry',
+        }),
       ).resolves.toMatchObject({ message: 'Questions updated' });
     });
 
@@ -221,18 +358,25 @@ describe('TestsService', () => {
       supabaseMock.queueResult('tests', { data: [] }); // paper_pattern probe
       supabaseMock.queueResult('tests', { data: { id: TEST_ID } });
 
-      await expect(service.findOne(TEST_ID, OTHER_TEACHER)).resolves.toMatchObject({
+      await expect(
+        service.findOne(TEST_ID, OTHER_TEACHER),
+      ).resolves.toMatchObject({
         id: TEST_ID,
       });
     });
 
     it.each([
-      ['rename it', (s: TestsService) => s.update(TEST_ID, { title: 'hijacked' }, OTHER_TEACHER)],
+      [
+        'rename it',
+        (s: TestsService) =>
+          s.update(TEST_ID, { title: 'hijacked' }, OTHER_TEACHER),
+      ],
       ['publish it', (s: TestsService) => s.publish(TEST_ID, OTHER_TEACHER)],
       ['delete it', (s: TestsService) => s.remove(TEST_ID, OTHER_TEACHER)],
       [
         'reschedule it',
-        (s: TestsService) => s.assign(TEST_ID, { batch_ids: [] } as any, OTHER_TEACHER),
+        (s: TestsService) =>
+          s.assign(TEST_ID, { batch_ids: [] } as any, OTHER_TEACHER),
       ],
     ])('does not let an assigned teacher %s', async (_name, call) => {
       adminOwnedTest();
@@ -248,7 +392,9 @@ describe('TestsService', () => {
    */
   describe('mass assignment', () => {
     it('writes only the columns a client is allowed to set', async () => {
-      supabaseMock.queueResult('tests', { data: { id: TEST_ID, created_by: TEACHER.id } });
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, created_by: TEACHER.id },
+      });
       supabaseMock.queueResult('tests', { data: { id: TEST_ID } });
 
       await service.update(
@@ -263,7 +409,9 @@ describe('TestsService', () => {
         TEACHER,
       );
 
-      const write = supabaseMock.calls.find((c) => c.table === 'tests' && c.op === 'update');
+      const write = supabaseMock.calls.find(
+        (c) => c.table === 'tests' && c.op === 'update',
+      );
       expect(write?.payload).toMatchObject({ title: 'New title' });
       expect(write?.payload).not.toHaveProperty('created_by');
       expect(write?.payload).not.toHaveProperty('status');
@@ -271,13 +419,24 @@ describe('TestsService', () => {
     });
 
     it('zeroes negative_marks when the scheme is switched off', async () => {
-      supabaseMock.queueResult('tests', { data: { id: TEST_ID, created_by: TEACHER.id } });
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, created_by: TEACHER.id },
+      });
       supabaseMock.queueResult('tests', { data: { id: TEST_ID } });
 
-      await service.update(TEST_ID, { negative_marking: false, negative_marks: 5 }, TEACHER);
+      await service.update(
+        TEST_ID,
+        { negative_marking: false, negative_marks: 5 },
+        TEACHER,
+      );
 
-      const write = supabaseMock.calls.find((c) => c.table === 'tests' && c.op === 'update');
-      expect(write?.payload).toMatchObject({ negative_marking: false, negative_marks: 0 });
+      const write = supabaseMock.calls.find(
+        (c) => c.table === 'tests' && c.op === 'update',
+      );
+      expect(write?.payload).toMatchObject({
+        negative_marking: false,
+        negative_marks: 0,
+      });
     });
   });
 
@@ -287,27 +446,110 @@ describe('TestsService', () => {
    * Postgres answered `22P02 invalid input value for enum test_type: "jee_main"`
    * and every "Create Test Shell" failed.
    */
+  /**
+   * A paper declared as JEE Main must match the official pattern before
+   * students can see it, and goes live with the official duration and marks.
+   */
+  describe('publishing an official paper', () => {
+    const paper = (perSubjectSingles: number) =>
+      ['Physics', 'Chemistry', 'Mathematics'].flatMap((subject, si) => [
+        ...Array.from({ length: perSubjectSingles }, (_, i) => ({
+          question_id: `${subject}-s${i}`,
+          question_order: si * 100 + i,
+          marks_override: null,
+          questions: { subject, q_type: 'single_correct', options: ['a', 'b', 'c', 'd'], marks: 4 },
+        })),
+        ...Array.from({ length: 5 }, (_, i) => ({
+          question_id: `${subject}-n${i}`,
+          question_order: si * 100 + 50 + i,
+          marks_override: null,
+          questions: { subject, q_type: 'numerical', options: [], marks: 4 },
+        })),
+      ]);
+
+    const queuePublish = (rows: any[]) => {
+      supabaseMock.queueResult('tests', { data: { id: TEST_ID, created_by: ADMIN.id } }); // access
+      supabaseMock.queueResult('test_questions', { data: rows.map((r) => ({ question_id: r.question_id })), count: rows.length });
+      supabaseMock.queueResult('tests', { data: { subject: 'Mixed' } });
+      supabaseMock.queueResult('questions', {
+        data: rows.map((r) => ({ id: r.question_id, subject: r.questions.subject, review_status: 'approved', is_active: true })),
+      });
+      supabaseMock.queueResult('tests', { data: { id: TEST_ID, paper_pattern: 'jee_main' } }); // pattern
+      supabaseMock.queueResult('test_questions', { data: rows }); // paper rows
+    };
+
+    it('refuses a JEE Main paper that is not 20 + 5 per subject', async () => {
+      queuePublish(paper(19));
+
+      await expect(service.publish(TEST_ID, ADMIN)).rejects.toThrow(
+        /official JEE Main pattern.*Physics: 19 single-correct question\(s\), the pattern needs 20/,
+      );
+      expect(supabaseMock.calls.some((c) => c.table === 'tests' && c.op === 'update')).toBe(false);
+    });
+
+    it('publishes a paper exactly to pattern with the official duration and marks', async () => {
+      queuePublish(paper(20));
+      supabaseMock.queueResult('tests', { data: { id: TEST_ID, status: 'published' } });
+
+      await service.publish(TEST_ID, ADMIN);
+
+      const write = supabaseMock.calls.find((c) => c.table === 'tests' && c.op === 'update');
+      expect(write?.payload).toMatchObject({ status: 'published', duration_minutes: 180, total_marks: 300 });
+    });
+  });
+
+  describe('addQuestions after students have started', () => {
+    it('refuses to change the paper once an attempt exists', async () => {
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, created_by: ADMIN.id },
+      });
+      supabaseMock.queueResult('attempts', { data: null, count: 3 });
+
+      await expect(
+        service.addQuestions(TEST_ID, ['q1'], ADMIN),
+      ).rejects.toThrow(/already started/i);
+      expect(
+        supabaseMock.calls.some(
+          (c) => c.table === 'test_questions' && c.op === 'delete',
+        ),
+      ).toBe(false);
+    });
+  });
+
   describe('test type vs paper pattern', () => {
-    const created = () => supabaseMock.queueResult('tests', { data: { id: TEST_ID } });
+    const created = () =>
+      supabaseMock.queueResult('tests', { data: { id: TEST_ID } });
 
     it.each([
       ['jee_main', 'mock_test'],
       ['jee_advanced', 'mock_test'],
       ['neet', 'mock_test'],
       ['custom', 'quiz'],
-    ])('maps the %s pattern onto the %s enum member', async (pattern, expectedType) => {
-      created();
+    ])(
+      'maps the %s pattern onto the %s enum member',
+      async (pattern, expectedType) => {
+        created();
 
-      await service.create({ title: 'T', duration_minutes: 60, t_type: pattern } as any, TEACHER);
+        await service.create(
+          { title: 'T', duration_minutes: 60, t_type: pattern },
+          TEACHER,
+        );
 
-      const write = supabaseMock.calls.find((c) => c.op === 'insert');
-      expect(write?.payload).toMatchObject({ t_type: expectedType, paper_pattern: pattern });
-    });
+        const write = supabaseMock.calls.find((c) => c.op === 'insert');
+        expect(write?.payload).toMatchObject({
+          t_type: expectedType,
+          paper_pattern: pattern,
+        });
+      },
+    );
 
     it('passes a genuine enum member straight through, with no pattern', async () => {
       created();
 
-      await service.create({ title: 'T', duration_minutes: 60, t_type: 'quiz' } as any, TEACHER);
+      await service.create(
+        { title: 'T', duration_minutes: 60, t_type: 'quiz' },
+        TEACHER,
+      );
 
       const write = supabaseMock.calls.find((c) => c.op === 'insert');
       expect(write?.payload).toMatchObject({ t_type: 'quiz' });
@@ -318,25 +560,36 @@ describe('TestsService', () => {
       created();
 
       await service.create(
-        { title: 'T', duration_minutes: 60, t_type: 'quiz', paper_pattern: 'jee_main' } as any,
+        {
+          title: 'T',
+          duration_minutes: 60,
+          t_type: 'quiz',
+          paper_pattern: 'jee_main',
+        },
         TEACHER,
       );
 
       const write = supabaseMock.calls.find((c) => c.op === 'insert');
-      expect(write?.payload).toMatchObject({ t_type: 'mock_test', paper_pattern: 'jee_main' });
+      expect(write?.payload).toMatchObject({
+        t_type: 'mock_test',
+        paper_pattern: 'jee_main',
+      });
     });
 
     // Better a 400 naming the options than a 500 the caller cannot act on.
     it('rejects an unknown value with a message listing what is accepted', async () => {
       await expect(
-        service.create({ title: 'T', duration_minutes: 60, t_type: 'gate_2027' } as any, TEACHER),
+        service.create(
+          { title: 'T', duration_minutes: 60, t_type: 'gate_2027' } as any,
+          TEACHER,
+        ),
       ).rejects.toThrow(/Unknown test type "gate_2027".*quiz.*jee_main/s);
     });
 
     it('omits t_type entirely when the client sent none', async () => {
       created();
 
-      await service.create({ title: 'T', duration_minutes: 60 } as any, TEACHER);
+      await service.create({ title: 'T', duration_minutes: 60 }, TEACHER);
 
       const write = supabaseMock.calls.find((c) => c.op === 'insert');
       expect(write?.payload).not.toHaveProperty('t_type');
@@ -346,12 +599,18 @@ describe('TestsService', () => {
     it('retries without paper_pattern when the column does not exist', async () => {
       supabaseMock.queueResult('tests', {
         data: null,
-        error: { code: '42703', message: 'column "paper_pattern" does not exist' },
+        error: {
+          code: '42703',
+          message: 'column "paper_pattern" does not exist',
+        },
       });
       supabaseMock.queueResult('tests', { data: { id: TEST_ID } });
 
       await expect(
-        service.create({ title: 'T', duration_minutes: 60, t_type: 'jee_main' } as any, TEACHER),
+        service.create(
+          { title: 'T', duration_minutes: 60, t_type: 'jee_main' } as any,
+          TEACHER,
+        ),
       ).resolves.toMatchObject({ id: TEST_ID });
 
       const writes = supabaseMock.calls.filter((c) => c.op === 'insert');
@@ -362,14 +621,66 @@ describe('TestsService', () => {
       expect(writes[1].payload).toMatchObject({ t_type: 'mock_test' });
     });
 
+    // Saving an existing paper from the constructor PATCHes the pattern; on a
+    // database without migration 007 that used to fail the whole save.
+    it('drops paper_pattern from an update when the column does not exist', async () => {
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, created_by: TEACHER.id },
+      });
+      supabaseMock.queueResult('tests', {
+        data: null,
+        error: {
+          code: '42703',
+          message: 'column tests.paper_pattern does not exist',
+        },
+      });
+      supabaseMock.queueResult('tests', { data: { id: TEST_ID } });
+
+      await service.update(
+        TEST_ID,
+        { title: 'T', t_type: 'jee_main' },
+        TEACHER,
+      );
+
+      const write = supabaseMock.calls.find(
+        (c) => c.table === 'tests' && c.op === 'update',
+      );
+      expect(write?.payload).toMatchObject({ title: 'T', t_type: 'mock_test' });
+      expect(write?.payload).not.toHaveProperty('paper_pattern');
+    });
+
+    it('keeps paper_pattern on an update when the column exists', async () => {
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, created_by: TEACHER.id },
+      });
+      supabaseMock.queueResult('tests', { data: [] });
+      supabaseMock.queueResult('tests', { data: { id: TEST_ID } });
+
+      await service.update(TEST_ID, { t_type: 'jee_main' }, TEACHER);
+
+      const write = supabaseMock.calls.find(
+        (c) => c.table === 'tests' && c.op === 'update',
+      );
+      expect(write?.payload).toMatchObject({
+        t_type: 'mock_test',
+        paper_pattern: 'jee_main',
+      });
+    });
+
     it('surfaces a genuine enum rejection as a 400, not a 500', async () => {
       supabaseMock.queueResult('tests', {
         data: null,
-        error: { code: '22P02', message: 'invalid input value for enum test_type: "bogus"' },
+        error: {
+          code: '22P02',
+          message: 'invalid input value for enum test_type: "bogus"',
+        },
       });
 
       await expect(
-        service.create({ title: 'T', duration_minutes: 60, t_type: 'quiz' } as any, TEACHER),
+        service.create(
+          { title: 'T', duration_minutes: 60, t_type: 'quiz' } as any,
+          TEACHER,
+        ),
       ).rejects.toMatchObject({ status: 400 });
     });
   });
@@ -385,14 +696,19 @@ describe('TestsService', () => {
 
     /** The select list of the main list query (the probe is the call before it). */
     const listColumns = () => {
-      const selects = supabaseMock.calls.filter((c) => c.table === 'tests' && c.op === 'select');
+      const selects = supabaseMock.calls.filter(
+        (c) => c.table === 'tests' && c.op === 'select',
+      );
       return selects[selects.length - 1]?.columns ?? '';
     };
 
     it('omits the column when the migration has not been run', async () => {
       supabaseMock.queueResult('tests', {
         data: null,
-        error: { code: '42703', message: 'column tests.paper_pattern does not exist' },
+        error: {
+          code: '42703',
+          message: 'column tests.paper_pattern does not exist',
+        },
       });
       listQuery();
 
@@ -428,7 +744,10 @@ describe('TestsService', () => {
     it('caches a definite answer instead of re-probing on every read', async () => {
       supabaseMock.queueResult('tests', {
         data: null,
-        error: { code: '42703', message: 'column tests.paper_pattern does not exist' },
+        error: {
+          code: '42703',
+          message: 'column tests.paper_pattern does not exist',
+        },
       });
       listQuery();
       listQuery();
@@ -443,7 +762,10 @@ describe('TestsService', () => {
 
     // An outage must not latch the column off for the lifetime of the process.
     it('re-probes after an inconclusive result', async () => {
-      supabaseMock.queueResult('tests', { data: null, error: { message: 'network down' } });
+      supabaseMock.queueResult('tests', {
+        data: null,
+        error: { message: 'network down' },
+      });
       listQuery();
       supabaseMock.queueResult('tests', { data: [] }); // probe succeeds this time
       listQuery();
@@ -458,10 +780,14 @@ describe('TestsService', () => {
 
   describe('publish', () => {
     it('refuses to publish a paper with no questions on it', async () => {
-      supabaseMock.queueResult('tests', { data: { id: TEST_ID, created_by: TEACHER.id } });
+      supabaseMock.queueResult('tests', {
+        data: { id: TEST_ID, created_by: TEACHER.id },
+      });
       supabaseMock.queueResult('test_questions', { count: 0 });
 
-      await expect(service.publish(TEST_ID, TEACHER)).rejects.toThrow(/at least one question/i);
+      await expect(service.publish(TEST_ID, TEACHER)).rejects.toThrow(
+        /at least one question/i,
+      );
     });
   });
 });

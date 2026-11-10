@@ -39,18 +39,25 @@ export class CreateDoubtDto {
   @IsUUID()
   question_id?: string;
 
-  @ApiPropertyOptional({ description: 'Attempt the doubt was raised from (must belong to the student)' })
+  @ApiPropertyOptional({
+    description:
+      'Attempt the doubt was raised from (must belong to the student)',
+  })
   @IsOptional()
   @IsUUID()
   attempt_id?: string;
 
-  @ApiPropertyOptional({ description: 'Short text snippet describing the doubt' })
+  @ApiPropertyOptional({
+    description: 'Short text snippet describing the doubt',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(2000)
   snippet?: string;
 
-  @ApiPropertyOptional({ description: 'Teacher to assign the doubt to; omit to queue it as pending' })
+  @ApiPropertyOptional({
+    description: 'Teacher to assign the doubt to; omit to queue it as pending',
+  })
   @IsOptional()
   @IsUUID()
   teacher_id?: string;

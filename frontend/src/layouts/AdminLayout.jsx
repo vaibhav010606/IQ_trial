@@ -1,45 +1,49 @@
-import React from 'react';
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UsersRound, Database,
-  ClipboardList, BookOpen, Settings, LogOut, Shield, Trophy
+  ClipboardList, BookOpen, Settings, LogOut, Trophy
 } from 'lucide-react';
+import { apiClient } from '../api/client';
+import { initials, setPortal } from '../utils/initials';
+import './MainLayout.css';
 import './AdminLayout.css';
 
 const AdminLayout = () => {
   const location = useLocation();
-  const navigate = useNavigate();
 
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : { full_name: 'Admin' };
 
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user');
-    navigate('/');
-  };
+  // Same sign-out as the other portals: revoke the session server-side, then
+  // clear local state (this used to leave the refresh token behind).
+  const handleLogout = () => apiClient.logout();
+
+  useEffect(() => { setPortal('admin'); }, []);
 
   const adminNav = [
     { name: 'Dashboard',        path: '/admin',                 icon: LayoutDashboard },
-    { name: 'User Management',  path: '/admin/users',           icon: Users },
-    { name: 'Batch Management', path: '/admin/batches',         icon: UsersRound },
-    { name: 'Question Bank',    path: '/admin/question-bank',   icon: Database },
-    { name: 'Test Initiation',  path: '/admin/test-initiation', icon: ClipboardList },
-    { name: 'Test Library',     path: '/admin/test-library',    icon: BookOpen },
-    { name: 'Test Results',     path: '/admin/test-results',    icon: Trophy },
+    { name: 'Users',            path: '/admin/users',           icon: Users },
+    { name: 'Batches',          path: '/admin/batches',         icon: UsersRound },
+    { name: 'Question bank',    path: '/admin/question-bank',   icon: Database },
+    { name: 'New test',         path: '/admin/test-initiation', icon: ClipboardList },
+    { name: 'Test library',     path: '/admin/test-library',    icon: BookOpen },
+    { name: 'Test results',     path: '/admin/test-results',    icon: Trophy },
   ];
 
   return (
     <div className="app-layout admin-theme">
       <aside className="sidebar">
+        <div className="sidebar-brand">
+          <span className="sidebar-brand-mark" aria-hidden="true" />
+          <span>EduCommand</span>
+        </div>
         <div className="sidebar-header">
           <div className="user-profile">
-            <div className="avatar admin-avatar-circle">
-              <Shield size={18} color="white" />
-            </div>
+            <div className="avatar" aria-hidden="true">{initials(user.full_name || 'Administrator')}</div>
             <div className="user-info">
               <h4>{user.full_name || 'Administrator'}</h4>
-              <span>Admin Portal</span>
+              <span>Admin</span>
             </div>
           </div>
         </div>
@@ -57,7 +61,7 @@ const AdminLayout = () => {
                 to={item.path}
                 className={`nav-item ${isActive ? 'active' : ''}`}
               >
-                <Icon size={20} />
+                <Icon size={18} />
                 <span>{item.name}</span>
               </Link>
             );
@@ -69,12 +73,12 @@ const AdminLayout = () => {
             to="/admin/settings"
             className={`nav-item ${location.pathname === '/admin/settings' ? 'active' : ''}`}
           >
-            <Settings size={20} />
+            <Settings size={18} />
             <span>Settings</span>
           </Link>
           <button className="nav-item text-danger" onClick={handleLogout}>
-            <LogOut size={20} />
-            <span>Logout</span>
+            <LogOut size={18} />
+            <span>Sign out</span>
           </button>
         </div>
       </aside>

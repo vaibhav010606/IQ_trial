@@ -13,7 +13,12 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiConsumes,
+} from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DoubtsService } from './doubts.service';
 import { DoubtsGateway } from './doubts.gateway';
@@ -28,7 +33,12 @@ import {
   SendMessageDto,
 } from './dto/doubt.dto';
 
-const ALLOWED_UPLOAD_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_UPLOAD_MIME = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+];
 
 @ApiTags('Doubts')
 @ApiBearerAuth()
@@ -41,24 +51,32 @@ export class DoubtsController {
   ) {}
 
   @ApiOperation({ summary: '[Student] Submit a new doubt' })
-  @UseGuards(RolesGuard) @Roles('student')
+  @UseGuards(RolesGuard)
+  @Roles('student')
   @Post()
   create(@CurrentUser() user, @Body() body: CreateDoubtDto) {
     return this.doubtsService.create(user.id, body);
   }
 
   @ApiOperation({ summary: '[Student] Get own doubts history' })
-  @UseGuards(RolesGuard) @Roles('student')
+  @UseGuards(RolesGuard)
+  @Roles('student')
   @Get('my')
   getMyDoubts(@CurrentUser() user, @Query() query: DoubtHistoryQueryDto) {
     return this.doubtsService.getMyDoubts(user.id, query.page, query.limit);
   }
 
   @ApiOperation({ summary: '[Teacher] Get doubts queue (unclaimed + own)' })
-  @UseGuards(RolesGuard) @Roles('teacher', 'admin')
+  @UseGuards(RolesGuard)
+  @Roles('teacher', 'admin')
   @Get()
   findAll(@CurrentUser() user, @Query() query: DoubtQueueQueryDto) {
-    return this.doubtsService.findAll(user, query.status, query.page, query.limit);
+    return this.doubtsService.findAll(
+      user,
+      query.status,
+      query.page,
+      query.limit,
+    );
   }
 
   @ApiOperation({ summary: 'Get one doubt details (participants only)' })
@@ -68,7 +86,8 @@ export class DoubtsController {
   }
 
   @ApiOperation({ summary: '[Teacher] Accept a doubt (take ownership)' })
-  @UseGuards(RolesGuard) @Roles('teacher', 'admin')
+  @UseGuards(RolesGuard)
+  @Roles('teacher', 'admin')
   @Patch(':id/accept')
   async accept(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user) {
     const doubt = await this.doubtsService.accept(id, user);
@@ -77,7 +96,8 @@ export class DoubtsController {
   }
 
   @ApiOperation({ summary: '[Teacher] Mark doubt as resolved' })
-  @UseGuards(RolesGuard) @Roles('teacher', 'admin')
+  @UseGuards(RolesGuard)
+  @Roles('teacher', 'admin')
   @Patch(':id/resolve')
   async resolve(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user) {
     const doubt = await this.doubtsService.resolve(id, user);
@@ -85,13 +105,17 @@ export class DoubtsController {
     return doubt;
   }
 
-  @ApiOperation({ summary: 'Get chat messages for a doubt (participants only)' })
+  @ApiOperation({
+    summary: 'Get chat messages for a doubt (participants only)',
+  })
   @Get(':id/messages')
   getMessages(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user) {
     return this.doubtsService.getMessages(id, user);
   }
 
-  @ApiOperation({ summary: 'Send a message (REST fallback when Socket.IO not available)' })
+  @ApiOperation({
+    summary: 'Send a message (REST fallback when Socket.IO not available)',
+  })
   @Post(':id/messages')
   sendMessage(
     @Param('id', ParseUUIDPipe) id: string,
@@ -109,7 +133,12 @@ export class DoubtsController {
       limits: { fileSize: 5 * 1024 * 1024, files: 1 },
       fileFilter: (_req, file, cb) => {
         if (!ALLOWED_UPLOAD_MIME.includes(file.mimetype)) {
-          return cb(new BadRequestException('Only JPG, PNG, GIF and WEBP images are supported.'), false);
+          return cb(
+            new BadRequestException(
+              'Only JPG, PNG, GIF and WEBP images are supported.',
+            ),
+            false,
+          );
         }
         cb(null, true);
       },

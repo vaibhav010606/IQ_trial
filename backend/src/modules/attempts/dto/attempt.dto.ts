@@ -33,7 +33,9 @@ export class SaveAnswerDto {
   @IsUUID()
   question_id: string;
 
-  @ApiPropertyOptional({ description: 'One of { index }, { indices: [...] } or { value }' })
+  @ApiPropertyOptional({
+    description: 'One of { index }, { indices: [...] } or { value }',
+  })
   @IsOptional()
   selected_answer?: any;
 

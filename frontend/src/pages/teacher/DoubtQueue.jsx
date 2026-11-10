@@ -60,7 +60,7 @@ const DoubtQueue = () => {
     <div className="doubt-queue">
       <header className="page-header d-flex justify-between align-center">
         <div>
-          <h1>Live Doubt Queue</h1>
+          <h1>Live doubt queue</h1>
           <p>Monitor and resolve student doubts in real-time.</p>
         </div>
         <div className="queue-status">
@@ -110,7 +110,7 @@ const DoubtQueue = () => {
                     className="delete-doubt-btn"
                     style={{ background: 'none', border: 'none', color: 'var(--color-physics-red)', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     onClick={() => handleDelete(doubt.id)}
-                    title="Delete Session"
+                    title="Delete session"
                   >
                     <Trash2 size={20} />
                   </button>

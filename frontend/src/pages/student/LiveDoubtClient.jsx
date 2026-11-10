@@ -260,9 +260,9 @@ const LiveDoubtClient = () => {
       {/* Left Sidebar */}
       <div className="doubt-sidebar">
         <div className="doubt-sidebar-header">
-          <h2>Chat History</h2>
-          <button className="btn-primary" onClick={openTeacherModal} style={{ padding: '8px 16px', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '24px', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.4)' }}>
-            <Plus size={18} /> New Doubt
+          <h2>Chat history</h2>
+          <button className="btn-primary" onClick={openTeacherModal} style={{ padding: '8px 16px', fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '24px', boxShadow: '0 4px 12px rgba(43, 68, 166, 0.4)' }}>
+            <Plus size={18} /> New doubt
           </button>
         </div>
         
@@ -281,7 +281,7 @@ const LiveDoubtClient = () => {
                   className="delete-doubt-btn"
                   style={{ background: 'none', border: 'none', color: 'var(--color-physics-red)', cursor: 'pointer', padding: '4px' }}
                   onClick={(e) => handleDeleteDoubt(e, doubt.id)}
-                  title="Delete Session"
+                  title="Delete session"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -312,7 +312,7 @@ const LiveDoubtClient = () => {
                 </div>
               </div>
               <div className="chat-actions">
-                <button onClick={() => showToast('Session ended.')}>End Session</button>
+                <button onClick={() => showToast('Session ended.')}>End session</button>
               </div>
             </div>
 
@@ -320,7 +320,7 @@ const LiveDoubtClient = () => {
               <div className="pinned-question">
                 <HelpCircle className="pinned-icon" size={24} />
                 <div className="pinned-text">
-                  <h4>Original Doubt</h4>
+                  <h4>Original doubt</h4>
                   <p>{currentDoubtData?.questions?.question_text}</p>
                 </div>
               </div>
@@ -417,7 +417,7 @@ const LiveDoubtClient = () => {
                       <h4>{teacher.full_name}</h4>
                       <span>Teacher</span>
                     </div>
-                    <button className="btn-primary" style={{marginLeft: 'auto'}}>Chat Now</button>
+                    <button className="btn-primary" style={{marginLeft: 'auto'}}>Chat now</button>
                   </div>
                 ))
               )}

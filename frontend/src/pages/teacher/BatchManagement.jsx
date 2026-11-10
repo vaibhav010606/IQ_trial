@@ -176,11 +176,11 @@ const BatchManagement = () => {
 
       <header className="page-header d-flex justify-between align-center">
         <div>
-          <h1>Batch Management</h1>
+          <h1>Batch management</h1>
           <p>Organize and manage your student cohorts.</p>
         </div>
         <button className="btn-primary" onClick={openCreate}>
-          <Plus size={18} /> Create New Batch
+          <Plus size={18} /> Create new batch
         </button>
       </header>
 
@@ -192,7 +192,7 @@ const BatchManagement = () => {
           <p>No batches yet. Create one to start grouping students.</p>
         </div>
       ) : (
-        <div className="batch-grid">
+        <div className="batch-grid ink-cycle ink-cards">
           {batches.map((batch) => (
             <div key={batch.id} className="batch-card">
               <div className="batch-card-header">
@@ -224,7 +224,7 @@ const BatchManagement = () => {
 
               <div className="batch-actions">
                 <button className="manage-students-btn" onClick={() => toggleExpand(batch.id)}>
-                  <span>Manage Students</span>
+                  <span>Manage students</span>
                   {expanded === batch.id ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                 </button>
               </div>
@@ -306,7 +306,7 @@ const BatchManagement = () => {
             </div>
             <form className="batch-form" onSubmit={handleSave}>
               <div className="form-group">
-                <label>Batch Name</label>
+                <label>Batch name</label>
                 <input
                   type="text"
                   placeholder="e.g. Grade 12 Physics — Batch A"
@@ -317,7 +317,7 @@ const BatchManagement = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Subject Focus</label>
+                <label>Subject focus</label>
                 <select
                   value={form.subject_focus}
                   onChange={(e) => setForm({ ...form, subject_focus: e.target.value })}

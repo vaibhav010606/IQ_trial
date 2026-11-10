@@ -1,4 +1,10 @@
-import { chunk, fetchAll, fetchAllIn, insertInBatches, runInChunks } from './query.util';
+import {
+  chunk,
+  fetchAll,
+  fetchAllIn,
+  insertInBatches,
+  runInChunks,
+} from './query.util';
 
 /**
  * Minimal stand-in for a supabase-js builder: records the ranges it was asked
@@ -40,7 +46,10 @@ describe('fetchAll', () => {
   it('keeps paging until a short page arrives', async () => {
     const calls: [number, number][] = [];
     const result = await fetchAll(
-      pagedBuilder([rows(1000), rows(1000, 1000), rows(37, 2000)], calls) as any,
+      pagedBuilder(
+        [rows(1000), rows(1000, 1000), rows(37, 2000)],
+        calls,
+      ) as any,
     );
 
     expect(result).toHaveLength(2037);
@@ -60,19 +69,18 @@ describe('fetchAll', () => {
   });
 
   it('treats a null data payload as the end of the set', async () => {
-    const result = await fetchAll(
-      (() => ({ range: () => Promise.resolve({ data: null, error: null }) })) as any,
-    );
+    const result = await fetchAll((() => ({
+      range: () => Promise.resolve({ data: null, error: null }),
+    })) as any);
     expect(result).toEqual([]);
   });
 
   it('surfaces query errors instead of returning a partial result', async () => {
     await expect(
-      fetchAll(
-        (() => ({
-          range: () => Promise.resolve({ data: null, error: { message: 'boom' } }),
-        })) as any,
-      ),
+      fetchAll((() => ({
+        range: () =>
+          Promise.resolve({ data: null, error: { message: 'boom' } }),
+      })) as any),
     ).rejects.toThrow('boom');
   });
 
@@ -100,7 +108,11 @@ describe('fetchAllIn', () => {
       (idChunk) => {
         seen.push(idChunk);
         return {
-          range: () => Promise.resolve({ data: idChunk.map((id) => ({ id })), error: null }),
+          range: () =>
+            Promise.resolve({
+              data: idChunk.map((id) => ({ id })),
+              error: null,
+            }),
         } as any;
       },
       { chunkSize: 100 },
@@ -116,7 +128,9 @@ describe('fetchAllIn', () => {
       ['a', 'b', 'a', 'b'],
       (idChunk) => {
         seen.push(idChunk);
-        return { range: () => Promise.resolve({ data: [], error: null }) } as any;
+        return {
+          range: () => Promise.resolve({ data: [], error: null }),
+        } as any;
       },
       { chunkSize: 100 },
     );
@@ -148,7 +162,11 @@ describe('runInChunks', () => {
 
   it('throws on the first failing chunk', async () => {
     await expect(
-      runInChunks(['a', 'b'], () => Promise.resolve({ error: { message: 'nope' } }), 1),
+      runInChunks(
+        ['a', 'b'],
+        () => Promise.resolve({ error: { message: 'nope' } }),
+        1,
+      ),
     ).rejects.toThrow('nope');
   });
 });

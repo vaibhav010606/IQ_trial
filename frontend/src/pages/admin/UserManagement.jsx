@@ -75,8 +75,8 @@ const UserManagement = () => {
     finally { setSaving(false); }
   };
 
-  const roleColor = { student: '#2563eb', teacher: '#059669', admin: '#7c3aed' };
-  const roleBg    = { student: 'rgba(59,130,246,0.12)', teacher: 'rgba(16,185,129,0.12)', admin: 'rgba(124,58,237,0.12)' };
+  const roleColor = { student: 'var(--accent)', teacher: '#2f6b3a', admin: 'var(--accent)' };
+  const roleBg    = { student: 'rgba(43, 68, 166,0.12)', teacher: 'rgba(47, 107, 58,0.12)', admin: 'rgba(43, 68, 166,0.12)' };
 
   return (
     <div className="admin-page">
@@ -84,11 +84,11 @@ const UserManagement = () => {
 
       <div className="admin-page-header">
         <div>
-          <h1>User Management</h1>
+          <h1>User management</h1>
           <p>Create, search, and manage all students &amp; teachers.</p>
         </div>
         <button className="admin-btn admin-btn-primary" id="create-user-btn" onClick={() => setShowCreateModal(true)}>
-          <Plus size={16} /> Create User
+          <Plus size={16} /> Create user
         </button>
       </div>
 
@@ -130,12 +130,12 @@ const UserManagement = () => {
                       width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
                       background: roleBg[u.role] || roleBg.student,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 700, fontSize: 13,
+                      fontWeight: 600, fontSize: 13,
                       color: roleColor[u.role] || roleColor.student,
                     }}>
                       {(u.full_name || u.email || 'U')[0].toUpperCase()}
                     </div>
-                    <span style={{ fontWeight: 600 }}>{u.full_name || '—'}</span>
+                    <span style={{ fontWeight: 500 }}>{u.full_name || '—'}</span>
                   </div>
                 </td>
                 <td style={{ color: 'var(--text-secondary)' }}>{u.email}</td>
@@ -167,12 +167,12 @@ const UserManagement = () => {
         <div className="admin-modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="admin-modal" onClick={e => e.stopPropagation()}>
             <div className="admin-modal-header">
-              <h2 className="admin-modal-title">Create New User</h2>
+              <h2 className="admin-modal-title">Create new user</h2>
               <button className="admin-modal-close" onClick={() => setShowCreateModal(false)} aria-label="Close dialog" title="Close"><X size={18} /></button>
             </div>
             <div className="admin-form-group">
-              <label className="admin-form-label">Full Name</label>
-              <input className="admin-form-input" placeholder="Full Name" value={newUser.full_name} onChange={e => setNewUser({ ...newUser, full_name: e.target.value })} />
+              <label className="admin-form-label">Full name</label>
+              <input className="admin-form-input" placeholder="Full name" value={newUser.full_name} onChange={e => setNewUser({ ...newUser, full_name: e.target.value })} />
             </div>
             <div className="admin-form-group">
               <label className="admin-form-label">Email</label>
@@ -202,14 +202,14 @@ const UserManagement = () => {
         <div className="admin-modal-overlay" onClick={() => setShowResetModal(null)}>
           <div className="admin-modal" onClick={e => e.stopPropagation()}>
             <div className="admin-modal-header">
-              <h2 className="admin-modal-title">Reset Password</h2>
+              <h2 className="admin-modal-title">Reset password</h2>
               <button className="admin-modal-close" onClick={() => setShowResetModal(null)} aria-label="Close dialog" title="Close"><X size={18} /></button>
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 16 }}>
               Setting a new password for <strong style={{ color: 'var(--color-admin-purple)' }}>{showResetModal.full_name}</strong>.
             </p>
             <div className="admin-form-group">
-              <label className="admin-form-label">New Password</label>
+              <label className="admin-form-label">New password</label>
               <input className="admin-form-input" type="password" placeholder="Min 10 chars, mixed case + a digit" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
             </div>
             <div className="admin-modal-footer">
@@ -225,7 +225,7 @@ const UserManagement = () => {
         <div className="admin-modal-overlay" onClick={() => setShowDeleteConfirm(null)}>
           <div className="admin-modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
             <div className="admin-modal-header">
-              <h2 className="admin-modal-title">Delete User</h2>
+              <h2 className="admin-modal-title">Delete user</h2>
               <button className="admin-modal-close" onClick={() => setShowDeleteConfirm(null)} aria-label="Close dialog" title="Close"><X size={18} /></button>
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 16 }}>

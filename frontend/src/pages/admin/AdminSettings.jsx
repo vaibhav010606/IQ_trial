@@ -25,7 +25,7 @@ const AdminSettings = () => {
       const updated = await apiClient.patch('/users/profile', { full_name: name });
       const stored = JSON.parse(localStorage.getItem('user') || '{}');
       localStorage.setItem('user', JSON.stringify({ ...stored, full_name: updated.full_name }));
-      showToast('Name updated successfully!');
+      showToast('Name updated');
     } catch (e) { showToast(e.message || 'Failed to update name', 'error'); }
     finally { setSaving(false); }
   };
@@ -38,7 +38,7 @@ const AdminSettings = () => {
     setSaving(true);
     try {
       await apiClient.patch('/users/profile/password', { currentPassword, newPassword });
-      showToast('Password changed successfully!');
+      showToast('Password changed');
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
     } catch (e) { showToast(e.message || 'Failed to change password', 'error'); }
     finally { setSaving(false); }
@@ -58,14 +58,14 @@ const AdminSettings = () => {
       {/* Profile Section */}
       <div className="admin-card" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(124,58,237,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(43, 68, 166,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <User size={18} color="var(--color-admin-purple)" />
           </div>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Profile Information</h3>
+          <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Profile information</h3>
         </div>
 
         <div className="admin-form-group">
-          <label className="admin-form-label">Full Name</label>
+          <label className="admin-form-label">Full name</label>
           <input className="admin-form-input" placeholder="Your full name" value={name} onChange={e => setName(e.target.value)} />
         </div>
         <div className="admin-form-group">
@@ -74,9 +74,9 @@ const AdminSettings = () => {
         </div>
         <div className="admin-form-group">
           <label className="admin-form-label">Role</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)', borderRadius: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'rgba(43, 68, 166,0.06)', border: '1px solid rgba(43, 68, 166,0.15)', borderRadius: 8 }}>
             <Shield size={14} color="var(--color-admin-purple)" />
-            <span style={{ fontSize: 13.5, color: 'var(--color-admin-purple)', fontWeight: 600 }}>Super Administrator</span>
+            <span style={{ fontSize: 13.5, color: 'var(--color-admin-purple)', fontWeight: 500 }}>Super Administrator</span>
           </div>
         </div>
 
@@ -90,22 +90,22 @@ const AdminSettings = () => {
       {/* Password Section */}
       <div className="admin-card">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(179, 53, 43,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Key size={18} color="var(--color-danger)" />
           </div>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Change Password</h3>
+          <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Change password</h3>
         </div>
 
         <div className="admin-form-group">
-          <label className="admin-form-label">Current Password</label>
+          <label className="admin-form-label">Current password</label>
           <input className="admin-form-input" type="password" placeholder="••••••••" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
         </div>
         <div className="admin-form-group">
-          <label className="admin-form-label">New Password</label>
+          <label className="admin-form-label">New password</label>
           <input className="admin-form-input" type="password" placeholder="Min 6 characters" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
         </div>
         <div className="admin-form-group">
-          <label className="admin-form-label">Confirm New Password</label>
+          <label className="admin-form-label">Confirm new password</label>
           <input className="admin-form-input" type="password" placeholder="Repeat new password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
         </div>
 

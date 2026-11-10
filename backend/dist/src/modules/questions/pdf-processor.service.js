@@ -67,7 +67,8 @@ let PdfProcessorService = PdfProcessorService_1 = class PdfProcessorService {
     uploadsGateway;
     logger = new common_1.Logger(PdfProcessorService_1.name);
     scriptsDir = path.resolve(process.cwd(), 'scripts', 'pdf-processor');
-    pythonBin = process.env.PYTHON_BIN || (process.platform === 'win32' ? 'python' : 'python3');
+    pythonBin = process.env.PYTHON_BIN ||
+        (process.platform === 'win32' ? 'python' : 'python3');
     constructor(uploadsGateway) {
         this.uploadsGateway = uploadsGateway;
     }
@@ -107,7 +108,13 @@ let PdfProcessorService = PdfProcessorService_1 = class PdfProcessorService {
         const runId = (0, crypto_1.randomUUID)();
         const report = (stage, message, percent, extra = {}) => {
             try {
-                this.uploadsGateway.emitProgress(teacherId, { runId, stage, message, percent, ...extra });
+                this.uploadsGateway.emitProgress(teacherId, {
+                    runId,
+                    stage,
+                    message,
+                    percent,
+                    ...extra,
+                });
             }
             catch {
             }
@@ -160,7 +167,9 @@ let PdfProcessorService = PdfProcessorService_1 = class PdfProcessorService {
                 }
                 uploadedSoFar += 1;
                 report('uploading-images', `Uploaded ${uploadedSoFar} of ${uploadable} images…`, 55 + Math.round((uploadedSoFar / uploadable) * 30));
-                const { data: publicUrlData } = supabase_config_1.supabase.storage.from(bucket).getPublicUrl(storagePath);
+                const { data: publicUrlData } = supabase_config_1.supabase.storage
+                    .from(bucket)
+                    .getPublicUrl(storagePath);
                 const qType = this.resolveQuestionType(item.question_type);
                 typeCounts[qType] = (typeCounts[qType] || 0) + 1;
                 dbRows.push({
@@ -209,7 +218,9 @@ let PdfProcessorService = PdfProcessorService_1 = class PdfProcessorService {
         }
     }
     resolveExamType(value) {
-        const normalised = String(value ?? '').trim().toLowerCase();
+        const normalised = String(value ?? '')
+            .trim()
+            .toLowerCase();
         if (!normalised)
             return 'jee';
         if (!SUPPORTED_EXAM_TYPES.includes(normalised)) {
@@ -218,7 +229,7 @@ let PdfProcessorService = PdfProcessorService_1 = class PdfProcessorService {
         return normalised;
     }
     looksLikePdf(buffer) {
-        return buffer.length > 5 && buffer.subarray(0, 5).toString('latin1') === '%PDF-';
+        return (buffer.length > 5 && buffer.subarray(0, 5).toString('latin1') === '%PDF-');
     }
     resolveQuestionType(value) {
         const normalised = typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -230,7 +241,9 @@ let PdfProcessorService = PdfProcessorService_1 = class PdfProcessorService {
         return DEFAULT_QUESTION_TYPE;
     }
     buildCorrectAnswer(qType, item) {
-        const indices = Array.isArray(item?.answer_indices) ? item.answer_indices : [];
+        const indices = Array.isArray(item?.answer_indices)
+            ? item.answer_indices
+            : [];
         const value = item?.answer_value ?? null;
         if (qType === 'multi_correct')
             return { indices };
@@ -239,7 +252,8 @@ let PdfProcessorService = PdfProcessorService_1 = class PdfProcessorService {
         return { index: indices.length ? indices[0] : 0 };
     }
     async runScript(script, args, timeoutMs) {
-        const scriptPath = path.join(this.scriptsDir, script);
+        const safeScript = path.basename(script);
+        const scriptPath = path.join(this.scriptsDir, safeScript);
         this.logger.log(`Executing: ${script} ${args.join(' ')}`);
         try {
             await execFileAsync(this.pythonBin, [scriptPath, ...args], {
@@ -276,6 +290,13 @@ let PdfProcessorService = PdfProcessorService_1 = class PdfProcessorService {
         return parsed;
     }
     resolveInside(root, relative) {
+        if (!relative || typeof relative !== 'string')
+            return null;
+        if (path.isAbsolute(relative))
+            return null;
+        const parts = relative.split(/[\/\\]/);
+        if (parts.includes('..'))
+            return null;
         const resolved = path.resolve(root, relative);
         const prefix = path.resolve(root) + path.sep;
         return resolved.startsWith(prefix) ? resolved : null;

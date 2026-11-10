@@ -33,7 +33,9 @@ __decorate([
     __metadata("design:type", String)
 ], SaveAnswerDto.prototype, "question_id", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ description: 'One of { index }, { indices: [...] } or { value }' }),
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'One of { index }, { indices: [...] } or { value }',
+    }),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Object)
 ], SaveAnswerDto.prototype, "selected_answer", void 0);

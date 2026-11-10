@@ -39,4 +39,7 @@ export declare class TestListQueryDto {
     page?: number;
     limit?: number;
 }
+export declare class PublishResultsDto {
+    published?: boolean;
+}
 export {};

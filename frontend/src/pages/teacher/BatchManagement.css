@@ -18,13 +18,13 @@
   color: white;
   padding: 10px 20px;
   border-radius: var(--radius-md);
-  font-weight: 600;
+  font-weight: 500;
   transition: background-color 0.2s, transform 0.2s;
 }
 
 .btn-primary:hover {
   background-color: var(--color-teacher-accent-hover);
-  transform: translateY(-1px);
+  transform: translateY(0);
 }
 
 .batch-grid {
@@ -58,7 +58,7 @@
   font-weight: 600;
   padding: 4px 12px;
   border-radius: var(--radius-pill);
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .batch-status-badge .dot {
@@ -68,7 +68,7 @@
 }
 
 .batch-status-badge.active {
-  background-color: rgba(99, 102, 241, 0.1);
+  background-color: rgba(43, 68, 166, 0.1);
   color: var(--color-teacher-accent);
 }
 .batch-status-badge.active .dot { background-color: var(--color-teacher-accent); }
@@ -184,18 +184,18 @@
   padding: 4px;
   border-radius: 4px;
 }
-.remove-btn:hover { color: var(--color-danger); background-color: rgba(239, 68, 68, 0.1); }
+.remove-btn:hover { color: var(--color-danger); background-color: rgba(179, 53, 43, 0.1); }
 
 /* Modal */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(15, 23, 42, 0.6);
+  background-color: rgba(27, 26, 23, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
+  
 }
 
 .modal-content {
@@ -250,7 +250,7 @@
 .form-group input:focus, .form-group select:focus {
   outline: none;
   border-color: var(--color-teacher-accent);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: var(--focus-ring);
 }
 
 .form-row {
@@ -277,35 +277,35 @@
 
 /* ── Added: real API wiring — roster, add-student, edit/delete ────────────── */
 
-.bm-muted { color: var(--text-secondary, #64748b); }
+.bm-muted { color: var(--text-secondary, var(--ink-500)); }
 .bm-small { font-size: 0.78rem; }
-.bm-toast-error { background: #dc2626 !important; }
+.bm-toast-error { background: var(--negative) !important; }
 
 .bm-card-actions { display: flex; gap: 4px; }
-.bm-danger:hover { color: #dc2626; }
+.bm-danger:hover { color: var(--negative); }
 
-.batch-status-badge.active .dot { background: #10b981; }
+.batch-status-badge.active .dot { background: var(--positive); }
 
 .bm-add-row { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
 .bm-add-row select {
-  flex: 1; min-width: 160px; padding: 7px 10px; border-radius: 7px; font-size: 0.84rem;
-  border: 1px solid var(--border-color, #e2e8f0);
-  background: var(--input-bg, #fff); color: var(--text-primary, #1e293b);
+  flex: 1; min-width: 160px; padding: 8px 10px; border-radius: 8px; font-size: 0.84rem;
+  border: 1px solid var(--border-color, var(--line));
+  background: var(--input-bg, #fff); color: var(--text-primary, var(--ink-800));
 }
 
-.bm-sm { padding: 7px 14px !important; font-size: 0.82rem !important; }
+.bm-sm { padding: 8px 14px !important; font-size: 0.82rem !important; }
 
 .bm-ghost {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 14px; border-radius: 7px; cursor: pointer; font-weight: 600; font-size: 0.83rem;
-  background: transparent; color: var(--text-secondary, #64748b);
-  border: 1px solid var(--border-color, #e2e8f0);
+  padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 0.83rem;
+  background: transparent; color: var(--text-secondary, var(--ink-500));
+  border: 1px solid var(--border-color, var(--line));
 }
 .bm-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
 .bm-add-btn { margin-top: 12px; }
 
 .bm-empty {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 52px 20px; text-align: center; color: var(--text-secondary, #94a3b8);
-  border: 1px dashed var(--border-color, #e2e8f0); border-radius: 12px;
+  padding: 52px 20px; text-align: center; color: var(--text-secondary, var(--ink-400));
+  border: 1px dashed var(--border-color, var(--line)); border-radius: 12px;
 }

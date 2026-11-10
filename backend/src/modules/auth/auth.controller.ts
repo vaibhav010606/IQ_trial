@@ -12,7 +12,11 @@ import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { ForgotPasswordDto, RefreshDto, ResetPasswordDto } from './dto/auth.dto';
+import {
+  ForgotPasswordDto,
+  RefreshDto,
+  ResetPasswordDto,
+} from './dto/auth.dto';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 

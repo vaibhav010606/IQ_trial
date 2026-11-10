@@ -41,7 +41,15 @@ const supabase_config_1 = require("../../config/supabase.config");
 class TokenVerificationError extends Error {
 }
 exports.TokenVerificationError = TokenVerificationError;
-const ASYMMETRIC_ALGS = ['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512', 'EdDSA'];
+const ASYMMETRIC_ALGS = [
+    'RS256',
+    'RS384',
+    'RS512',
+    'ES256',
+    'ES384',
+    'ES512',
+    'EdDSA',
+];
 const CLOCK_TOLERANCE_SECONDS = 5;
 const JWKS_TTL_MS = 10 * 60 * 1000;
 let jwksKeys = new Map();
@@ -109,6 +117,7 @@ async function verifyRemotely(token) {
         userId: data.user.id,
         email: data.user.email ?? '',
         metadata: data.user.user_metadata ?? {},
+        appMetadata: data.user.app_metadata ?? {},
     };
     if (remoteCache.size > 5000)
         remoteCache.clear();
@@ -122,6 +131,7 @@ function toIdentity(payload) {
         userId: payload.sub,
         email: payload.email ?? '',
         metadata: payload.user_metadata ?? {},
+        appMetadata: payload.app_metadata ?? {},
     };
 }
 async function verifySupabaseToken(rawToken) {

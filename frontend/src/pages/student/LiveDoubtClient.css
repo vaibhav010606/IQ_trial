@@ -76,7 +76,7 @@
   border: 1px solid var(--border-color);
   background: var(--card-bg);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition);
 }
 
 .doubt-card:hover {
@@ -85,7 +85,7 @@
 
 .doubt-card.active {
   border-color: var(--color-dashboard-blue);
-  box-shadow: 0 0 0 1px var(--color-dashboard-blue);
+  box-shadow: var(--focus-ring);
 }
 
 .doubt-meta {
@@ -93,8 +93,8 @@
   justify-content: space-between;
   margin-bottom: var(--spacing-1);
   font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
+  font-weight: 500;
+  text-transform: none;
 }
 
 .badge-connected { color: var(--color-dashboard-blue); }
@@ -103,7 +103,7 @@
 
 .doubt-snippet {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: var(--spacing-2);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -173,7 +173,7 @@
   padding: 8px 16px;
   border-radius: var(--radius-pill);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   border: 1px solid var(--color-physics-red);
   color: var(--color-physics-red);
 }
@@ -231,7 +231,7 @@
 .bubble {
   padding: 12px 16px;
   font-size: 14px;
-  border-radius: 16px;
+  border-radius: 12px;
 }
 
 .message-student .bubble {
@@ -279,7 +279,7 @@
   flex: 1;
   background: var(--bg-color);
   border: 1px solid var(--border-color);
-  border-radius: 24px;
+  border-radius: 16px;
   padding: 12px 16px;
   font-size: 14px;
   outline: none;
@@ -303,7 +303,7 @@
   color: white;
   width: 40px;
   height: 40px;
-  border-radius: 20px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -322,7 +322,7 @@
   color: white;
   padding: 12px 24px;
   border-radius: var(--radius-pill);
-  font-weight: 600;
+  font-weight: 500;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -332,20 +332,20 @@
 }
 
 .fab:hover {
-  transform: translateY(-2px);
+  transform: translateY(0);
 }
 
 /* Typing bubble */
 .typing-bubble {
   display: flex !important;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   padding: 12px 16px;
 }
 
 .dot {
   width: 8px; height: 8px;
-  background: #94a3b8;
+  background: var(--ink-400);
   border-radius: 50%;
   animation: bounce 1.2s infinite;
 }
@@ -354,7 +354,7 @@
 
 @keyframes bounce {
   0%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-8px); }
+  40% { transform: translateY(0); }
 }
 
 .teacher-modal-overlay {
@@ -362,7 +362,7 @@
   background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;
 }
 .teacher-modal {
-  background: white; border-radius: 12px; padding: 24px; width: 400px; max-width: 90vw;
+  background: var(--surface); border-radius: 12px; padding: 24px; width: 400px; max-width: 90vw;
   box-shadow: 0 10px 25px rgba(0,0,0,0.1);
 }
 .modal-header {
@@ -372,13 +372,13 @@
 .teacher-list { display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; }
 .teacher-card {
   display: flex; align-items: center; padding: 12px; border: 1px solid var(--border-color);
-  border-radius: 8px; cursor: pointer; transition: all 0.2s ease;
+  border-radius: 8px; cursor: pointer; transition: var(--transition);
 }
-.teacher-card:hover { border-color: var(--primary-color); background: #f8fafc; }
+.teacher-card:hover { border-color: var(--primary-color); background: var(--surface-raised); }
 .teacher-avatar {
   width: 40px; height: 40px; border-radius: 50%; background: var(--primary-color);
   color: white; display: flex; align-items: center; justify-content: center;
-  font-weight: 600; margin-right: 12px;
+  font-weight: 500; margin-right: 12px;
 }
 .teacher-info h4 { margin: 0 0 4px 0; font-size: 0.95rem; color: var(--text-primary); }
 .teacher-info span { font-size: 0.8rem; color: var(--text-secondary); }

@@ -1,73 +1,31 @@
 /* ===================================================
-   Admin Theme — Purple accent on top of the shared
-   light-theme design system from index.css
+   Admin pages — built on the shared tokens in index.css.
+   The sidebar and its active state come from MainLayout.css,
+   so all three portals share one shell.
    =================================================== */
-
-/* ── Admin colour token ───────────────────────────── */
-:root {
-  --color-admin-purple:       #7c3aed;
-  --color-admin-purple-hover: #6d28d9;
-  --color-admin-purple-light: rgba(124, 58, 237, 0.10);
-}
-
-/* ── Avatar pill for admin (shield icon) ──────────── */
-.admin-avatar-circle {
-  background: linear-gradient(135deg, #7c3aed, #4f46e5) !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ── Active nav item — purple instead of navy/blue ── */
-.admin-theme .nav-item.active {
-  background-color: var(--color-admin-purple);
-  color: white;
-}
-
-/* ── Hover ────────────────────────────────────────── */
-.admin-theme .nav-item:hover:not(.active) {
-  background-color: var(--color-admin-purple-light);
-  color: var(--color-admin-purple);
-}
 
 /* ── Shared page shell ────────────────────────────── */
 .admin-page {
-  padding: var(--spacing-4);
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 300ms var(--ease);
 }
 
-/* ── Hero / welcome banner ────────────────────────── */
+/* ── Page heading (was a filled banner) ──────────── */
 .admin-hero {
-  background: linear-gradient(135deg, #5b21b6, #7c3aed);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-5);
-  color: white;
-  margin-bottom: var(--spacing-5);
-  box-shadow: var(--shadow-md);
-  position: relative;
-  overflow: hidden;
-}
-
-.admin-hero::after {
-  content: '';
-  position: absolute;
-  top: 0; right: 0;
-  width: 300px; height: 100%;
-  background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
-  pointer-events: none;
+  margin-bottom: var(--space-8);
 }
 
 .admin-hero h1 {
-  color: white;
-  margin: 0 0 8px;
-  font-size: 1.8rem;
+  color: var(--ink-900);
+  margin: 0 0 4px;
+  font-size: 28px;
+  font-weight: 600;
 }
 
 .admin-hero p {
-  color: rgba(255,255,255,0.82);
-  font-size: 1rem;
+  color: var(--ink-600);
+  font-size: 15px;
   margin: 0;
 }
 
@@ -114,7 +72,7 @@
 }
 
 .admin-kpi-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(0);
   box-shadow: var(--shadow-md);
 }
 
@@ -130,9 +88,9 @@
 .admin-kpi-label {
   font-size: 0.8rem;
   color: var(--text-secondary);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .admin-kpi-value {
@@ -162,28 +120,28 @@
 .admin-btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 9px 18px;
+  gap: 8px;
+  padding: 8px 20px;
   border-radius: var(--radius-sm);
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 500;
   font-family: var(--font-family);
   cursor: pointer;
   border: none;
-  transition: all 0.2s ease;
+  transition: var(--transition);
   text-decoration: none;
 }
 
 .admin-btn-primary {
   background: var(--color-admin-purple);
   color: white;
-  box-shadow: 0 2px 8px rgba(124,58,237,0.25);
+  box-shadow: var(--shadow-1);
 }
 
 .admin-btn-primary:hover {
   background: var(--color-admin-purple-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(124,58,237,0.35);
+  transform: translateY(0);
+  box-shadow: var(--shadow-1);
 }
 
 .admin-btn-ghost {
@@ -198,13 +156,13 @@
 }
 
 .admin-btn-danger {
-  background: rgba(239,68,68,0.08);
+  background: rgba(179, 53, 43,0.08);
   color: var(--color-danger);
-  border: 1px solid rgba(239,68,68,0.18);
+  border: 1px solid rgba(179, 53, 43,0.18);
 }
 
 .admin-btn-danger:hover {
-  background: rgba(239,68,68,0.14);
+  background: rgba(179, 53, 43,0.14);
 }
 
 /* ── Table ────────────────────────────────────────── */
@@ -223,19 +181,19 @@
 }
 
 .admin-table th {
-  padding: 11px 16px;
+  padding: 12px 16px;
   background: var(--bg-color);
   color: var(--text-secondary);
-  font-weight: 600;
+  font-weight: 500;
   font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  text-transform: none;
+  letter-spacing: 0;
   border-bottom: 1px solid var(--border-color);
   text-align: left;
 }
 
 .admin-table td {
-  padding: 13px 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-primary);
   vertical-align: middle;
@@ -255,17 +213,17 @@
   align-items: center;
   gap: 4px;
   padding: 3px 10px;
-  border-radius: 20px;
+  border-radius: 14px;
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: capitalize;
 }
 
-.admin-badge-student  { background: rgba(59,130,246,0.1);  color: #2563eb; }
-.admin-badge-teacher  { background: rgba(16,185,129,0.1);  color: #059669; }
-.admin-badge-admin    { background: rgba(124,58,237,0.1);  color: #7c3aed; }
-.admin-badge-draft    { background: rgba(245,158,11,0.1);  color: #d97706; }
-.admin-badge-published{ background: rgba(16,185,129,0.1);  color: #059669; }
+.admin-badge-student  { background: rgba(43, 68, 166,0.1);  color: var(--accent); }
+.admin-badge-teacher  { background: rgba(47, 107, 58,0.1);  color: var(--positive); }
+.admin-badge-admin    { background: rgba(43, 68, 166,0.1);  color: var(--accent); }
+.admin-badge-draft    { background: rgba(143, 92, 14,0.1);  color: var(--warning); }
+.admin-badge-published{ background: rgba(47, 107, 58,0.1);  color: var(--positive); }
 
 /* ── Tabs ─────────────────────────────────────────── */
 .admin-tabs {
@@ -280,7 +238,7 @@
 }
 
 .admin-tab {
-  padding: 7px 16px;
+  padding: 8px 16px;
   border-radius: calc(var(--radius-sm) - 2px);
   font-size: 0.875rem;
   font-weight: 600;
@@ -289,13 +247,13 @@
   border: none;
   color: var(--text-secondary);
   background: none;
-  transition: all 0.2s ease;
+  transition: var(--transition);
 }
 
 .admin-tab.active {
   background: var(--color-admin-purple);
   color: white;
-  box-shadow: 0 2px 6px rgba(124,58,237,0.25);
+  box-shadow: var(--shadow-1);
 }
 
 /* ── Search / Input ───────────────────────────────── */
@@ -313,7 +271,7 @@
 }
 
 .admin-search-bar input {
-  padding: 9px 12px 9px 36px;
+  padding: 8px 12px 8px 36px;
   width: 260px;
 }
 
@@ -326,7 +284,7 @@
   color: var(--text-primary);
   font-family: var(--font-family);
   font-size: 0.875rem;
-  padding: 9px 12px;
+  padding: 8px 12px;
   transition: border-color 0.2s, box-shadow 0.2s;
   outline: none;
 }
@@ -335,15 +293,15 @@
 .admin-select:focus,
 .admin-search-bar input:focus {
   border-color: var(--color-admin-purple);
-  box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+  box-shadow: var(--focus-ring);
 }
 
 /* ── Modal ────────────────────────────────────────── */
 .admin-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15,23,42,0.45);
-  backdrop-filter: blur(4px);
+  background: rgba(27, 26, 23,0.45);
+  
   display: flex;
   align-items: center;
   justify-content: center;
@@ -401,10 +359,10 @@
 
 .admin-form-label {
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .admin-form-input,
@@ -424,7 +382,7 @@
 .admin-form-input:focus,
 .admin-form-select:focus {
   border-color: var(--color-admin-purple);
-  box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+  box-shadow: var(--focus-ring);
 }
 
 .admin-modal-footer {
@@ -472,10 +430,10 @@
 
 /* ── Info banner ──────────────────────────────────── */
 .admin-info-banner {
-  background: rgba(124,58,237,0.06);
-  border: 1px solid rgba(124,58,237,0.18);
+  background: rgba(43, 68, 166,0.06);
+  border: 1px solid rgba(43, 68, 166,0.18);
   border-radius: var(--radius-md);
-  padding: 14px 18px;
+  padding: 14px 20px;
   margin-bottom: var(--spacing-4);
   display: flex;
   align-items: flex-start;

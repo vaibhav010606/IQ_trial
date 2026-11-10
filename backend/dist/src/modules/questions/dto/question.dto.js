@@ -14,7 +14,13 @@ const swagger_1 = require("@nestjs/swagger");
 const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
 exports.DIFFICULTIES = ['easy', 'medium', 'hard'];
-exports.QUESTION_TYPES = ['single_correct', 'multi_correct', 'numerical', 'assertion', 'subjective'];
+exports.QUESTION_TYPES = [
+    'single_correct',
+    'multi_correct',
+    'numerical',
+    'assertion',
+    'subjective',
+];
 const MAX_QUESTION_TEXT = 8000;
 const MAX_OPTIONS = 10;
 class CreateQuestionDto {
@@ -66,7 +72,9 @@ __decorate([
     __metadata("design:type", Array)
 ], CreateQuestionDto.prototype, "options", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'One of { index }, { indices: [...] } or { value }' }),
+    (0, swagger_1.ApiProperty)({
+        description: 'One of { index }, { indices: [...] } or { value }',
+    }),
     (0, class_validator_1.IsObject)(),
     __metadata("design:type", Object)
 ], CreateQuestionDto.prototype, "correct_answer", void 0);
@@ -272,7 +280,10 @@ class PdfUploadDto {
 }
 exports.PdfUploadDto = PdfUploadDto;
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ enum: ['jee', 'neet', 'cbse', 'general'], default: 'jee' }),
+    (0, swagger_1.ApiPropertyOptional)({
+        enum: ['jee', 'neet', 'cbse', 'general'],
+        default: 'jee',
+    }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsIn)(['jee', 'neet', 'cbse', 'general']),
     __metadata("design:type", String)

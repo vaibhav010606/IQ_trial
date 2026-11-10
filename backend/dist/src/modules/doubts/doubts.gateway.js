@@ -52,11 +52,17 @@ let DoubtsGateway = class DoubtsGateway {
             client.data.role = profile.role;
             client.data.name = profile.full_name;
             client.data.grants = new Map();
-            client.data.counters = { windowStart: Date.now(), messages: 0, typing: 0 };
+            client.data.counters = {
+                windowStart: Date.now(),
+                messages: 0,
+                typing: 0,
+            };
             console.log(`[Socket] Connected: ${profile.full_name} (${profile.role})`);
         }
         catch (e) {
-            client.emit('auth_error', { message: e?.message ?? 'Authentication failed.' });
+            client.emit('auth_error', {
+                message: e?.message ?? 'Authentication failed.',
+            });
             client.disconnect();
         }
     }
@@ -101,10 +107,14 @@ let DoubtsGateway = class DoubtsGateway {
             counters.typing = 0;
         }
         counters[kind] += 1;
-        const max = kind === 'messages' ? MAX_MESSAGES_PER_WINDOW : MAX_TYPING_EVENTS_PER_WINDOW;
+        const max = kind === 'messages'
+            ? MAX_MESSAGES_PER_WINDOW
+            : MAX_TYPING_EVENTS_PER_WINDOW;
         if (counters[kind] > max) {
             if (kind === 'messages') {
-                client.emit('error', { message: 'You are sending messages too quickly.' });
+                client.emit('error', {
+                    message: 'You are sending messages too quickly.',
+                });
             }
             return false;
         }
@@ -118,7 +128,9 @@ let DoubtsGateway = class DoubtsGateway {
             return;
         const grant = await this.getGrant(client, doubtId);
         if (!grant.canRead) {
-            client.emit('error', { message: 'You do not have access to this doubt.' });
+            client.emit('error', {
+                message: 'You do not have access to this doubt.',
+            });
             return;
         }
         client.join(`doubt:${doubtId}`);
@@ -145,12 +157,16 @@ let DoubtsGateway = class DoubtsGateway {
         if (!text)
             return;
         if (text.length > doubt_dto_1.MAX_MESSAGE_LENGTH) {
-            client.emit('error', { message: `Message exceeds ${doubt_dto_1.MAX_MESSAGE_LENGTH} characters.` });
+            client.emit('error', {
+                message: `Message exceeds ${doubt_dto_1.MAX_MESSAGE_LENGTH} characters.`,
+            });
             return;
         }
         const grant = await this.getGrant(client, doubtId);
         if (!grant.canWrite) {
-            client.emit('error', { message: 'You are not a participant in this doubt.' });
+            client.emit('error', {
+                message: 'You are not a participant in this doubt.',
+            });
             return;
         }
         let message;
@@ -200,10 +216,14 @@ let DoubtsGateway = class DoubtsGateway {
         });
     }
     broadcastMessage(doubtId, message, sender) {
-        this.server?.to(`doubt:${doubtId}`).emit('new_message', { ...message, sender });
+        this.server
+            ?.to(`doubt:${doubtId}`)
+            .emit('new_message', { ...message, sender });
     }
     notifyStatusChange(doubtId, status) {
-        this.server?.to(`doubt:${doubtId}`).emit('doubt_status_changed', { doubtId, status });
+        this.server
+            ?.to(`doubt:${doubtId}`)
+            .emit('doubt_status_changed', { doubtId, status });
     }
 };
 exports.DoubtsGateway = DoubtsGateway;

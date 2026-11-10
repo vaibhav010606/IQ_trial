@@ -26,7 +26,10 @@ let UsersService = UsersService_1 = class UsersService {
     async updateProfile(userId, body) {
         const { data, error } = await supabase_config_1.supabase
             .from('users')
-            .update({ full_name: body.full_name.trim(), updated_at: new Date().toISOString() })
+            .update({
+            full_name: body.full_name.trim(),
+            updated_at: new Date().toISOString(),
+        })
             .eq('id', userId)
             .select('id, full_name, email, role')
             .single();
@@ -93,7 +96,8 @@ let UsersService = UsersService_1 = class UsersService {
                 const max = Number(attempt.tests?.total_marks) || 0;
                 entry.testsTaken += 1;
                 if (max > 0) {
-                    entry.totalPercent += ((Number(attempt.total_score) || 0) / max) * 100;
+                    entry.totalPercent +=
+                        ((Number(attempt.total_score) || 0) / max) * 100;
                 }
             }
             statsByStudent.set(attempt.student_id, entry);
@@ -231,8 +235,13 @@ let UsersService = UsersService_1 = class UsersService {
             email_confirm: true,
             user_metadata: {
                 full_name: body.full_name,
-                ...(body.role === 'teacher' && body.subject ? { subject: body.subject } : {}),
+                ...(body.role === 'teacher' && body.subject
+                    ? { subject: body.subject }
+                    : {}),
             },
+            app_metadata: body.role === 'teacher' && body.subject
+                ? { subject: body.subject }
+                : {},
         });
         if (authError)
             throw new common_1.BadRequestException(authError.message);
@@ -284,7 +293,10 @@ let UsersService = UsersService_1 = class UsersService {
             .single();
         if (!target)
             throw new common_1.NotFoundException('User not found');
-        const { error: deleteError } = await supabase_config_1.supabase.from('users').delete().eq('id', userId);
+        const { error: deleteError } = await supabase_config_1.supabase
+            .from('users')
+            .delete()
+            .eq('id', userId);
         if (deleteError) {
             throw new common_1.BadRequestException('Cannot delete this user because they still have linked records. Remove or reassign those records first.');
         }

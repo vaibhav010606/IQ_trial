@@ -23,7 +23,12 @@ const roles_guard_1 = require("../../common/guards/roles.guard");
 const roles_decorator_1 = require("../../common/decorators/roles.decorator");
 const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
 const doubt_dto_1 = require("./dto/doubt.dto");
-const ALLOWED_UPLOAD_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_UPLOAD_MIME = [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+];
 let DoubtsController = class DoubtsController {
     doubtsService;
     doubtsGateway;
@@ -139,7 +144,9 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], DoubtsController.prototype, "resolve", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: 'Get chat messages for a doubt (participants only)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Get chat messages for a doubt (participants only)',
+    }),
     (0, common_1.Get)(':id/messages'),
     __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),
@@ -148,7 +155,9 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], DoubtsController.prototype, "getMessages", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: 'Send a message (REST fallback when Socket.IO not available)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Send a message (REST fallback when Socket.IO not available)',
+    }),
     (0, common_1.Post)(':id/messages'),
     __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),

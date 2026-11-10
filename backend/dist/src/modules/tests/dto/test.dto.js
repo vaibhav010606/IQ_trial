@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TestListQueryDto = exports.SaveFullTestDto = exports.AssignTestDto = exports.AssignTeachersDto = exports.TestQuestionsDto = exports.UpdateTestDto = exports.CreateTestDto = exports.MAX_BATCHES_PER_ASSIGNMENT = exports.MAX_QUESTIONS_PER_TEST = void 0;
+exports.PublishResultsDto = exports.TestListQueryDto = exports.SaveFullTestDto = exports.AssignTestDto = exports.AssignTeachersDto = exports.TestQuestionsDto = exports.UpdateTestDto = exports.CreateTestDto = exports.MAX_BATCHES_PER_ASSIGNMENT = exports.MAX_QUESTIONS_PER_TEST = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
@@ -63,7 +63,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({ enum: ['jee_main', 'jee_advanced', 'neet', 'custom'] }),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsIn)(['jee_main', 'jee_advanced', 'neet', 'custom']),
+    (0, class_validator_1.IsIn)(['jee_main', 'jee_advanced', 'jee_advanced_p2', 'neet', 'custom']),
     __metadata("design:type", String)
 ], CreateTestDto.prototype, "paper_pattern", void 0);
 __decorate([
@@ -105,7 +105,9 @@ __decorate([
     __metadata("design:type", Array)
 ], CreateTestDto.prototype, "teacher_ids", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ description: 'Ignored — derived from the linked questions.' }),
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Ignored — derived from the linked questions.',
+    }),
     (0, class_validator_1.IsOptional)(),
     (0, class_transformer_1.Type)(() => Number),
     (0, class_validator_1.IsNumber)(),
@@ -231,4 +233,17 @@ __decorate([
     (0, class_validator_1.Max)(200),
     __metadata("design:type", Number)
 ], TestListQueryDto.prototype, "limit", void 0);
+class PublishResultsDto {
+    published;
+}
+exports.PublishResultsDto = PublishResultsDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        default: true,
+        description: 'Whether results are visible to students',
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], PublishResultsDto.prototype, "published", void 0);
 //# sourceMappingURL=test.dto.js.map

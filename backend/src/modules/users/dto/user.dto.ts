@@ -73,7 +73,9 @@ export class AdminCreateUserDto {
   @IsIn(['student', 'teacher'], { message: 'Role must be student or teacher.' })
   role: 'student' | 'teacher';
 
-  @ApiPropertyOptional({ description: 'Subject a teacher is scoped to; "All" for unrestricted.' })
+  @ApiPropertyOptional({
+    description: 'Subject a teacher is scoped to; "All" for unrestricted.',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(100)

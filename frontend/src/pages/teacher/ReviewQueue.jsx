@@ -136,7 +136,7 @@ const ReviewQueue = () => {
 
       <header className="rq-header">
         <div>
-          <h1>Review Queue</h1>
+          <h1>Review queue</h1>
           <p className="rq-muted">
             AI-extracted questions awaiting verification. Nothing here is usable in a test until approved.
           </p>
@@ -249,7 +249,7 @@ const ReviewQueue = () => {
                     <XCircle size={15} /> Reject
                   </button>
                   <button className="rq-btn primary" disabled={busy} onClick={() => approve(q)}>
-                    {dirty ? <><Save size={15} /> Save & Approve</> : <><CheckCircle size={15} /> Approve</>}
+                    {dirty ? <><Save size={15} /> Save & approve</> : <><CheckCircle size={15} /> Approve</>}
                   </button>
                 </div>
               </article>

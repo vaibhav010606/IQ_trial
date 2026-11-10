@@ -108,7 +108,7 @@ const QuestionPanel = ({ question, qIndex, currentResponse, onResponseChange }) 
           checked={isSelected}
           onChange={onChange}
         />
-        <span className="opt-label">{String.fromCharCode(65 + idx)}.</span>
+        <span className="opt-label" aria-hidden="true">{String.fromCharCode(65 + idx)}</span>
         {optImage
           ? <img
               src={optImage}

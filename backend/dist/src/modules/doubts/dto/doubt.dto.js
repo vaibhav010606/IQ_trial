@@ -50,20 +50,26 @@ __decorate([
     __metadata("design:type", String)
 ], CreateDoubtDto.prototype, "question_id", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ description: 'Attempt the doubt was raised from (must belong to the student)' }),
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Attempt the doubt was raised from (must belong to the student)',
+    }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsUUID)(),
     __metadata("design:type", String)
 ], CreateDoubtDto.prototype, "attempt_id", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ description: 'Short text snippet describing the doubt' }),
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Short text snippet describing the doubt',
+    }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MaxLength)(2000),
     __metadata("design:type", String)
 ], CreateDoubtDto.prototype, "snippet", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ description: 'Teacher to assign the doubt to; omit to queue it as pending' }),
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Teacher to assign the doubt to; omit to queue it as pending',
+    }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsUUID)(),
     __metadata("design:type", String)

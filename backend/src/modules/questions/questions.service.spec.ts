@@ -10,8 +10,16 @@ import { QuestionsService } from './questions.service';
 const QID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const QID_2 = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
-const PHYSICS_TEACHER = { id: 'teacher-1', role: 'teacher', subject: 'Physics' };
-const ALL_SUBJECTS_TEACHER = { id: 'teacher-2', role: 'teacher', subject: 'All' };
+const PHYSICS_TEACHER = {
+  id: 'teacher-1',
+  role: 'teacher',
+  subject: 'Physics',
+};
+const ALL_SUBJECTS_TEACHER = {
+  id: 'teacher-2',
+  role: 'teacher',
+  subject: 'All',
+};
 const ADMIN = { id: 'admin-1', role: 'admin', subject: 'All' };
 
 describe('QuestionsService', () => {
@@ -30,7 +38,9 @@ describe('QuestionsService', () => {
    */
   describe('subject scoping on writes', () => {
     it("refuses to update a question outside the teacher's subject", async () => {
-      supabaseMock.queueResult('questions', { data: [{ id: QID, subject: 'Chemistry' }] });
+      supabaseMock.queueResult('questions', {
+        data: [{ id: QID, subject: 'Chemistry' }],
+      });
 
       await expect(
         service.update(QID, { question_text: 'rewritten' }, PHYSICS_TEACHER),
@@ -38,7 +48,9 @@ describe('QuestionsService', () => {
     });
 
     it('allows an in-subject update', async () => {
-      supabaseMock.queueResult('questions', { data: [{ id: QID, subject: 'Physics' }] });
+      supabaseMock.queueResult('questions', {
+        data: [{ id: QID, subject: 'Physics' }],
+      });
       supabaseMock.queueResult('questions', { data: { id: QID } });
 
       await expect(
@@ -48,24 +60,34 @@ describe('QuestionsService', () => {
 
     // The bank stores "Physics"; a token can carry "physics".
     it('matches the subject case-insensitively', async () => {
-      supabaseMock.queueResult('questions', { data: [{ id: QID, subject: 'physics' }] });
+      supabaseMock.queueResult('questions', {
+        data: [{ id: QID, subject: 'physics' }],
+      });
       supabaseMock.queueResult('questions', { data: { id: QID } });
 
-      await expect(service.update(QID, { marks: 4 }, PHYSICS_TEACHER)).resolves.toBeDefined();
+      await expect(
+        service.update(QID, { marks: 4 }, PHYSICS_TEACHER),
+      ).resolves.toBeDefined();
     });
 
     it('refuses to delete out of subject', async () => {
-      supabaseMock.queueResult('questions', { data: [{ id: QID, subject: 'Mathematics' }] });
+      supabaseMock.queueResult('questions', {
+        data: [{ id: QID, subject: 'Mathematics' }],
+      });
 
-      await expect(service.remove(QID, PHYSICS_TEACHER)).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(service.remove(QID, PHYSICS_TEACHER)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
     });
 
     it('refuses to approve out of subject', async () => {
-      supabaseMock.queueResult('questions', { data: [{ id: QID, subject: 'Chemistry' }] });
+      supabaseMock.queueResult('questions', {
+        data: [{ id: QID, subject: 'Chemistry' }],
+      });
 
-      await expect(service.approve(QID, PHYSICS_TEACHER)).rejects.toBeInstanceOf(
-        ForbiddenException,
-      );
+      await expect(
+        service.approve(QID, PHYSICS_TEACHER),
+      ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
     it('rejects a bulk operation if any single id is out of subject', async () => {
@@ -84,15 +106,21 @@ describe('QuestionsService', () => {
     it('404s rather than leaking whether an unknown id exists', async () => {
       supabaseMock.queueResult('questions', { data: [] });
 
-      await expect(service.remove(QID, PHYSICS_TEACHER)).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.remove(QID, PHYSICS_TEACHER)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
 
     it('leaves an unscoped teacher unrestricted', async () => {
       supabaseMock.queueResult('questions', { data: { id: QID } });
 
-      await expect(service.remove(QID, ALL_SUBJECTS_TEACHER)).resolves.toBeDefined();
+      await expect(
+        service.remove(QID, ALL_SUBJECTS_TEACHER),
+      ).resolves.toBeDefined();
       // No ownership lookup was needed, so the only call is the write itself.
-      expect(supabaseMock.calls.filter((c) => c.op === 'select')).toHaveLength(0);
+      expect(supabaseMock.calls.filter((c) => c.op === 'select')).toHaveLength(
+        0,
+      );
     });
 
     it('leaves an admin unrestricted', async () => {
@@ -101,7 +129,9 @@ describe('QuestionsService', () => {
     });
 
     it("refuses to file a question under another teacher's subject", async () => {
-      supabaseMock.queueResult('questions', { data: [{ id: QID, subject: 'Physics' }] });
+      supabaseMock.queueResult('questions', {
+        data: [{ id: QID, subject: 'Physics' }],
+      });
 
       await expect(
         service.update(QID, { subject: 'Chemistry' }, PHYSICS_TEACHER),
@@ -144,20 +174,32 @@ describe('QuestionsService', () => {
     it("refuses to create a question outside the teacher's subject", async () => {
       await expect(
         service.create(
-          { subject: 'Chemistry', question_text: 'x', correct_answer: { index: 0 } } as any,
+          {
+            subject: 'Chemistry',
+            question_text: 'x',
+            correct_answer: { index: 0 },
+          } as any,
           PHYSICS_TEACHER,
         ),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
     it('drops non-writable keys from an approval correction', async () => {
-      supabaseMock.queueResult('questions', { data: [{ id: QID, subject: 'Physics' }] });
+      supabaseMock.queueResult('questions', {
+        data: [{ id: QID, subject: 'Physics' }],
+      });
       supabaseMock.queueResult('questions', { data: { id: QID } });
 
-      await service.approve(QID, PHYSICS_TEACHER, { review_status: 'rejected', marks: 2 } as any);
+      await service.approve(QID, PHYSICS_TEACHER, {
+        review_status: 'rejected',
+        marks: 2,
+      } as any);
 
       const write = supabaseMock.calls.find((c) => c.op === 'update');
-      expect(write?.payload).toMatchObject({ marks: 2, review_status: 'approved' });
+      expect(write?.payload).toMatchObject({
+        marks: 2,
+        review_status: 'approved',
+      });
     });
   });
 
@@ -175,7 +217,7 @@ describe('QuestionsService', () => {
             topic: 'Optics',
             question_text: 'real one',
             correct_answer: { index: 1 },
-          } as any,
+          },
         ],
         PHYSICS_TEACHER,
       );
@@ -183,7 +225,10 @@ describe('QuestionsService', () => {
       expect(result.inserted).toBe(1);
       const write = supabaseMock.calls.find((c) => c.op === 'insert');
       expect(write?.payload).toHaveLength(1);
-      expect(write?.payload[0]).toMatchObject({ question_text: 'real one', source: 'csv' });
+      expect(write?.payload[0]).toMatchObject({
+        question_text: 'real one',
+        source: 'csv',
+      });
     });
 
     it("refuses an import outside the teacher's subject", async () => {
@@ -216,14 +261,21 @@ describe('QuestionsService', () => {
       );
 
       expect(rows).toHaveLength(2);
-      expect(rows[0]).toMatchObject({ valid: true, correct_answer: { index: 1 } });
+      expect(rows[0]).toMatchObject({
+        valid: true,
+        correct_answer: { index: 1 },
+      });
       expect(rows[1].valid).toBe(false);
       expect(rows[1].errorMsg).toMatch(/correct must be/i);
     });
 
     it('stops accumulating past the row cap', async () => {
-      const header = 'question,optA,optB,optC,optD,correct,difficulty,subject,topic\n';
-      const body = Array.from({ length: 50 }, (_, i) => `Q${i},a,b,c,d,A,easy,Physics,Optics`).join('\n');
+      const header =
+        'question,optA,optB,optC,optD,correct,difficulty,subject,topic\n';
+      const body = Array.from(
+        { length: 50 },
+        (_, i) => `Q${i},a,b,c,d,A,easy,Physics,Optics`,
+      ).join('\n');
 
       const rows = await service.parseCSV(csv(header + body), 10);
       expect(rows).toHaveLength(10);

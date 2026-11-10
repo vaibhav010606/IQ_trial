@@ -1,3 +1,4 @@
+import { CacheService } from '../../common/cache/cache.service';
 import { AssignTestDto, CreateTestDto, SaveFullTestDto, UpdateTestDto } from './dto/test.dto';
 export interface Requester {
     id: string;
@@ -5,10 +6,13 @@ export interface Requester {
     subject?: string;
 }
 export declare function isTestResultsPublished(test: any): boolean;
+export declare function releasedTestIds(testIds: string[]): Promise<Set<string>>;
 export declare function stripInternalTags(text?: string): string;
 export declare class TestsService {
+    private readonly cache?;
     private readonly logger;
     private hasPaperPattern;
+    constructor(cache?: CacheService | undefined);
     private loadForAccess;
     private assertCanAdminister;
     private assertCanContribute;
@@ -56,6 +60,9 @@ export declare class TestsService {
         total_marks: number;
     }>;
     private assertQuestionsUsable;
+    private paperRows;
+    private patternOfTest;
+    private assertMatchesPattern;
     private recalculateTotalMarks;
     publish(id: string, user: Requester): Promise<any>;
     assign(testId: string, body: AssignTestDto, user: Requester): Promise<{

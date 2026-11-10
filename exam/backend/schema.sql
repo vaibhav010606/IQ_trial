@@ -1,7 +1,10 @@
 -- Secure Exam Module Schema
+--
+-- Idempotent: safe to run more than once. Run migrations/001_exam_hardening.sql
+-- after it — that file replaces the policies below with owner-scoped ones.
 
 -- Table for tracking secure exam sessions
-CREATE TABLE public.exam_sessions (
+CREATE TABLE IF NOT EXISTS public.exam_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL,
     exam_id UUID NOT NULL,
@@ -15,7 +18,7 @@ CREATE TABLE public.exam_sessions (
 );
 
 -- Table for tracking individual responses in real-time
-CREATE TABLE public.exam_responses (
+CREATE TABLE IF NOT EXISTS public.exam_responses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id UUID NOT NULL REFERENCES public.exam_sessions(id) ON DELETE CASCADE,
     question_id TEXT NOT NULL,
@@ -27,7 +30,7 @@ CREATE TABLE public.exam_responses (
 );
 
 -- Table for tracking cheating/violation events
-CREATE TABLE public.exam_violations (
+CREATE TABLE IF NOT EXISTS public.exam_violations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id UUID NOT NULL REFERENCES public.exam_sessions(id) ON DELETE CASCADE,
     type TEXT NOT NULL CHECK (type IN ('tab_hidden', 'window_blur', 'fullscreen_exit', 'devtools_suspected')),
@@ -36,11 +39,10 @@ CREATE TABLE public.exam_violations (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- RLS Policies
+-- RLS: enabled with no permissive policies. The exam API uses the service role
+-- key, which bypasses RLS; 001_exam_hardening.sql adds read-own policies.
+-- (The original `FOR ALL USING (true)` policies opened these tables to anyone
+-- holding the anon key, so they are no longer created here.)
 ALTER TABLE public.exam_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exam_responses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exam_violations ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Service Role full access to exam_sessions" ON public.exam_sessions FOR ALL USING (true);
-CREATE POLICY "Service Role full access to exam_responses" ON public.exam_responses FOR ALL USING (true);
-CREATE POLICY "Service Role full access to exam_violations" ON public.exam_violations FOR ALL USING (true);

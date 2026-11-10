@@ -22,7 +22,8 @@ let UserThrottlerGuard = class UserThrottlerGuard extends throttler_1.ThrottlerG
         return `ip:${ip ?? 'unknown'}`;
     }
     readSubject(authorization) {
-        if (typeof authorization !== 'string' || !authorization.startsWith('Bearer '))
+        if (typeof authorization !== 'string' ||
+            !authorization.startsWith('Bearer '))
             return null;
         const token = authorization.slice('Bearer '.length).trim();
         const parts = token.split('.');

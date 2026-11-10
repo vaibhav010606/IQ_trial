@@ -1,341 +1,160 @@
-/* ═══════════════════════════════════════════════════════════════════════
-   ADMIN DASHBOARD — MODERN COMMAND CENTER STYLES
-   ═══════════════════════════════════════════════════════════════════════ */
-
+/* Admin dashboard — on the shared tokens (index.css) */
 .admin-dash-container {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  width: 100%;
-  animation: fadeIn 0.3s ease-out;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ── 1. Hero Command Header ─────────────────────────────────────────── */
-.admin-dash-hero {
+.admin-dash-head {
   position: relative;
-  overflow: hidden;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 40%, #7c3aed 100%);
-  padding: 30px 36px;
-  color: #ffffff;
-  box-shadow: 0 10px 30px -8px rgba(79, 70, 229, 0.4);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 24px;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 20px 24px 20px 28px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
 }
 
-/* Subtle background accent glow */
-.admin-dash-hero::before {
+.admin-dash-head::before {
   content: '';
   position: absolute;
-  top: -60px;
-  right: -40px;
-  width: 240px;
-  height: 240px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 70%);
-  border-radius: 50%;
-  pointer-events: none;
+  left: 0; top: 0; bottom: 0;
+  width: 6px;
+  background: var(--accent);
 }
 
-.admin-dash-hero-content {
-  position: relative;
-  z-index: 1;
-  max-width: 650px;
-}
-
-.admin-dash-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(8px);
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  margin-bottom: 12px;
-  text-transform: uppercase;
-}
-
-.pulse-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #34d399;
-  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7);
-  animation: pulseGreen 2s infinite;
-}
-
-@keyframes pulseGreen {
-  0%   { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
-  70%  { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
-}
-
-.admin-dash-title {
-  font-size: 1.85rem;
-  font-weight: 800;
-  margin: 0 0 8px 0;
-  letter-spacing: -0.5px;
-  line-height: 1.25;
-}
-
-.admin-dash-subtitle {
-  font-size: 0.95rem;
-  opacity: 0.92;
+.admin-dash-head .page-head {
   margin: 0;
-  line-height: 1.5;
-  color: #e0e7ff;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
 }
 
-.admin-dash-hero-actions {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: flex-end;
-  flex-shrink: 0;
-}
-
-.admin-dash-date-badge {
-  font-size: 0.82rem;
-  color: #e0e7ff;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(0, 0, 0, 0.12);
-  padding: 6px 12px;
-  border-radius: 8px;
+.admin-dash-head .page-head::before {
+  display: none;
 }
 
 .admin-dash-hero-btn-row {
   display: flex;
-  gap: 10px;
-}
-
-.admin-hero-btn {
-  display: inline-flex;
-  align-items: center;
   gap: 8px;
-  padding: 9px 18px;
-  border-radius: 10px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.admin-hero-btn-primary {
-  background: #ffffff;
-  color: #4f46e5;
-  border: none;
-}
-
-.admin-hero-btn-primary:hover {
-  background: #f8fafc;
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  color: #4338ca;
-}
-
-.admin-hero-btn-secondary {
-  background: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(6px);
-}
-
-.admin-hero-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.25);
-  transform: translateY(-2px);
-}
-
-/* ── 2. KPI Cards Grid ─────────────────────────────────────────────── */
+/* KPIs: label, figure, what it counts */
 .admin-dash-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 12px;
 }
 
-@media (max-width: 1024px) {
-  .admin-dash-kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 600px) {
-  .admin-dash-kpi-grid {
-    grid-template-columns: 1fr;
-  }
-  .admin-dash-hero {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .admin-dash-hero-actions {
-    align-items: flex-start;
-    width: 100%;
-  }
+@media (max-width: 1100px) {
+  .admin-dash-kpi-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 .admin-kpi-box {
-  background: #ffffff;
-  border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  padding: 18px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-card);
+  padding: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 12px;
-  position: relative;
+  align-items: stretch;
+  gap: 0;
+  text-align: left;
   overflow: hidden;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
-}
-
-.admin-kpi-box:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.07);
-  border-color: #cbd5e1;
-}
-
-.admin-kpi-box-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.admin-kpi-icon-wrap {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.admin-kpi-pill {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.admin-kpi-value {
-  font-size: 1.85rem;
-  font-weight: 800;
-  color: #0f172a;
-  letter-spacing: -0.5px;
-  line-height: 1.1;
+  font: inherit;
+  color: inherit;
 }
 
 .admin-kpi-label {
-  font-size: 0.85rem;
+  font-size: 12px;
   font-weight: 600;
-  color: #475569;
-  margin-top: 3px;
+  color: var(--accent-strong);
+  padding: 8px 16px;
+  border-bottom: 1px dashed var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.admin-kpi-value {
+  font-size: 40px;
+  line-height: 1;
+  font-weight: 600;
+  color: var(--ink-900);
+  padding: 16px 16px 8px;
 }
 
 .admin-kpi-sub {
-  font-size: 0.76rem;
-  color: #94a3b8;
-  font-weight: 500;
+  font-size: 12px;
+  color: var(--ink-500);
+  padding: 0 16px 12px;
 }
 
-/* ── 3. Quick Action Hub (Command Tiles) ────────────────────────────── */
+/* Shortcuts: rows */
 .admin-action-tiles-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-@media (max-width: 1024px) {
-  .admin-action-tiles-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 600px) {
-  .admin-action-tiles-grid {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
 }
 
 .admin-action-tile {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 20px;
-  text-decoration: none;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 14px;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  text-decoration: none;
+  transition: var(--transition);
 }
 
 .admin-action-tile:hover {
-  transform: translateY(-3px);
-  border-color: #cbd5e1;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
-}
-
-.admin-action-tile:hover .admin-tile-arrow {
-  transform: translateX(4px);
-  color: #4f46e5;
-}
-
-.admin-tile-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  background: var(--surface-raised);
+  border-color: var(--line-strong);
 }
 
 .admin-tile-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 7px;
+  border-radius: var(--radius-control);
+  background: var(--accent-soft);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.admin-tile-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .admin-tile-arrow {
-  color: #94a3b8;
-  transition: transform 0.2s ease, color 0.2s ease;
+  color: var(--ink-400);
+  flex-shrink: 0;
+}
+
+.admin-action-tile:hover .admin-tile-arrow {
+  color: var(--ink-700);
 }
 
 .admin-tile-body h4 {
-  margin: 0 0 6px 0;
-  font-size: 1.02rem;
-  font-weight: 700;
-  color: #1e293b;
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-900);
 }
 
 .admin-tile-body p {
   margin: 0;
-  font-size: 0.82rem;
-  color: #64748b;
-  line-height: 1.45;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--ink-500);
 }
 
-/* ── 4. Main Two Column Section ─────────────────────────────────────── */
 .admin-dash-two-col {
   display: grid;
   grid-template-columns: 1.25fr 1fr;
@@ -349,11 +168,10 @@
 }
 
 .admin-dash-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 22px 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 20px 24px;
   display: flex;
   flex-direction: column;
 }
@@ -362,9 +180,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 18px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 16px;
 }
 
 .admin-dash-card-title-wrap {
@@ -375,58 +191,53 @@
 
 .admin-dash-card-title-wrap h3 {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink-900);
 }
 
 .admin-dash-card-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 12px;
-  background: #f1f5f9;
-  color: #475569;
+  font-size: 12px;
+  padding: 0;
+  color: var(--ink-500);
+  color: var(--ink-600);
 }
 
 .admin-dash-view-all {
   font-size: 0.84rem;
-  font-weight: 600;
-  color: #6366f1;
+  font-weight: 500;
+  color: var(--accent);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  transition: gap 0.15s ease;
 }
 
 .admin-dash-view-all:hover {
-  color: #4f46e5;
-  gap: 6px;
+  text-decoration: underline;
 }
 
 /* ── Test Pipeline List ────────────────────────────────────────────── */
 .test-pipeline-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .test-pipeline-item {
-  border: 1px solid #f1f5f9;
-  border-radius: 12px;
-  padding: 14px 16px;
-  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  padding: 12px 16px;
+  background: var(--surface);
   display: flex;
   flex-direction: column;
   gap: 10px;
-  transition: all 0.2s ease;
+  transition: var(--transition);
 }
 
 .test-pipeline-item:hover {
-  background: #ffffff;
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background: var(--surface-raised);
+  border-color: var(--line-strong);
 }
 
 .test-pipeline-header {
@@ -437,51 +248,34 @@
 }
 
 .test-pipeline-title {
-  font-size: 0.94rem;
-  font-weight: 700;
-  color: #1e293b;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-900);
   margin: 0 0 4px 0;
 }
 
 .test-pipeline-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.78rem;
-  color: #64748b;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--ink-500);
   flex-wrap: wrap;
 }
 
 .test-pipeline-pattern-tag {
-  background: #ede9fe;
-  color: #6d28d9;
-  padding: 2px 7px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.72rem;
+  color: var(--ink-700);
+  font-weight: 500;
 }
 
 .test-status-pill {
-  padding: 3px 9px;
-  border-radius: 20px;
-  font-size: 0.74rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
   flex-shrink: 0;
+  text-transform: capitalize;
 }
 
-.test-status-draft {
-  background: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fde68a;
-}
+.test-status-draft { color: var(--warning); }
 
-.test-status-published {
-  background: #dcfce7;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
-}
+.test-status-published { color: var(--positive); }
 
 /* Subject Progress Badges */
 .test-subject-progress-row {
@@ -490,15 +284,15 @@
   gap: 8px;
   flex-wrap: wrap;
   padding-top: 6px;
-  border-top: 1px dashed #e2e8f0;
+  border-top: 1px dashed var(--line);
 }
 
 .test-sub-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 4px 8px;
   font-size: 0.75rem;
@@ -506,7 +300,7 @@
 
 .test-sub-name {
   font-weight: 600;
-  color: #475569;
+  color: var(--ink-600);
 }
 
 .test-sub-count {
@@ -520,19 +314,17 @@
   padding: 6px 12px;
   border-radius: 8px;
   font-size: 0.8rem;
-  font-weight: 600;
-  background: #f5f3ff;
-  color: #6d28d9;
-  border: 1px solid #ddd6fe;
+  font-weight: 500;
+  background: var(--surface);
+  color: var(--ink-900);
+  border: 1px solid var(--line-strong);
   text-decoration: none;
   margin-left: auto;
-  transition: all 0.15s ease;
+  transition: var(--transition);
 }
 
 .test-pipeline-btn:hover {
-  background: #ede9fe;
-  border-color: #c4b5fd;
-  color: #5b21b6;
+  border-color: var(--ink-400);
 }
 
 /* ── Recent Users List ─────────────────────────────────────────────── */
@@ -549,12 +341,12 @@
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid transparent;
-  transition: all 0.15s ease;
+  transition: var(--transition);
 }
 
 .recent-user-row:hover {
-  background: #f8fafc;
-  border-color: #f1f5f9;
+  background: var(--surface-raised);
+  border-color: var(--surface-sunken);
 }
 
 .recent-user-info {
@@ -570,39 +362,39 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 0.9rem;
   flex-shrink: 0;
 }
 
 .avatar-admin {
-  background: #ede9fe;
-  color: #7c3aed;
-  border: 1.5px solid #ddd6fe;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1.5px solid var(--accent-line);
 }
 
 .avatar-teacher {
-  background: #d1fae5;
-  color: #059669;
-  border: 1.5px solid #a7f3d0;
+  background: var(--positive-soft);
+  color: var(--positive);
+  border: 1.5px solid var(--positive-line);
 }
 
 .avatar-student {
-  background: #e0f2fe;
-  color: #0284c7;
-  border: 1.5px solid #bae6fd;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1.5px solid var(--accent-line);
 }
 
 .recent-user-name {
   font-size: 0.88rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--ink-800);
   line-height: 1.2;
 }
 
 .recent-user-email {
   font-size: 0.77rem;
-  color: #64748b;
+  color: var(--ink-500);
   margin-top: 2px;
 }
 
@@ -615,30 +407,29 @@
 }
 
 .badge-admin {
-  background: #f5f3ff;
-  color: #7c3aed;
-  border: 1px solid #ddd6fe;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent-line);
 }
 
 .badge-teacher {
-  background: #ecfdf5;
-  color: #059669;
-  border: 1px solid #a7f3d0;
+  background: var(--positive-soft);
+  color: var(--positive);
+  border: 1px solid var(--positive-line);
 }
 
 .badge-student {
-  background: #f0f9ff;
-  color: #0284c7;
-  border: 1px solid #bae6fd;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent-line);
 }
 
 /* ── 5. Subject Distribution Bar ───────────────────────────────────── */
 .admin-repo-bar-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 22px 26px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 20px 24px;
 }
 
 .admin-repo-header {
@@ -650,9 +441,9 @@
 
 .admin-repo-header h3 {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink-900);
 }
 
 .admin-repo-stack-bar {
@@ -660,22 +451,22 @@
   height: 12px;
   border-radius: 6px;
   overflow: hidden;
-  background: #f1f5f9;
+  background: var(--surface-sunken);
   margin-bottom: 16px;
 }
 
 .admin-repo-seg-phys {
-  background: #0ea5e9;
+  background: var(--accent);
   transition: width 0.6s ease;
 }
 
 .admin-repo-seg-chem {
-  background: #8b5cf6;
+  background: var(--accent);
   transition: width 0.6s ease;
 }
 
 .admin-repo-seg-math {
-  background: #f59e0b;
+  background: var(--warning);
   transition: width 0.6s ease;
 }
 
@@ -696,15 +487,43 @@
 .admin-repo-legend-dot {
   width: 10px;
   height: 10px;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 .admin-repo-legend-label {
-  color: #475569;
+  color: var(--ink-600);
   font-weight: 500;
 }
 
 .admin-repo-legend-val {
-  font-weight: 700;
-  color: #0f172a;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+/* Each card in its own ink (from .ink-cycle) */
+.ink-cycle > .admin-kpi-box {
+  border-color: color-mix(in srgb, var(--k, var(--accent)) 40%, transparent);
+}
+.ink-cycle > .admin-kpi-box .admin-kpi-label {
+  background: var(--k, var(--accent));
+  color: #fff;
+  border-bottom: none;
+  font-weight: 600;
+}
+.ink-cycle > .admin-kpi-box .admin-kpi-value {
+  color: var(--k, var(--accent));
+  font-weight: 600;
+}
+
+/* Each shortcut in its own ink */
+.ink-cycle > .admin-action-tile {
+  border-left: 4px solid var(--k, var(--accent));
+}
+.ink-cycle > .admin-action-tile .admin-tile-icon {
+  background: var(--k-soft, var(--accent-soft));
+  color: var(--k, var(--accent));
+}
+.ink-cycle > .admin-action-tile:hover {
+  background: var(--k-soft, var(--accent-soft));
+  border-color: var(--k, var(--accent));
 }

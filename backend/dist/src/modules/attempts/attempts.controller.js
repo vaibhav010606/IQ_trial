@@ -50,7 +50,9 @@ let AttemptsController = class AttemptsController {
 };
 exports.AttemptsController = AttemptsController;
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: 'Start a test attempt (or resume if already started)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Start a test attempt (or resume if already started)',
+    }),
     (0, common_1.Post)('start/:testId'),
     __param(0, (0, common_1.Param)('testId', common_1.ParseUUIDPipe)),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),
@@ -77,7 +79,9 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AttemptsController.prototype, "saveAnswer", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: 'Record a proctoring violation — terminates the attempt on the 3rd' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Record a proctoring violation — terminates the attempt on the 3rd',
+    }),
     (0, common_1.Post)(':id/violation'),
     __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),
@@ -107,7 +111,9 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AttemptsController.prototype, "submit", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: 'Get result of a specific attempt (for PostTestResult page)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Get result of a specific attempt (for PostTestResult page)',
+    }),
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),

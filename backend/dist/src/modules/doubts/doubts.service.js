@@ -23,7 +23,9 @@ function sniffImageMime(buffer) {
         return null;
     if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff)
         return 'image/jpeg';
-    if (buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])))
+    if (buffer
+        .subarray(0, 8)
+        .equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])))
         return 'image/png';
     const head6 = buffer.subarray(0, 6).toString('latin1');
     if (head6 === 'GIF87a' || head6 === 'GIF89a')
@@ -51,7 +53,9 @@ let DoubtsService = class DoubtsService {
             return true;
         if (doubt.accepted_by && doubt.accepted_by === user.id)
             return true;
-        if (user.role === 'teacher' && !doubt.accepted_by && doubt.status === 'pending')
+        if (user.role === 'teacher' &&
+            !doubt.accepted_by &&
+            doubt.status === 'pending')
             return true;
         return false;
     }
@@ -81,7 +85,10 @@ let DoubtsService = class DoubtsService {
     async checkAccess(doubtId, user) {
         try {
             const doubt = await this.loadOwnership(doubtId);
-            return { canRead: this.canRead(doubt, user), canWrite: this.canWrite(doubt, user) };
+            return {
+                canRead: this.canRead(doubt, user),
+                canWrite: this.canWrite(doubt, user),
+            };
         }
         catch {
             return { canRead: false, canWrite: false };
@@ -302,7 +309,9 @@ let DoubtsService = class DoubtsService {
         });
         if (uploadError)
             throw new Error(`Storage upload failed: ${uploadError.message}`);
-        const { data: urlData } = supabase_config_1.supabase.storage.from('question-images').getPublicUrl(fileName);
+        const { data: urlData } = supabase_config_1.supabase.storage
+            .from('question-images')
+            .getPublicUrl(fileName);
         const imageUrl = urlData.publicUrl;
         const data = await this.persistMessage(doubtId, user.id, `[IMAGE]:${imageUrl}`);
         return { ...data, imageUrl };

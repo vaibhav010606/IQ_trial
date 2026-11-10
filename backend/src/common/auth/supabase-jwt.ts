@@ -22,12 +22,23 @@ import { supabase } from '../../config/supabase.config';
 export interface VerifiedIdentity {
   userId: string;
   email: string;
+  /** user_metadata — editable by the user themselves; never trust it for access. */
   metadata: Record<string, any>;
+  /** app_metadata — only the service role can write it; safe for access scoping. */
+  appMetadata: Record<string, any>;
 }
 
 export class TokenVerificationError extends Error {}
 
-const ASYMMETRIC_ALGS = ['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512', 'EdDSA'];
+const ASYMMETRIC_ALGS = [
+  'RS256',
+  'RS384',
+  'RS512',
+  'ES256',
+  'ES384',
+  'ES512',
+  'EdDSA',
+];
 const CLOCK_TOLERANCE_SECONDS = 5;
 
 // ── JWKS cache ────────────────────────────────────────────────────────────────
@@ -41,21 +52,23 @@ async function refreshJwks(): Promise<void> {
 
   jwksInFlight = (async () => {
     const baseUrl = process.env.SUPABASE_URL;
-    if (!baseUrl) throw new TokenVerificationError('SUPABASE_URL is not configured');
+    if (!baseUrl)
+      throw new TokenVerificationError('SUPABASE_URL is not configured');
 
     const res = await fetch(`${baseUrl}/auth/v1/.well-known/jwks.json`, {
       headers: process.env.SUPABASE_ANON_KEY
         ? { apikey: process.env.SUPABASE_ANON_KEY }
         : undefined,
     });
-    if (!res.ok) throw new TokenVerificationError(`JWKS fetch failed (${res.status})`);
+    if (!res.ok)
+      throw new TokenVerificationError(`JWKS fetch failed (${res.status})`);
 
     const body: any = await res.json();
     const next = new Map<string, KeyObject>();
     for (const jwk of body?.keys ?? []) {
       if (!jwk?.kid) continue;
       try {
-        next.set(jwk.kid, createPublicKey({ key: jwk as any, format: 'jwk' }));
+        next.set(jwk.kid, createPublicKey({ key: jwk, format: 'jwk' }));
       } catch {
         // Unsupported key type — skip it rather than failing the whole set.
       }
@@ -83,7 +96,10 @@ async function getSigningKey(kid: string): Promise<KeyObject | null> {
 
 // ── Remote verification cache ─────────────────────────────────────────────────
 const REMOTE_TTL_MS = 60 * 1000;
-const remoteCache = new Map<string, { identity: VerifiedIdentity; expiresAt: number }>();
+const remoteCache = new Map<
+  string,
+  { identity: VerifiedIdentity; expiresAt: number }
+>();
 
 function cacheKey(token: string) {
   return createHash('sha256').update(token).digest('hex');
@@ -104,6 +120,7 @@ async function verifyRemotely(token: string): Promise<VerifiedIdentity> {
     userId: data.user.id,
     email: data.user.email ?? '',
     metadata: data.user.user_metadata ?? {},
+    appMetadata: data.user.app_metadata ?? {},
   };
 
   if (remoteCache.size > 5000) remoteCache.clear();
@@ -118,6 +135,7 @@ function toIdentity(payload: any): VerifiedIdentity {
     userId: payload.sub,
     email: payload.email ?? '',
     metadata: payload.user_metadata ?? {},
+    appMetadata: payload.app_metadata ?? {},
   };
 }
 
@@ -125,7 +143,9 @@ function toIdentity(payload: any): VerifiedIdentity {
  * Verifies a Supabase access token and returns the caller's identity.
  * Throws TokenVerificationError if the signature, expiry or shape is invalid.
  */
-export async function verifySupabaseToken(rawToken: string): Promise<VerifiedIdentity> {
+export async function verifySupabaseToken(
+  rawToken: string,
+): Promise<VerifiedIdentity> {
   const token = (rawToken ?? '').replace(/^Bearer\s+/i, '').trim();
   if (!token) throw new TokenVerificationError('Missing token');
 
@@ -147,7 +167,7 @@ export async function verifySupabaseToken(rawToken: string): Promise<VerifiedIde
       if (!secret) return await verifyRemotely(token);
       return toIdentity(
         jwt.verify(token, secret, {
-          algorithms: [alg as jwt.Algorithm],
+          algorithms: [alg],
           clockTolerance: CLOCK_TOLERANCE_SECONDS,
         }),
       );
@@ -166,7 +186,9 @@ export async function verifySupabaseToken(rawToken: string): Promise<VerifiedIde
   } catch (e) {
     if (e instanceof TokenVerificationError) throw e;
     if (e instanceof jwt.TokenExpiredError) {
-      throw new TokenVerificationError('Token has expired. Please log in again.');
+      throw new TokenVerificationError(
+        'Token has expired. Please log in again.',
+      );
     }
     throw new TokenVerificationError('Invalid token signature');
   }

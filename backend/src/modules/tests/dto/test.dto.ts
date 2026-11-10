@@ -57,7 +57,8 @@ export class CreateTestDto {
    */
   @ApiPropertyOptional({
     example: 'jee_main',
-    description: 'quiz | mock_test | assignment | exam, or a pattern: jee_main | jee_advanced | neet | custom',
+    description:
+      'quiz | mock_test | assignment | exam, or a pattern: jee_main | jee_advanced | neet | custom',
   })
   @IsOptional()
   @IsString()
@@ -67,7 +68,7 @@ export class CreateTestDto {
   /** Explicit paper pattern. Preferred over overloading `t_type`. */
   @ApiPropertyOptional({ enum: ['jee_main', 'jee_advanced', 'neet', 'custom'] })
   @IsOptional()
-  @IsIn(['jee_main', 'jee_advanced', 'neet', 'custom'])
+  @IsIn(['jee_main', 'jee_advanced', 'jee_advanced_p2', 'neet', 'custom'])
   paper_pattern?: string;
 
   @ApiProperty({ minimum: 1, maximum: 600 })
@@ -112,7 +113,9 @@ export class CreateTestDto {
    * you end up with a scoreboard out of a denominator nobody can reproduce — but
    * rejecting the field outright would 400 every save the existing UI makes.
    */
-  @ApiPropertyOptional({ description: 'Ignored — derived from the linked questions.' })
+  @ApiPropertyOptional({
+    description: 'Ignored — derived from the linked questions.',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
@@ -219,7 +222,10 @@ export class TestListQueryDto {
 }
 
 export class PublishResultsDto {
-  @ApiPropertyOptional({ default: true, description: 'Whether results are visible to students' })
+  @ApiPropertyOptional({
+    default: true,
+    description: 'Whether results are visible to students',
+  })
   @IsOptional()
   @IsBoolean()
   published?: boolean;

@@ -13,8 +13,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 // Loading fallback
 const PageLoader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: '16px' }}>
-    <div style={{ width: '40px', height: '40px', border: '3px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-    <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Loading...</p>
+    <div style={{ width: '40px', height: '40px', border: '3px solid #ded4bf', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    <p style={{ color: '#736b5f', fontSize: '0.9rem' }}>Loading...</p>
     <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
   </div>
 );

@@ -72,7 +72,7 @@ const TestLibrary = () => {
     <div className="admin-page">
       <div className="admin-page-header">
         <div>
-          <h1>Test Library</h1>
+          <h1>Test library</h1>
           <p>Overview of all tests across the platform — drafted, published, and results approval.</p>
         </div>
       </div>
@@ -96,13 +96,13 @@ const TestLibrary = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div style={{
                     width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                    background: t.status === 'published' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+                    background: t.status === 'published' ? 'rgba(47, 107, 58,0.1)' : 'rgba(143, 92, 14,0.1)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <BookOpen size={18} color={t.status === 'published' ? '#059669' : '#d97706'} />
+                    <BookOpen size={18} color={t.status === 'published' ? '#2f6b3a' : '#8f5c0e'} />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', marginBottom: 3 }}>{t.title}</div>
+                    <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)', marginBottom: 3 }}>{t.title}</div>
                     <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                       {t.subject && <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t.subject}</span>}
                       {t.duration_minutes && <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t.duration_minutes} min</span>}
@@ -113,7 +113,7 @@ const TestLibrary = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span className={`admin-badge admin-badge-${t.status === 'published' ? 'published' : 'draft'}`}>
                     {t.status === 'published'
-                      ? <><CheckCircle size={10} /> Paper Published</>
+                      ? <><CheckCircle size={10} /> Paper published</>
                       : <><Clock size={10} /> Draft</>
                     }
                   </span>
@@ -122,9 +122,9 @@ const TestLibrary = () => {
                   <span
                     className="admin-badge"
                     style={{
-                      background: isResultsLive ? '#ecfdf5' : '#fef3c7',
-                      color: isResultsLive ? '#059669' : '#b45309',
-                      border: `1px solid ${isResultsLive ? '#a7f3d0' : '#fde68a'}`,
+                      background: isResultsLive ? '#e3ecd9' : '#f3e6c6',
+                      color: isResultsLive ? '#2f6b3a' : '#8f5c0e',
+                      border: `1px solid ${isResultsLive ? '#b6cba6' : '#dfc68f'}`,
                     }}
                   >
                     {isResultsLive ? (
@@ -150,13 +150,13 @@ const TestLibrary = () => {
                       gap: 5,
                       padding: '6px 12px',
                       borderRadius: 7,
-                      border: isResultsLive ? '1px solid #cbd5e1' : '1px solid #86efac',
-                      background: isResultsLive ? '#f8fafc' : '#f0fdf4',
-                      color: isResultsLive ? '#475569' : '#15803d',
+                      border: isResultsLive ? '1px solid #c6b99e' : '1px solid #b6cba6',
+                      background: isResultsLive ? '#f6f1e6' : '#e3ecd9',
+                      color: isResultsLive ? '#56504a' : '#2f6b3a',
                       fontSize: 12,
-                      fontWeight: 600,
+                      fontWeight: 500,
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease'
+                      transition: 'var(--transition)'
                     }}
                   >
                     <ShieldCheck size={13} />
@@ -179,13 +179,13 @@ const TestLibrary = () => {
                       gap: 6,
                       padding: '6px 12px',
                       borderRadius: 7,
-                      border: '1px solid #bfdbfe',
-                      background: '#eff6ff',
-                      color: '#2563eb',
+                      border: '1px solid #bcc4e2',
+                      background: 'var(--accent-soft)',
+                      color: 'var(--accent)',
                       fontSize: 12,
-                      fontWeight: 600,
+                      fontWeight: 500,
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease'
+                      transition: 'var(--transition)'
                     }}
                   >
                     <Layers size={14} />
@@ -204,11 +204,11 @@ const TestLibrary = () => {
                       borderRadius: 7,
                       border: '1px solid #f0abfc',
                       background: '#fdf4ff',
-                      color: '#9333ea',
+                      color: 'var(--accent)',
                       fontSize: 12,
-                      fontWeight: 600,
+                      fontWeight: 500,
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease'
+                      transition: 'var(--transition)'
                     }}
                   >
                     <Trophy size={14} />
@@ -225,13 +225,13 @@ const TestLibrary = () => {
                       gap: 6,
                       padding: '6px 12px',
                       borderRadius: 7,
-                      border: '1px solid #cbd5e1',
-                      background: '#f8fafc',
-                      color: '#4338ca',
+                      border: '1px solid #c6b99e',
+                      background: '#f6f1e6',
+                      color: 'var(--accent-strong)',
                       fontSize: 12,
-                      fontWeight: 600,
+                      fontWeight: 500,
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease'
+                      transition: 'var(--transition)'
                     }}
                   >
                     <FileDown size={14} />

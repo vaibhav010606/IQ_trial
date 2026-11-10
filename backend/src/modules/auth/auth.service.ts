@@ -1,5 +1,14 @@
-import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { createUserAuthClient, supabase, supabaseAuth } from '../../config/supabase.config';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
+import {
+  createUserAuthClient,
+  supabase,
+  supabaseAuth,
+} from '../../config/supabase.config';
 import { verifySupabaseToken } from '../../common/auth/supabase-jwt';
 
 @Injectable()
@@ -47,7 +56,10 @@ export class AuthService {
         email: data.user.email,
         full_name: profile.full_name,
         role: profile.role,
-        subject: data.user.user_metadata?.subject || 'All',
+        subject:
+          data.user.app_metadata?.subject ||
+          data.user.user_metadata?.subject ||
+          'All',
       },
     };
   }
@@ -58,10 +70,13 @@ export class AuthService {
   async refresh(refreshToken: string) {
     // nosemgrep: codacy.yaml.security.hard-coded-tokens
     const sessionPayload = { ['refresh_token']: refreshToken };
-    const { data, error } = await createUserAuthClient().auth.refreshSession(sessionPayload);
+    const { data, error } =
+      await createUserAuthClient().auth.refreshSession(sessionPayload);
 
     if (error || !data.session) {
-      throw new UnauthorizedException('Refresh token is invalid or expired. Please log in again.');
+      throw new UnauthorizedException(
+        'Refresh token is invalid or expired. Please log in again.',
+      );
     }
 
     return {
@@ -82,7 +97,9 @@ export class AuthService {
     try {
       await supabase.auth.admin.signOut(accessToken, 'local');
     } catch (e: any) {
-      this.logger.warn(`Session revocation failed (token may already be expired): ${e?.message}`);
+      this.logger.warn(
+        `Session revocation failed (token may already be expired): ${e?.message}`,
+      );
     }
     return { success: true, message: 'Logged out.' };
   }
@@ -101,12 +118,15 @@ export class AuthService {
     try {
       await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     } catch (e: any) {
-      this.logger.warn(`Password reset request failed for ${email}: ${e?.message}`);
+      this.logger.warn(
+        `Password reset request failed for ${email}: ${e?.message}`,
+      );
     }
 
     return {
       success: true,
-      message: 'If an account exists for that address, a reset link is on its way.',
+      message:
+        'If an account exists for that address, a reset link is on its way.',
     };
   }
 
@@ -120,7 +140,9 @@ export class AuthService {
       const identity = await verifySupabaseToken(accessToken);
       userId = identity.userId;
     } catch {
-      throw new UnauthorizedException('This reset link is invalid or has expired.');
+      throw new UnauthorizedException(
+        'This reset link is invalid or has expired.',
+      );
     }
 
     const { error } = await supabase.auth.admin.updateUserById(userId, {

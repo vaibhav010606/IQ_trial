@@ -5,7 +5,10 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { supabase } from '../../config/supabase.config';
-import { verifySupabaseToken, TokenVerificationError } from '../auth/supabase-jwt';
+import {
+  verifySupabaseToken,
+  TokenVerificationError,
+} from '../auth/supabase-jwt';
 
 const SUBJECT_CACHE_TTL_MS = 60 * 1000;
 const MAX_CACHE_ENTRIES = 1000;
@@ -46,7 +49,9 @@ export class SupabaseAuthGuard implements CanActivate {
       identity = await verifySupabaseToken(token);
     } catch (e) {
       throw new UnauthorizedException(
-        e instanceof TokenVerificationError ? e.message : 'Invalid or malformed token.',
+        e instanceof TokenVerificationError
+          ? e.message
+          : 'Invalid or malformed token.',
       );
     }
 
@@ -58,17 +63,28 @@ export class SupabaseAuthGuard implements CanActivate {
       .single();
 
     if (profileError || !profile) {
-      throw new UnauthorizedException('User profile not found. Contact support.');
+      throw new UnauthorizedException(
+        'User profile not found. Contact support.',
+      );
     }
 
-    let subject = identity.metadata?.subject;
+    // A teacher's subject scopes what they may edit, so it is read from
+    // app_metadata, which only the service role can write. user_metadata is
+    // editable by the user themselves (supabase.auth.updateUser) — trusting it
+    // let a teacher set their subject to "All" and step outside their scope.
+    // The user_metadata fallback only serves accounts created before the move;
+    // scripts/backfill_subject_app_metadata.js migrates them.
+    let subject = identity.appMetadata?.subject;
     if (!subject) {
       const cached = subjectCache.get(identity.userId);
       if (cached && cached.expiresAt > Date.now()) {
         subject = cached.subject;
       } else {
         const { data } = await supabase.auth.admin.getUserById(identity.userId);
-        subject = data?.user?.user_metadata?.subject || 'All';
+        subject =
+          data?.user?.app_metadata?.subject ||
+          data?.user?.user_metadata?.subject ||
+          'All';
         const now = Date.now();
         if (subjectCache.size >= MAX_CACHE_ENTRIES) {
           pruneSubjectCache(now);

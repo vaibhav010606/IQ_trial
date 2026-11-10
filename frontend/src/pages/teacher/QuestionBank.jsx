@@ -488,7 +488,7 @@ const QuestionBank = () => {
             />
           </label>
           <button className="btn-primary" onClick={openCreate}>
-            <Plus size={16} /> Add New Question
+            <Plus size={16} /> Add new question
           </button>
         </div>
       </header>
@@ -525,7 +525,7 @@ const QuestionBank = () => {
               value={subjectFilter}
               onChange={(e) => { setSubjectFilter(e.target.value); setChapterFilter(''); setPage(1); }}
             >
-              <option value="">All Subjects</option>
+              <option value="">All subjects</option>
               {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           )}
@@ -537,7 +537,7 @@ const QuestionBank = () => {
               value={chapterFilter}
               onChange={(e) => { setChapterFilter(e.target.value); setPage(1); }}
             >
-              <option value="">All Chapters</option>
+              <option value="">All chapters</option>
               {(CHAPTERS[subjectFilter] || []).map(ch => (
                 <option key={ch} value={ch}>{ch}</option>
               ))}
@@ -550,9 +550,9 @@ const QuestionBank = () => {
             value={qTypeFilter}
             onChange={(e) => { setQTypeFilter(e.target.value); setPage(1); }}
           >
-            <option value="">All Types</option>
-            <option value="single_correct">Single Choice</option>
-            <option value="multi_correct">Multiple Choice</option>
+            <option value="">All types</option>
+            <option value="single_correct">Single choice</option>
+            <option value="multi_correct">Multiple choice</option>
             <option value="numerical">Numerical</option>
             <option value="subjective">Subjective</option>
           </select>
@@ -563,7 +563,7 @@ const QuestionBank = () => {
             value={diffFilter}
             onChange={(e) => { setDiffFilter(e.target.value); setPage(1); }}
           >
-            <option value="">All Difficulties</option>
+            <option value="">All difficulties</option>
             <option value="easy">Easy</option>
             <option value="medium">Medium</option>
             <option value="hard">Hard</option>
@@ -670,15 +670,15 @@ const QuestionBank = () => {
                       </div>
 
                       <div className="qb-card-actions">
-                        <button className="qb-btn-edit" title="Edit Question" onClick={() => openEdit(q)}>
+                        <button className="qb-btn-edit" title="Edit question" onClick={() => openEdit(q)}>
                           <Edit size={14} />
                           <span>Edit</span>
                         </button>
-                        <button className="qb-btn-copy" title="Duplicate Question" disabled={busy} onClick={() => handleDuplicate(q)}>
+                        <button className="qb-btn-copy" title="Duplicate question" disabled={busy} onClick={() => handleDuplicate(q)}>
                           <Copy size={14} />
                           <span>Duplicate</span>
                         </button>
-                        <button className="qb-btn-delete" title="Delete Question" disabled={busy} onClick={() => handleDelete(q)}>
+                        <button className="qb-btn-delete" title="Delete question" disabled={busy} onClick={() => handleDelete(q)}>
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -814,7 +814,7 @@ const QuestionBank = () => {
                     aria-label="Select all questions on this page"
                   />
                 </th>
-                <th className="preview-col">Question Preview</th>
+                <th className="preview-col">Question preview</th>
                 <th>Subject</th>
                 <th>Topic</th>
                 <th>Type</th>
@@ -998,9 +998,9 @@ const QuestionBank = () => {
               </div>
 
               <div className="form-group">
-                <label>Question Content</label>
+                <label>Question content</label>
                 {draft.image_url ? (
-                  <div style={{ background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px solid var(--border-color)', textAlign: 'center' }}>
+                  <div style={{ background: '#f6f1e6', padding: 12, borderRadius: 8, border: '1px solid var(--border-color)', textAlign: 'center' }}>
                     <img src={draft.image_url} alt="Question" style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: 4 }} />
                   </div>
                 ) : (
@@ -1030,7 +1030,7 @@ const QuestionBank = () => {
 
               {draft.q_type === 'numerical' || draft.q_type === 'subjective' ? (
                 <div className="form-group" style={{ marginTop: 16 }}>
-                  <label>Correct Answer / Solution</label>
+                  <label>Correct answer / solution</label>
                   <input
                     type="text"
                     placeholder="e.g. 42 or formula expression"
@@ -1070,7 +1070,7 @@ const QuestionBank = () => {
 
             <div className="modal-footer">
               {modalError && (
-                <div style={{ color: '#dc2626', fontSize: 13, fontWeight: 500, flex: 1, textAlign: 'left' }}>⚠ {modalError}</div>
+                <div style={{ color: '#b3352b', fontSize: 13, fontWeight: 500, flex: 1, textAlign: 'left' }}>{modalError}</div>
               )}
               <button className="btn-outline" onClick={() => { setModalOpen(false); setModalError(''); }}>Cancel</button>
               <button className="btn-primary" onClick={handleSave} disabled={busy}>

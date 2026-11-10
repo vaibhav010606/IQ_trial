@@ -39,7 +39,9 @@ export class BatchesService {
   async findAll(user: Requester) {
     let query = supabase
       .from('batches')
-      .select('id, name, subject_focus, created_at, created_by, batch_students(count)')
+      .select(
+        'id, name, subject_focus, created_at, created_by, batch_students(count)',
+      )
       .order('created_at', { ascending: false });
 
     // Admins oversee the whole institute; a teacher sees their own batches.
@@ -84,8 +86,10 @@ export class BatchesService {
     // Only the two editable fields — never created_by.
     const patch: Record<string, any> = {};
     if (body.name !== undefined) patch.name = body.name.trim();
-    if (body.subject_focus !== undefined) patch.subject_focus = body.subject_focus;
-    if (!Object.keys(patch).length) throw new BadRequestException('Nothing to update.');
+    if (body.subject_focus !== undefined)
+      patch.subject_focus = body.subject_focus;
+    if (!Object.keys(patch).length)
+      throw new BadRequestException('Nothing to update.');
 
     const { data, error } = await supabase
       .from('batches')
@@ -135,7 +139,9 @@ export class BatchesService {
 
     if (!student) throw new NotFoundException('Student not found');
     if (student.role !== 'student') {
-      throw new BadRequestException('Only student accounts can be added to a batch.');
+      throw new BadRequestException(
+        'Only student accounts can be added to a batch.',
+      );
     }
 
     const { data: existing, error: lookupError } = await supabase
@@ -155,7 +161,9 @@ export class BatchesService {
       .maybeSingle();
 
     if (error) throw new Error(error.message);
-    return data ?? { batch_id: batchId, student_id: studentId, alreadyMember: true };
+    return (
+      data ?? { batch_id: batchId, student_id: studentId, alreadyMember: true }
+    );
   }
 
   async removeStudent(batchId: string, studentId: string, user: Requester) {

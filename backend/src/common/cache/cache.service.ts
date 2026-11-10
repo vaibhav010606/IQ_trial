@@ -14,7 +14,10 @@ import Redis from 'ioredis';
 @Injectable()
 export class CacheService implements OnModuleDestroy {
   private readonly logger = new Logger(CacheService.name);
-  private readonly memory = new Map<string, { value: string; expiresAt: number }>();
+  private readonly memory = new Map<
+    string,
+    { value: string; expiresAt: number }
+  >();
   private redis: Redis | null = null;
   private redisHealthy = false;
 
@@ -29,7 +32,10 @@ export class CacheService implements OnModuleDestroy {
   private readonly inFlight = new Map<string, Promise<any>>();
 
   /** Locks held by this process, so a crash-free release only clears our own. */
-  private readonly memoryLocks = new Map<string, { token: string; expiresAt: number }>();
+  private readonly memoryLocks = new Map<
+    string,
+    { token: string; expiresAt: number }
+  >();
 
   constructor() {
     const url = process.env.REDIS_URL;
@@ -42,7 +48,8 @@ export class CacheService implements OnModuleDestroy {
       this.redis = new Redis(url, {
         maxRetriesPerRequest: 2,
         // Never let a cache outage take the API down: fail over to memory instead.
-        retryStrategy: (times) => (times > 5 ? null : Math.min(times * 200, 2000)),
+        retryStrategy: (times) =>
+          times > 5 ? null : Math.min(times * 200, 2000),
         lazyConnect: false,
       });
 
@@ -51,14 +58,17 @@ export class CacheService implements OnModuleDestroy {
         this.logger.log('Redis cache connected.');
       });
       this.redis.on('error', (e) => {
-        if (this.redisHealthy) this.logger.warn(`Redis error, falling back to memory: ${e.message}`);
+        if (this.redisHealthy)
+          this.logger.warn(`Redis error, falling back to memory: ${e.message}`);
         this.redisHealthy = false;
       });
       this.redis.on('end', () => {
         this.redisHealthy = false;
       });
     } catch (e: any) {
-      this.logger.warn(`Redis init failed (${e?.message}) — using in-memory cache.`);
+      this.logger.warn(
+        `Redis init failed (${e?.message}) — using in-memory cache.`,
+      );
       this.redis = null;
     }
   }
@@ -111,7 +121,10 @@ export class CacheService implements OnModuleDestroy {
 
     // Keep the in-memory map from growing without bound.
     if (this.memory.size > 500) this.pruneMemory();
-    this.memory.set(key, { value: raw, expiresAt: Date.now() + ttlSeconds * 1000 });
+    this.memory.set(key, {
+      value: raw,
+      expiresAt: Date.now() + ttlSeconds * 1000,
+    });
   }
 
   /** Invalidate one key, or every key sharing a prefix. */
@@ -125,7 +138,13 @@ export class CacheService implements OnModuleDestroy {
         // SCAN rather than KEYS so a large keyspace does not block Redis.
         let cursor = '0';
         do {
-          const [next, keys] = await this.redis!.scan(cursor, 'MATCH', `${prefix}*`, 'COUNT', 200);
+          const [next, keys] = await this.redis!.scan(
+            cursor,
+            'MATCH',
+            `${prefix}*`,
+            'COUNT',
+            200,
+          );
           cursor = next;
           if (keys.length) await this.redis!.del(...keys);
         } while (cursor !== '0');
@@ -139,7 +158,11 @@ export class CacheService implements OnModuleDestroy {
    * Read-through helper: return the cached value or compute, store and return it.
    * Concurrent misses on the same key share one computation.
    */
-  async wrap<T>(key: string, ttlSeconds: number, produce: () => Promise<T>): Promise<T> {
+  async wrap<T>(
+    key: string,
+    ttlSeconds: number,
+    produce: () => Promise<T>,
+  ): Promise<T> {
     const cached = await this.get<T>(key);
     if (cached !== null) return cached;
 
@@ -190,10 +213,20 @@ export class CacheService implements OnModuleDestroy {
     }
   }
 
-  private async acquire(lockKey: string, token: string, ttlSeconds: number): Promise<boolean> {
+  private async acquire(
+    lockKey: string,
+    token: string,
+    ttlSeconds: number,
+  ): Promise<boolean> {
     if (this.isDistributed) {
       try {
-        const ok = await this.redis!.set(lockKey, token, 'EX', ttlSeconds, 'NX');
+        const ok = await this.redis!.set(
+          lockKey,
+          token,
+          'EX',
+          ttlSeconds,
+          'NX',
+        );
         return ok === 'OK';
       } catch {
         // fall through to the local lock rather than skipping the job entirely
@@ -202,7 +235,10 @@ export class CacheService implements OnModuleDestroy {
 
     const held = this.memoryLocks.get(lockKey);
     if (held && held.expiresAt > Date.now()) return false;
-    this.memoryLocks.set(lockKey, { token, expiresAt: Date.now() + ttlSeconds * 1000 });
+    this.memoryLocks.set(lockKey, {
+      token,
+      expiresAt: Date.now() + ttlSeconds * 1000,
+    });
     return true;
   }
 

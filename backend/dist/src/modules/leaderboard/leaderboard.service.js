@@ -14,6 +14,7 @@ const common_1 = require("@nestjs/common");
 const supabase_config_1 = require("../../config/supabase.config");
 const cache_service_1 = require("../../common/cache/cache.service");
 const query_util_1 = require("../../common/db/query.util");
+const tests_service_1 = require("../tests/tests.service");
 const LEADERBOARD_TTL_SECONDS = Number(process.env.LEADERBOARD_TTL_SECONDS) || 300;
 const CACHE_PREFIX = 'leaderboard:';
 let LeaderboardService = class LeaderboardService {
@@ -23,11 +24,13 @@ let LeaderboardService = class LeaderboardService {
     }
     async buildRanking() {
         return this.cache.wrap(`${CACHE_PREFIX}global`, LEADERBOARD_TTL_SECONDS, async () => {
-            const data = await (0, query_util_1.fetchAll)(() => supabase_config_1.supabase
+            const all = await (0, query_util_1.fetchAll)(() => supabase_config_1.supabase
                 .from('attempts')
-                .select('student_id, total_score, users(id, full_name)')
+                .select('student_id, test_id, total_score, users(id, full_name)')
                 .eq('status', 'submitted')
                 .order('id', { ascending: true }));
+            const released = await (0, tests_service_1.releasedTestIds)(all.map((a) => a.test_id));
+            const data = all.filter((a) => released.has(a.test_id));
             const totals = new Map();
             for (const attempt of data) {
                 const id = attempt.student_id;
@@ -83,7 +86,10 @@ let LeaderboardService = class LeaderboardService {
     }
     async getBatch(batchId) {
         return this.cache.wrap(`${CACHE_PREFIX}batch:${batchId}`, LEADERBOARD_TTL_SECONDS, async () => {
-            const batchStudents = await (0, query_util_1.fetchAll)(() => supabase_config_1.supabase.from('batch_students').select('student_id').eq('batch_id', batchId));
+            const batchStudents = await (0, query_util_1.fetchAll)(() => supabase_config_1.supabase
+                .from('batch_students')
+                .select('student_id')
+                .eq('batch_id', batchId));
             const studentIds = new Set(batchStudents.map((b) => b.student_id));
             if (!studentIds.size)
                 return [];
@@ -112,7 +118,9 @@ let LeaderboardService = class LeaderboardService {
             rank: ranking[myIdx].rank,
             totalScore: ranking[myIdx].totalScore,
             totalStudents: ranking.length,
-            neighbors: ranking.slice(start, end).map((s) => ({ ...s, isMe: s.id === studentId })),
+            neighbors: ranking
+                .slice(start, end)
+                .map((s) => ({ ...s, isMe: s.id === studentId })),
         };
     }
     async invalidate() {

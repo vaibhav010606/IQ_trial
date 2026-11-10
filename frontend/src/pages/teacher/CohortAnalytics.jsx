@@ -70,10 +70,10 @@ const CohortAnalytics = () => {
   }, [selectedTest]);
 
   const kpis = [
-    { label: 'Students', value: summary?.totalStudents ?? 0, icon: Users, color: '#3b82f6' },
-    { label: 'Avg Score', value: summary?.avgScore ?? 0, icon: TrendingUp, color: '#10b981' },
-    { label: 'Attempts', value: summary?.totalAttempts ?? 0, icon: ClipboardList, color: '#f59e0b' },
-    { label: 'At Risk', value: summary?.atRiskCount ?? 0, icon: AlertTriangle, color: '#ef4444' },
+    { label: 'Students', value: summary?.totalStudents ?? 0, icon: Users, color: '#2b44a6' },
+    { label: 'Avg score', value: summary?.avgScore ?? 0, icon: TrendingUp, color: '#2f6b3a' },
+    { label: 'Attempts', value: summary?.totalAttempts ?? 0, icon: ClipboardList, color: '#8f5c0e' },
+    { label: 'At risk', value: summary?.atRiskCount ?? 0, icon: AlertTriangle, color: '#b3352b' },
   ];
 
   // Hardest questions across the selected test.
@@ -88,7 +88,10 @@ const CohortAnalytics = () => {
     if (!testResults?.results?.length) return [];
     const bands = Array.from({ length: 10 }, (_, i) => ({ range: `${i * 10}-${i * 10 + 10}%`, count: 0 }));
     for (const r of testResults.results) {
-      bands[Math.min(9, Math.floor(r.percentage / 10))].count += 1;
+      // Negative JEE scores (negative marking) fall in the lowest band, not band −1.
+      const pct = Number(r.percentage);
+      if (!Number.isFinite(pct)) continue;
+      bands[Math.max(0, Math.min(9, Math.floor(pct / 10)))].count += 1;
     }
     return bands;
   })();
@@ -96,7 +99,7 @@ const CohortAnalytics = () => {
   return (
     <div className="cohort-analytics">
       <header className="page-header">
-        <h1>Cohort Analytics</h1>
+        <h1>Cohort analytics</h1>
         <p>Analyze batch performance, track trends, and identify learning gaps.</p>
       </header>
 
@@ -125,7 +128,7 @@ const CohortAnalytics = () => {
 
       {error && <p className="ca-error">{error}</p>}
 
-      <div className="ca-kpi-grid">
+      <div className="ca-kpi-grid ink-cycle ink-stats">
         {kpis.map((k) => {
           const Icon = k.icon;
           return (
@@ -157,13 +160,13 @@ const CohortAnalytics = () => {
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={distribution} margin={{ top: 8, right: 20, left: -14, bottom: 4 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="range" stroke="#64748b" tick={{ fontSize: 11 }} />
-                    <YAxis stroke="#64748b" allowDecimals={false} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ded4bf" />
+                    <XAxis dataKey="range" stroke="#736b5f" tick={{ fontSize: 11 }} />
+                    <YAxis stroke="#736b5f" allowDecimals={false} />
                     <Tooltip />
                     <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                       {distribution.map((d, i) => (
-                        <Cell key={d.range} fill={i < 4 ? '#ef4444' : i < 7 ? '#f59e0b' : '#22c55e'} />
+                        <Cell key={d.range} fill={i < 4 ? '#b3352b' : i < 7 ? '#8f5c0e' : '#2f6b3a'} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -173,21 +176,21 @@ const CohortAnalytics = () => {
           </div>
 
           <div className="chart-card">
-            <h2>Most Missed Questions</h2>
+            <h2>Most missed questions</h2>
             <div className="chart-container">
               {missed.length === 0 ? (
                 <p className="ca-muted ca-inline-empty">No answer data for this test yet.</p>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart layout="vertical" data={missed} margin={{ top: 8, right: 24, left: 50, bottom: 4 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                    <XAxis type="number" domain={[0, 100]} stroke="#64748b" />
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#ded4bf" />
+                    <XAxis type="number" domain={[0, 100]} stroke="#736b5f" />
                     <YAxis
                       dataKey="label" type="category" width={130}
                       axisLine={false} tickLine={false} tick={{ fontSize: 11 }}
                     />
                     <Tooltip formatter={(v) => [`${v}% got it wrong`, '']} />
-                    <Bar dataKey="wrongPercent" radius={[0, 6, 6, 0]} barSize={18} fill="#f43f5e" />
+                    <Bar dataKey="wrongPercent" radius={[0, 6, 6, 0]} barSize={18} fill="#b3352b" />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -198,7 +201,7 @@ const CohortAnalytics = () => {
 
       {testResults?.questionStats?.length > 0 && (
         <div className="chart-card ca-table-card">
-          <h2>Commonly Missed Concepts</h2>
+          <h2>Commonly missed concepts</h2>
           <div className="ca-table-wrap">
             <table className="ca-table">
               <thead>

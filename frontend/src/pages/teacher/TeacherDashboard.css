@@ -1,190 +1,173 @@
 .teacher-dashboard {
-  padding: var(--spacing-4);
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
 }
 
-.hero-banner {
-  background: linear-gradient(135deg, var(--color-teacher-navy-dark), var(--color-teacher-navy-mid));
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-5);
-  color: white;
-  margin-bottom: var(--spacing-5);
-  box-shadow: var(--shadow-md);
-  position: relative;
-  overflow: hidden;
-}
-
-.hero-banner::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 300px;
-  height: 100%;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, transparent 70%);
-  pointer-events: none;
-}
-
-.greeting {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-  margin-bottom: var(--spacing-1);
-}
-
-.greeting h1 {
-  margin: 0;
-  font-size: 2rem;
-  color: white;
-}
-
-.role-badge {
-  background-color: rgba(255, 255, 255, 0.1);
-  padding: 4px 12px;
-  border-radius: var(--radius-pill);
-  font-size: 0.875rem;
-  font-weight: 500;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.hero-content p {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 1.1rem;
-}
-
-/* KPIs */
+/* KPIs: label, figure. Numbers only. */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--spacing-3);
-  margin-bottom: var(--spacing-5);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 40px;
 }
 
 .kpi-card {
-  background: var(--card-bg);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-3);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-card);
+  padding: 0;
   display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-color);
-  transition: transform 0.2s, box-shadow 0.2s;
-  cursor: pointer;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  text-align: left;
+  overflow: hidden;
+  font: inherit;
+  color: inherit;
 }
 
 .kpi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.kpi-icon-wrapper {
-  background-color: rgba(99, 102, 241, 0.1);
-  color: var(--color-teacher-accent);
-  padding: 12px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.kpi-details {
-  display: flex;
-  flex-direction: column;
+  border-color: var(--line-strong);
+  background: var(--surface-raised);
 }
 
 .kpi-label {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-strong);
+  padding: 8px 16px;
+  border-bottom: 1px dashed var(--accent-line);
+  background: var(--accent-soft);
 }
 
 .kpi-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-size: 40px;
+  line-height: 1;
+  font-weight: 600;
+  color: var(--ink-900);
+  padding: 16px 16px 16px;
 }
 
-.kpi-value.warning { color: var(--color-warning); }
-.kpi-value.success { color: var(--color-success); }
+.kpi-value.warning { color: var(--mark); }
+.kpi-value.success { color: var(--positive); }
 
-/* Quick Actions */
+/* Shortcuts: rows, not tiles */
 .quick-actions h2 {
-  font-size: 1.25rem;
-  margin-bottom: var(--spacing-3);
-  color: var(--color-teacher-navy-dark);
+  margin: 0 0 12px;
 }
 
 .action-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: var(--spacing-3);
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 8px;
 }
 
 .action-card {
-  background: var(--card-bg);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-4);
-  text-align: center;
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
-  transition: all 0.2s;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
   text-decoration: none;
+  transition: var(--transition);
 }
 
 .action-card:hover {
-  border-color: var(--color-teacher-accent);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-4px);
+  border-color: var(--line-strong);
+  background: var(--surface-raised);
+}
+
+.action-qno {
+  font-size: 12px;
+  color: var(--ink-400);
+  width: 20px;
+  flex-shrink: 0;
 }
 
 .action-icon {
-  background-color: var(--color-teacher-navy-dark);
-  color: white;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: var(--spacing-3);
-  transition: background-color 0.2s;
+  width: 32px;
+  height: 32px;
+  padding: 7px;
+  border-radius: var(--radius-control);
+  background: var(--accent-soft);
+  color: var(--accent);
+  flex-shrink: 0;
 }
 
-.action-card:hover .action-icon {
-  background-color: var(--color-teacher-accent);
+.action-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .action-card h3 {
-  margin-bottom: var(--spacing-1);
-  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 2px;
+  color: var(--ink-900);
 }
 
 .action-card p {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--ink-500);
 }
 
-/* ── Added: attention alerts for review queue / at-risk students ──────────── */
+.action-chevron {
+  color: var(--ink-400);
+  flex-shrink: 0;
+}
 
-.td-alerts { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.action-card:hover .action-chevron {
+  color: var(--ink-700);
+}
+
+/* Things that need attention */
+.td-alerts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
 
 .td-alert {
-  display: inline-flex; align-items: center; gap: 10px;
-  padding: 11px 18px; border-radius: 10px; cursor: pointer;
-  font-size: 0.88rem; text-align: left;
-  background: rgba(99, 102, 241, 0.09);
-  border: 1px solid rgba(99, 102, 241, 0.28);
-  color: #4338ca;
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 36px; padding: 0 12px; border-radius: var(--radius-control); cursor: pointer;
+  font-size: 14px; text-align: left;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  color: var(--accent-strong);
 }
-.td-alert:hover { background: rgba(99, 102, 241, 0.15); }
+.td-alert:hover { border-color: var(--accent); }
 .td-alert.warn {
-  background: rgba(245, 158, 11, 0.11);
-  border-color: rgba(245, 158, 11, 0.32);
-  color: #b45309;
+  background: var(--warning-soft);
+  border-color: var(--warning-line);
+  color: var(--warning);
 }
-.td-alert.warn:hover { background: rgba(245, 158, 11, 0.18); }
+.td-alert.warn:hover { border-color: var(--warning); }
+
+/* Each card in its own ink (from .ink-cycle) */
+.ink-cycle > .kpi-card {
+  border-color: color-mix(in srgb, var(--k, var(--accent)) 40%, transparent);
+}
+.ink-cycle > .kpi-card .kpi-label {
+  background: var(--k, var(--accent));
+  color: #fff;
+  border-bottom: none;
+  font-weight: 600;
+}
+.ink-cycle > .kpi-card .kpi-value {
+  color: var(--k, var(--accent));
+  font-weight: 600;
+}
+
+/* Each shortcut in its own ink */
+.ink-cycle > .action-card {
+  border-left: 4px solid var(--k, var(--accent));
+}
+.ink-cycle > .action-card .action-icon {
+  background: var(--k-soft, var(--accent-soft));
+  color: var(--k, var(--accent));
+}
+.ink-cycle > .action-card:hover {
+  background: var(--k-soft, var(--accent-soft));
+  border-color: var(--k, var(--accent));
+}
+
+.ink-cycle > .kpi-card .kpi-value.warning { color: var(--mark); }

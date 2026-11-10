@@ -71,7 +71,9 @@ let TestsController = class TestsController {
 };
 exports.TestsController = TestsController;
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: '[Admin] Create a full test (Metadata + Questions + Assignment)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: '[Admin] Create a full test (Metadata + Questions + Assignment)',
+    }),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('admin'),
     (0, common_1.Post)('constructor'),
@@ -125,7 +127,9 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], TestsController.prototype, "publish", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: '[Admin] Approve and release (or withhold) test results for students' }),
+    (0, swagger_1.ApiOperation)({
+        summary: '[Admin] Approve and release (or withhold) test results for students',
+    }),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('admin'),
     (0, common_1.Patch)(':id/publish-results'),
@@ -133,11 +137,13 @@ __decorate([
     __param(1, (0, common_1.Body)()),
     __param(2, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:paramtypes", [String, test_dto_1.PublishResultsDto, Object]),
     __metadata("design:returntype", void 0)
 ], TestsController.prototype, "publishResults", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: '[Teacher] Add/replace questions on a test you own or are assigned' }),
+    (0, swagger_1.ApiOperation)({
+        summary: '[Teacher] Add/replace questions on a test you own or are assigned',
+    }),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('teacher', 'admin'),
     (0, common_1.Post)(':id/questions'),
@@ -149,7 +155,9 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], TestsController.prototype, "addQuestions", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: '[Admin] Assign teachers (multi) to fill questions for this test' }),
+    (0, swagger_1.ApiOperation)({
+        summary: '[Admin] Assign teachers (multi) to fill questions for this test',
+    }),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('admin'),
     (0, common_1.Patch)(':id/assign-teacher'),
@@ -183,7 +191,9 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], TestsController.prototype, "getResults", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: '[Student] Get test questions (no correct answers)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: '[Student] Get test questions (no correct answers)',
+    }),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('student'),
     (0, common_1.Get)(':id/questions'),

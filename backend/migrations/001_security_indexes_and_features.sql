@@ -297,6 +297,15 @@ create table if not exists public.spaced_repetition_state (
   unique (student_id, question_id)
 );
 
+-- The table may predate this migration in an older shape, in which case the
+-- create above was skipped. Add the columns the indexes below need, or the
+-- index creation aborts this whole transaction. (010 finishes the job.)
+alter table public.spaced_repetition_state add column if not exists repetitions     integer      not null default 0;
+alter table public.spaced_repetition_state add column if not exists ease_factor     numeric(4,2) not null default 2.5;
+alter table public.spaced_repetition_state add column if not exists interval_days   integer      not null default 0;
+alter table public.spaced_repetition_state add column if not exists due_at          timestamptz  not null default now();
+alter table public.spaced_repetition_state add column if not exists priority_weight numeric(6,3) not null default 1;
+
 create index if not exists idx_srs_student_priority
   on public.spaced_repetition_state (student_id, priority_weight desc);
 create index if not exists idx_srs_due on public.spaced_repetition_state (student_id, due_at);

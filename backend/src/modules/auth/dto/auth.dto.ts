@@ -8,7 +8,9 @@ export class RefreshDto {
 }
 
 export class LogoutDto {
-  @ApiPropertyOptional({ description: 'Omit to revoke only the current session.' })
+  @ApiPropertyOptional({
+    description: 'Omit to revoke only the current session.',
+  })
   @IsOptional()
   @IsString()
   refreshToken?: string;
@@ -21,7 +23,9 @@ export class ForgotPasswordDto {
 }
 
 export class ResetPasswordDto {
-  @ApiProperty({ description: 'Access token from the password-recovery email link.' })
+  @ApiProperty({
+    description: 'Access token from the password-recovery email link.',
+  })
   @IsString()
   accessToken: string;
 

@@ -34,9 +34,11 @@ alter table public.exam_violations enable row level security;
 -- A student may read their own sessions and nothing else. All writes go through
 -- the API, which uses the service role key and bypasses RLS; there is
 -- deliberately no insert/update policy for `authenticated`.
+drop policy if exists exam_sessions_self_read on public.exam_sessions;
 create policy exam_sessions_self_read on public.exam_sessions
   for select using (student_id = auth.uid());
 
+drop policy if exists exam_responses_self_read on public.exam_responses;
 create policy exam_responses_self_read on public.exam_responses
   for select using (
     exists (
@@ -45,6 +47,7 @@ create policy exam_responses_self_read on public.exam_responses
     )
   );
 
+drop policy if exists exam_violations_self_read on public.exam_violations;
 create policy exam_violations_self_read on public.exam_violations
   for select using (
     exists (

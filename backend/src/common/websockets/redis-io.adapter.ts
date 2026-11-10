@@ -34,7 +34,9 @@ export class RedisIoAdapter extends IoAdapter {
   async connectToRedis(): Promise<void> {
     const url = process.env.REDIS_URL;
     if (!url) {
-      this.logger.log('REDIS_URL not set — WebSocket events stay within this instance.');
+      this.logger.log(
+        'REDIS_URL not set — WebSocket events stay within this instance.',
+      );
       return;
     }
 
@@ -46,7 +48,9 @@ export class RedisIoAdapter extends IoAdapter {
       // Surface connection trouble rather than letting ioredis retry silently
       // while messages quietly fail to cross instances.
       for (const client of this.clients) {
-        client.on('error', (e) => this.logger.warn(`Redis socket adapter error: ${e.message}`));
+        client.on('error', (e) =>
+          this.logger.warn(`Redis socket adapter error: ${e.message}`),
+        );
       }
 
       this.adapterConstructor = createAdapter(pubClient, subClient);
@@ -63,13 +67,24 @@ export class RedisIoAdapter extends IoAdapter {
     const server = super.createIOServer(port, {
       ...options,
       cors: {
-        origin: (origin: string | undefined, callback: (err: Error | null, ok?: boolean) => void) => {
+        origin: (
+          origin: string | undefined,
+          callback: (err: Error | null, ok?: boolean) => void,
+        ) => {
           if (!origin) return callback(null, true);
-          if (this.allowList.includes('*') || this.allowList.includes(origin) || origin.endsWith('.vercel.app')) return callback(null, true);
+          if (
+            this.allowList.includes('*') ||
+            this.allowList.includes(origin) ||
+            origin.endsWith('.vercel.app')
+          )
+            return callback(null, true);
           if (!this.isProd) {
             try {
               const u = new URL(origin);
-              if ((u.protocol === 'http:' || u.protocol === 'https:') && (u.hostname === 'localhost' || u.hostname === '127.0.0.1')) {
+              if (
+                (u.protocol === 'http:' || u.protocol === 'https:') &&
+                (u.hostname === 'localhost' || u.hostname === '127.0.0.1')
+              ) {
                 return callback(null, true);
               }
             } catch {}

@@ -17,10 +17,10 @@ import './SubjectLanding.css';
 
 // Route slug -> canonical subject name used across the API.
 const SUBJECT_MAP = {
-  physics:   { name: 'Physics',     icon: Book,        colorVar: 'var(--color-physics-red)',      bgGradient: 'linear-gradient(135deg, #f43f5e, #be123c)' },
-  chemistry: { name: 'Chemistry',   icon: FlaskConical, colorVar: 'var(--color-chemistry-orange)', bgGradient: 'linear-gradient(135deg, #f59e0b, #b45309)' },
-  math:      { name: 'Mathematics', icon: Calculator,  colorVar: 'var(--color-math-teal)',        bgGradient: 'linear-gradient(135deg, #0ea5e9, #0369a1)' },
-  biology:   { name: 'Biology',     icon: Book,        colorVar: 'var(--color-biology-green)',    bgGradient: 'linear-gradient(135deg, #10b981, #047857)' },
+  physics:   { name: 'Physics',     icon: Book,        colorVar: 'var(--color-physics-red)',      bgGradient: '#b3352b' },
+  chemistry: { name: 'Chemistry',   icon: FlaskConical, colorVar: 'var(--color-chemistry-orange)', bgGradient: '#8f5c0e' },
+  math:      { name: 'Mathematics', icon: Calculator,  colorVar: 'var(--color-math-teal)',        bgGradient: 'var(--accent)' },
+  biology:   { name: 'Biology',     icon: Book,        colorVar: 'var(--color-biology-green)',    bgGradient: '#2f6b3a' },
 };
 
 const TABS = ['Chapters', 'Lectures', 'Analytics', 'Leaderboard'];
@@ -140,7 +140,7 @@ const SubjectLanding = () => {
               <p>No syllabus recorded for {subject.name} yet, and you haven't answered any {subject.name} questions.</p>
             </div>
           ) : (
-            <div className="chapters-grid">
+            <div className="chapters-grid ink-cycle ink-cards">
               {chapters.map((chapter) => {
                 const covered = chapter.accuracy != null;
                 return (
@@ -201,7 +201,7 @@ const SubjectLanding = () => {
               <Link to="/student/lectures" className="sl-link">Browse all lectures</Link>
             </div>
           ) : (
-            <div className="chapters-grid">
+            <div className="chapters-grid ink-cycle ink-cards">
               {lectures.map((lecture) => (
                 <div key={lecture.id} className="chapter-card glass">
                   <div className="chapter-card-header">

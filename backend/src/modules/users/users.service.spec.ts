@@ -1,4 +1,8 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { supabaseMock } from '../../test-utils/supabase-mock';
 
 const authClientStub = {
@@ -33,7 +37,8 @@ describe('UsersService', () => {
    * live access token set a new password and take the account over outright.
    */
   describe('updatePassword', () => {
-    const email = () => supabaseMock.queueResult('users', { data: { email: 'a@b.com' } });
+    const email = () =>
+      supabaseMock.queueResult('users', { data: { email: 'a@b.com' } });
 
     it('verifies the current password before changing it', async () => {
       email();
@@ -47,14 +52,19 @@ describe('UsersService', () => {
         email: 'a@b.com',
         password: 'OldPassword1',
       });
-      expect(supabaseMock.auth.admin.updateUserById).toHaveBeenCalledWith(USER_ID, {
-        password: 'NewPassword1',
-      });
+      expect(supabaseMock.auth.admin.updateUserById).toHaveBeenCalledWith(
+        USER_ID,
+        {
+          password: 'NewPassword1',
+        },
+      );
     });
 
     it('refuses when the current password is wrong', async () => {
       email();
-      authClientStub.auth.signInWithPassword.mockResolvedValue({ error: { message: 'bad' } });
+      authClientStub.auth.signInWithPassword.mockResolvedValue({
+        error: { message: 'bad' },
+      });
 
       await expect(
         service.updatePassword(USER_ID, {
@@ -79,7 +89,9 @@ describe('UsersService', () => {
         newPassword: 'NewPassword1',
       });
 
-      expect((supabaseMock.auth as any).signInWithPassword).not.toHaveBeenCalled();
+      expect(
+        (supabaseMock.auth as any).signInWithPassword,
+      ).not.toHaveBeenCalled();
       // …and the throwaway session is dropped immediately after the check.
       expect(authClientStub.auth.signOut).toHaveBeenCalled();
     });
@@ -109,17 +121,17 @@ describe('UsersService', () => {
 
   describe('adminDeleteUser', () => {
     it('refuses to let an admin delete their own account', async () => {
-      await expect(service.adminDeleteUser(USER_ID, USER_ID)).rejects.toBeInstanceOf(
-        ForbiddenException,
-      );
+      await expect(
+        service.adminDeleteUser(USER_ID, USER_ID),
+      ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
     it('404s on an unknown user rather than reporting success', async () => {
       supabaseMock.queueResult('users', { data: null });
 
-      await expect(service.adminDeleteUser(USER_ID, 'admin-9')).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        service.adminDeleteUser(USER_ID, 'admin-9'),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 
@@ -129,10 +141,16 @@ describe('UsersService', () => {
 
       await service.adminResetPassword(USER_ID, 'BrandNewPass1');
 
-      expect(supabaseMock.auth.admin.updateUserById).toHaveBeenCalledWith(USER_ID, {
-        password: 'BrandNewPass1',
-      });
-      expect(supabaseMock.auth.admin.signOut).toHaveBeenCalledWith(USER_ID, 'global');
+      expect(supabaseMock.auth.admin.updateUserById).toHaveBeenCalledWith(
+        USER_ID,
+        {
+          password: 'BrandNewPass1',
+        },
+      );
+      expect(supabaseMock.auth.admin.signOut).toHaveBeenCalledWith(
+        USER_ID,
+        'global',
+      );
     });
   });
 

@@ -37,14 +37,15 @@ let AuthService = AuthService_1 = class AuthService {
                 email: data.user.email,
                 full_name: profile.full_name,
                 role: profile.role,
-                subject: data.user.user_metadata?.subject || 'All',
+                subject: data.user.app_metadata?.subject ||
+                    data.user.user_metadata?.subject ||
+                    'All',
             },
         };
     }
     async refresh(refreshToken) {
-        const { data, error } = await (0, supabase_config_1.createUserAuthClient)().auth.refreshSession({
-            refresh_token: refreshToken,
-        });
+        const sessionPayload = { ['refresh_token']: refreshToken };
+        const { data, error } = await (0, supabase_config_1.createUserAuthClient)().auth.refreshSession(sessionPayload);
         if (error || !data.session) {
             throw new common_1.UnauthorizedException('Refresh token is invalid or expired. Please log in again.');
         }

@@ -56,7 +56,9 @@ export class UploadsGateway implements OnGatewayConnection {
   async handleConnection(client: Socket) {
     const ready = (async () => {
       try {
-        const identity = await verifySupabaseToken(client.handshake.auth?.token ?? '');
+        const identity = await verifySupabaseToken(
+          client.handshake.auth?.token ?? '',
+        );
 
         const { data: profile } = await supabase
           .from('users')

@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { supabase } from '../../config/supabase.config';
-import { fetchAll, fetchAllIn, insertInBatches } from '../../common/db/query.util';
+import {
+  fetchAll,
+  fetchAllIn,
+  insertInBatches,
+} from '../../common/db/query.util';
 
 /**
  * Spaced repetition (SM-2) + lightweight performance prediction.
@@ -45,7 +49,9 @@ export class SpacedRepetitionService {
       await this.updateSrsState(studentId, answers);
       await this.recomputePredictions(studentId);
     } catch (e: any) {
-      this.logger.error(`SRS update failed for attempt ${attemptId}: ${e?.message}`);
+      this.logger.error(
+        `SRS update failed for attempt ${attemptId}: ${e?.message}`,
+      );
     }
   }
 
@@ -90,7 +96,9 @@ export class SpacedRepetitionService {
     const existingRows = await fetchAllIn<any>(questionIds, (idChunk) =>
       supabase
         .from('spaced_repetition_state')
-        .select('question_id, repetitions, ease_factor, interval_days, mastery_level')
+        .select(
+          'question_id, repetitions, ease_factor, interval_days, mastery_level',
+        )
         .eq('student_id', studentId)
         .in('question_id', idChunk),
     );
@@ -118,7 +126,10 @@ export class SpacedRepetitionService {
       }
 
       // Standard SM-2 ease adjustment, floored so a hard item never goes negative.
-      ease = Math.max(MIN_EASE, ease + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)));
+      ease = Math.max(
+        MIN_EASE,
+        ease + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)),
+      );
 
       // Mastery is an exponential moving average of the normalised quality.
       const prevMastery = Number(prev?.mastery_level) || 0;
@@ -128,7 +139,9 @@ export class SpacedRepetitionService {
       const dueAt = new Date(now + intervalDays * 24 * 60 * 60 * 1000);
 
       // Higher weight = show me sooner. Weak items with short intervals float up.
-      const priority = Number(((1 - mastery) * 10 + 1 / (intervalDays || 1)).toFixed(3));
+      const priority = Number(
+        ((1 - mastery) * 10 + 1 / (intervalDays || 1)).toFixed(3),
+      );
 
       return {
         student_id: studentId,
@@ -183,10 +196,21 @@ export class SpacedRepetitionService {
     // key -> stats, for both "subject" and "subject::topic" granularity.
     const buckets = new Map<
       string,
-      { subject: string; topic: string | null; correct: number; total: number; marks: number }
+      {
+        subject: string;
+        topic: string | null;
+        correct: number;
+        total: number;
+        marks: number;
+      }
     >();
 
-    const bump = (subject: string, topic: string | null, correct: boolean, marks: number) => {
+    const bump = (
+      subject: string,
+      topic: string | null,
+      correct: boolean,
+      marks: number,
+    ) => {
       const key = `${subject}::${topic ?? ''}`;
       if (!buckets.has(key)) {
         buckets.set(key, { subject, topic, correct: 0, total: 0, marks: 0 });
@@ -218,7 +242,8 @@ export class SpacedRepetitionService {
         predicted_score: Number(((accuracy / 100) * b.marks).toFixed(2)),
         accuracy: Number(accuracy.toFixed(2)),
         sample_size: b.total,
-        risk_flag: b.total >= RISK_MIN_SAMPLE && accuracy < RISK_ACCURACY_THRESHOLD,
+        risk_flag:
+          b.total >= RISK_MIN_SAMPLE && accuracy < RISK_ACCURACY_THRESHOLD,
         computed_at: new Date().toISOString(),
       };
     });

@@ -26,17 +26,17 @@
 .toolbar-left h2 {
   margin: 0;
   font-size: 1.25rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .badge {
-  background-color: rgba(99, 102, 241, 0.2);
-  color: #818cf8;
+  background-color: rgba(43, 68, 166, 0.2);
+  color: var(--accent);
   padding: 4px 10px;
   border-radius: var(--radius-pill);
   font-size: 0.8rem;
   font-weight: 600;
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  border: 1px solid rgba(43, 68, 166, 0.3);
 }
 
 .toolbar-right {
@@ -72,7 +72,7 @@
 
 /* The actual "Paper" */
 .pdf-page {
-  background: white;
+  background: var(--surface);
   width: 210mm; /* A4 width */
   min-height: 297mm; /* A4 height */
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
@@ -91,13 +91,13 @@
   text-align: center;
   margin-bottom: 20px;
 }
-.institution-info h1 { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
+.institution-info h1 { margin: 0; font-size: 24px; text-transform: none; letter-spacing: 0; }
 .institution-info p { margin: 4px 0 0 0; font-style: italic; }
 
 .exam-meta-box {
   border: 2px solid black;
   padding: 12px;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .exam-title-row {
@@ -110,7 +110,7 @@
 }
 
 .exam-title-row h2 { margin: 0; font-size: 18px; }
-.exam-subject { font-weight: bold; font-size: 16px; text-transform: uppercase; }
+.exam-subject { font-weight: 600; font-size: 16px; text-transform: none; }
 
 .exam-details-row {
   display: flex;
@@ -121,7 +121,7 @@
 .student-fill-info {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
   gap: 20px;
 }
 
@@ -144,7 +144,7 @@
 .divider {
   border: none;
   border-top: 2px solid black;
-  margin: 15px 0 20px 0;
+  margin: 16px 0 20px 0;
 }
 
 .questions-section {
@@ -154,12 +154,12 @@
 .question-item {
   display: flex;
   gap: 10px;
-  margin-bottom: 25px;
+  margin-bottom: 24px;
   font-size: 15px;
   line-height: 1.4;
 }
 
-.q-number { font-weight: bold; width: 30px; }
+.q-number { font-weight: 600; width: 30px; }
 
 .q-content { flex: 1; }
 .q-content p { margin: 0 0 10px 0; }
@@ -182,62 +182,62 @@
 
 /* ── Added: real test rendering + browser print output ────────────────────── */
 
-.pv-muted { color: var(--text-secondary, #64748b); }
+.pv-muted { color: var(--text-secondary, var(--ink-500)); }
 .pv-small { font-size: 0.78rem; }
-.pv-error { color: #dc2626; margin: 16px 0; }
+.pv-error { color: var(--negative); margin: 16px 0; }
 
 .pv-toggle {
-  display: inline-flex; align-items: center; gap: 7px;
-  font-size: 0.85rem; font-weight: 600; cursor: pointer;
-  color: var(--text-secondary, #64748b);
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 0.85rem; font-weight: 500; cursor: pointer;
+  color: var(--text-secondary, var(--ink-500));
 }
-.pv-toggle input { width: 15px; height: 15px; cursor: pointer; accent-color: #6366f1; }
+.pv-toggle input { width: 15px; height: 15px; cursor: pointer; accent-color: var(--accent); }
 
 .pv-picker { max-width: 640px; margin: 28px auto; }
 .pv-test-list { list-style: none; margin: 0; padding: 0; }
 .pv-test-list li { margin-bottom: 8px; }
 .pv-test-list button {
   display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left;
-  padding: 14px 18px; border-radius: 10px; cursor: pointer;
-  background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e2e8f0);
+  padding: 14px 20px; border-radius: 10px; cursor: pointer;
+  background: var(--card-bg, #fff); border: 1px solid var(--border-color, var(--line));
 }
-.pv-test-list button:hover { border-color: #6366f1; }
+.pv-test-list button:hover { border-color: var(--accent); }
 .pv-test-title { font-weight: 600; }
 
 .pv-empty {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 52px 20px; text-align: center; color: var(--text-secondary, #94a3b8);
+  padding: 52px 20px; text-align: center; color: var(--text-secondary, var(--ink-400));
 }
 
 .exam-header h1 { margin: 0 0 10px; font-size: 1.5rem; text-align: center; }
 .pv-header-meta {
-  display: flex; justify-content: center; gap: 22px; flex-wrap: wrap;
+  display: flex; justify-content: center; gap: 24px; flex-wrap: wrap;
   font-size: 0.87rem; padding-bottom: 10px;
 }
-.pv-desc { text-align: center; font-size: 0.87rem; color: #475569; margin: 6px 0; }
+.pv-desc { text-align: center; font-size: 0.87rem; color: var(--ink-600); margin: 6px 0; }
 .pv-namebar {
   display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap;
-  margin-top: 16px; padding-top: 14px; border-top: 1px solid #cbd5e1;
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-strong);
   font-size: 0.9rem;
 }
 
-.pv-questions { margin: 24px 0 0; padding-left: 22px; }
+.pv-questions { margin: 24px 0 0; padding-left: 24px; }
 .pv-question { margin-bottom: 20px; break-inside: avoid; }
 .pv-question-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
 .pv-question-text { flex: 1; font-size: 0.94rem; line-height: 1.55; }
-.pv-marks { font-weight: 700; font-size: 0.85rem; white-space: nowrap; }
+.pv-marks { font-weight: 600; font-size: 0.85rem; white-space: nowrap; }
 
 .pv-question-image {
   display: block; max-width: 100%; max-height: 300px; object-fit: contain;
-  margin: 10px 0; border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px; background: #fff;
+  margin: 10px 0; border: 1px solid var(--line); border-radius: 4px; padding: 4px; background: var(--surface);
 }
 
 .pv-options { list-style: none; margin: 10px 0 0; padding: 0; }
 .pv-options li { display: flex; gap: 8px; padding: 3px 0; font-size: 0.9rem; }
-.pv-opt-letter { font-weight: 600; min-width: 26px; }
-.pv-correct { font-weight: 700; color: #047857; }
+.pv-opt-letter { font-weight: 500; min-width: 26px; }
+.pv-correct { font-weight: 600; color: var(--positive); }
 
-.pv-answer-key { margin-top: 32px; padding-top: 16px; border-top: 2px solid #cbd5e1; break-inside: avoid; }
+.pv-answer-key { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--line-strong); break-inside: avoid; }
 .pv-answer-key h3 { margin: 0 0 12px; font-size: 1.05rem; }
 .pv-key-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
@@ -247,8 +247,8 @@
 /* Print: paper only, no chrome. */
 @media print {
   .preview-toolbar { display: none !important; }
-  .pdf-preview-page { padding: 0; background: #fff; }
-  .pdf-document-container { padding: 0; background: #fff; }
+  .pdf-preview-page { padding: 0; background: var(--surface); }
+  .pdf-document-container { padding: 0; background: var(--surface); }
   .pdf-page { box-shadow: none; margin: 0; width: auto; max-width: none; }
   .pv-question { page-break-inside: avoid; }
 }

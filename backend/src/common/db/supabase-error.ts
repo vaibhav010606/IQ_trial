@@ -48,7 +48,9 @@ const CLIENT_ERROR_CODES: Record<string, (detail: string) => Error> = {
 function humanise(error: any): string {
   const message = String(error?.message ?? '');
 
-  const enumMatch = message.match(/invalid input value for enum (\w+): "([^"]*)"/i);
+  const enumMatch = message.match(
+    /invalid input value for enum (\w+): "([^"]*)"/i,
+  );
   if (enumMatch) {
     return `"${enumMatch[2]}" is not a valid ${enumMatch[1].replace(/_/g, ' ')}.`;
   }
@@ -87,5 +89,7 @@ export function throwSupabaseError(error: any, context: string): never {
   }
 
   logger.error(`${context}: [${code || 'no code'}] ${error?.message}`);
-  throw new InternalServerErrorException('Something went wrong on our end. Please try again.');
+  throw new InternalServerErrorException(
+    'Something went wrong on our end. Please try again.',
+  );
 }

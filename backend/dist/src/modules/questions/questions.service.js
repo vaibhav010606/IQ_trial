@@ -116,11 +116,16 @@ let QuestionsService = class QuestionsService {
         return this.findAll({ ...filters, review_status: 'pending' }, user);
     }
     async findOne(id, user) {
-        const { data, error } = await supabase_config_1.supabase.from('questions').select('*').eq('id', id).single();
+        const { data, error } = await supabase_config_1.supabase
+            .from('questions')
+            .select('*')
+            .eq('id', id)
+            .single();
         if (error || !data)
             throw new common_1.NotFoundException('Question not found');
         const subject = this.scopedSubject(user);
-        if (subject && String(data.subject).toLowerCase() !== subject.toLowerCase()) {
+        if (subject &&
+            String(data.subject).toLowerCase() !== subject.toLowerCase()) {
             throw new common_1.ForbiddenException(`You can only view ${subject} questions.`);
         }
         return data;
@@ -149,7 +154,9 @@ let QuestionsService = class QuestionsService {
         await this.assertCanWriteAll([id], user);
         const patch = this.pickWritable(body);
         const scoped = this.scopedSubject(user);
-        if (scoped && patch.subject && String(patch.subject).toLowerCase() !== scoped.toLowerCase()) {
+        if (scoped &&
+            patch.subject &&
+            String(patch.subject).toLowerCase() !== scoped.toLowerCase()) {
             throw new common_1.ForbiddenException(`You can only file questions under ${scoped}.`);
         }
         const { data, error } = await supabase_config_1.supabase
@@ -288,7 +295,8 @@ let QuestionsService = class QuestionsService {
             return { deleted: 0 };
         const ids = rows.map((r) => r.id);
         const scoped = this.scopedSubject(user);
-        if (scoped && rows.some((q) => String(q.subject).toLowerCase() !== scoped.toLowerCase())) {
+        if (scoped &&
+            rows.some((q) => String(q.subject).toLowerCase() !== scoped.toLowerCase())) {
             throw new common_1.ForbiddenException(`You can only modify ${scoped} questions.`);
         }
         let deleted = 0;
@@ -309,7 +317,10 @@ let QuestionsService = class QuestionsService {
         if (!String(row?.question_text || '').trim())
             problems.push('question is required');
         const answer = row?.correct_answer;
-        const validIndex = (value) => value !== null && value !== '' && Number.isInteger(Number(value)) && Number(value) >= 0;
+        const validIndex = (value) => value !== null &&
+            value !== '' &&
+            Number.isInteger(Number(value)) &&
+            Number(value) >= 0;
         let answerValid = false;
         if (answer && typeof answer === 'object' && !Array.isArray(answer)) {
             if ('index' in answer) {
@@ -329,7 +340,9 @@ let QuestionsService = class QuestionsService {
         }
         if (!answerValid)
             problems.push('correct must be A, B, C or D');
-        const difficulty = String(row?.difficulty || 'medium').trim().toLowerCase();
+        const difficulty = String(row?.difficulty || 'medium')
+            .trim()
+            .toLowerCase();
         if (!['easy', 'medium', 'hard'].includes(difficulty)) {
             problems.push('difficulty must be easy, medium or hard');
         }
@@ -348,17 +361,28 @@ let QuestionsService = class QuestionsService {
                 .on('data', (row) => {
                 if (results.length >= maxRows)
                     return;
-                const correctIndex = ['A', 'B', 'C', 'D'].indexOf(String(row.correct || '').trim().toUpperCase());
-                const difficulty = String(row.difficulty || 'medium').trim().toLowerCase();
+                const correctIndex = ['A', 'B', 'C', 'D'].indexOf(String(row.correct || '')
+                    .trim()
+                    .toUpperCase());
+                const difficulty = String(row.difficulty || 'medium')
+                    .trim()
+                    .toLowerCase();
                 const parsed = {
                     question_text: String(row.question || '').slice(0, 8000),
-                    options: [row.optA || '', row.optB || '', row.optC || '', row.optD || ''],
+                    options: [
+                        row.optA || '',
+                        row.optB || '',
+                        row.optC || '',
+                        row.optD || '',
+                    ],
                     correct_answer: { index: correctIndex },
                     difficulty,
                     subject: String(row.subject || '').slice(0, 100),
                     topic: String(row.topic || '').slice(0, 200),
                     q_type: 'single_correct',
-                    marks: Number.isFinite(parseFloat(row.marks)) ? parseFloat(row.marks) : 4,
+                    marks: Number.isFinite(parseFloat(row.marks))
+                        ? parseFloat(row.marks)
+                        : 4,
                 };
                 const problems = this.validateCsvRow(parsed);
                 results.push({
@@ -378,7 +402,8 @@ let QuestionsService = class QuestionsService {
         const validRows = (rows || [])
             .filter((r) => this.validateCsvRow(r).length === 0)
             .map((r) => {
-            if (scoped && String(r.subject).toLowerCase() !== scoped.toLowerCase()) {
+            if (scoped &&
+                String(r.subject).toLowerCase() !== scoped.toLowerCase()) {
                 throw new common_1.ForbiddenException(`You can only import ${scoped} questions.`);
             }
             return {
@@ -393,7 +418,10 @@ let QuestionsService = class QuestionsService {
             return { inserted: 0 };
         let inserted = 0;
         for (const batch of (0, query_util_1.chunk)(validRows, 500)) {
-            const { data, error } = await supabase_config_1.supabase.from('questions').insert(batch).select('id');
+            const { data, error } = await supabase_config_1.supabase
+                .from('questions')
+                .insert(batch)
+                .select('id');
             if (error)
                 throw new Error(error.message);
             inserted += data?.length || 0;

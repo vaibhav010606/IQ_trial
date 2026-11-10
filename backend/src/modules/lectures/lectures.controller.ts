@@ -37,14 +37,16 @@ export class LecturesController {
   }
 
   @ApiOperation({ summary: '[Teacher] Add a lecture' })
-  @UseGuards(RolesGuard) @Roles('teacher', 'admin')
+  @UseGuards(RolesGuard)
+  @Roles('teacher', 'admin')
   @Post()
   create(@Body() body: CreateLectureDto, @CurrentUser() user) {
     return this.lecturesService.create(body, user.id);
   }
 
   @ApiOperation({ summary: '[Teacher] Delete a lecture you uploaded' })
-  @UseGuards(RolesGuard) @Roles('teacher', 'admin')
+  @UseGuards(RolesGuard)
+  @Roles('teacher', 'admin')
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user) {
     return this.lecturesService.remove(id, user);

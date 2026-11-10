@@ -15,7 +15,7 @@ const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
 exports.MIN_PASSWORD_LENGTH = 10;
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
-const PASSWORD_MESSAGE = 'Password must be at least 10 characters and include an uppercase letter, a lowercase letter and a digit.';
+const PWD_COMPLEXITY_MSG = 'Password must be at least 10 characters and include an uppercase letter, a lowercase letter and a digit.';
 class UpdateProfileDto {
     full_name;
 }
@@ -41,9 +41,9 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MinLength)(exports.MIN_PASSWORD_LENGTH, { message: PASSWORD_MESSAGE }),
+    (0, class_validator_1.MinLength)(exports.MIN_PASSWORD_LENGTH, { message: PWD_COMPLEXITY_MSG }),
     (0, class_validator_1.MaxLength)(128),
-    (0, class_validator_1.Matches)(PASSWORD_RULE, { message: PASSWORD_MESSAGE }),
+    (0, class_validator_1.Matches)(PASSWORD_RULE, { message: PWD_COMPLEXITY_MSG }),
     __metadata("design:type", String)
 ], ChangePasswordDto.prototype, "newPassword", void 0);
 class AdminCreateUserDto {
@@ -70,9 +70,9 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MinLength)(exports.MIN_PASSWORD_LENGTH, { message: PASSWORD_MESSAGE }),
+    (0, class_validator_1.MinLength)(exports.MIN_PASSWORD_LENGTH, { message: PWD_COMPLEXITY_MSG }),
     (0, class_validator_1.MaxLength)(128),
-    (0, class_validator_1.Matches)(PASSWORD_RULE, { message: PASSWORD_MESSAGE }),
+    (0, class_validator_1.Matches)(PASSWORD_RULE, { message: PWD_COMPLEXITY_MSG }),
     __metadata("design:type", String)
 ], AdminCreateUserDto.prototype, "password", void 0);
 __decorate([
@@ -81,7 +81,9 @@ __decorate([
     __metadata("design:type", String)
 ], AdminCreateUserDto.prototype, "role", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ description: 'Subject a teacher is scoped to; "All" for unrestricted.' }),
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Subject a teacher is scoped to; "All" for unrestricted.',
+    }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MaxLength)(100),
@@ -94,9 +96,9 @@ exports.AdminResetPasswordDto = AdminResetPasswordDto;
 __decorate([
     (0, swagger_1.ApiProperty)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MinLength)(exports.MIN_PASSWORD_LENGTH, { message: PASSWORD_MESSAGE }),
+    (0, class_validator_1.MinLength)(exports.MIN_PASSWORD_LENGTH, { message: PWD_COMPLEXITY_MSG }),
     (0, class_validator_1.MaxLength)(128),
-    (0, class_validator_1.Matches)(PASSWORD_RULE, { message: PASSWORD_MESSAGE }),
+    (0, class_validator_1.Matches)(PASSWORD_RULE, { message: PWD_COMPLEXITY_MSG }),
     __metadata("design:type", String)
 ], AdminResetPasswordDto.prototype, "newPassword", void 0);
 class UserListQueryDto {

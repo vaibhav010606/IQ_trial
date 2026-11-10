@@ -7,25 +7,55 @@
   top: 0;
   left: 0;
   flex-shrink: 0;
-  background-color: var(--card-bg);
-  border-right: 1px solid var(--border-color);
+  background-color: var(--portal-paper);
+  border-right: 1px solid var(--accent-line);
   display: flex;
   flex-direction: column;
-  padding: var(--spacing-2);
+  padding: 12px;
   overflow-y: auto;
   overflow-x: hidden;
   z-index: 100;
   box-sizing: border-box;
-  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-              min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-              max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-              padding 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+
+}
+
+/* Wordmark, set like the masthead of a paper */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 16px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid var(--accent);
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink-900);
+  white-space: nowrap;
+}
+
+.sidebar-brand-mark {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  background: radial-gradient(circle, var(--accent) 0 3.5px, transparent 4px);
+  flex-shrink: 0;
+}
+
+.sidebar.collapsed .sidebar-brand span:last-child {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-brand {
+  justify-content: center;
+  padding: 4px 0 12px;
 }
 
 .sidebar-header {
-  padding: var(--spacing-2);
-  margin-bottom: var(--spacing-3);
-  border-bottom: 1px solid var(--border-color);
+  padding: 4px 4px 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--accent-line);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -36,16 +66,24 @@
 .user-profile {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: 12px;
   min-width: 0;
   overflow: hidden;
 }
 
 .avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-pill);
-  background-color: var(--color-dashboard-blue);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--accent);
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--accent-line);
+  color: var(--on-accent);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
@@ -57,6 +95,8 @@
 .user-info h4 {
   margin: 0;
   font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -64,7 +104,8 @@
 
 .user-info span {
   font-size: 12px;
-  color: var(--text-secondary);
+  line-height: 16px;
+  color: var(--ink-500);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -75,28 +116,28 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 6px;
   border: 1px solid var(--border-color);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
   flex-shrink: 0;
-  transition: all 0.2s ease;
+  transition: var(--transition);
 }
 
 .sidebar-toggle-btn:hover {
   background-color: var(--bg-color);
   color: var(--text-primary);
-  border-color: #cbd5e1;
+  border-color: var(--line-strong);
 }
 
 .sidebar-nav {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   overflow-y: auto;
   min-height: 0;
 }
@@ -104,7 +145,7 @@
 .sidebar,
 .sidebar-nav {
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+  scrollbar-color: rgba(27, 26, 23, 0.4) transparent;
 }
 
 .sidebar::-webkit-scrollbar,
@@ -114,52 +155,103 @@
 
 .sidebar::-webkit-scrollbar-thumb,
 .sidebar-nav::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.4);
+  background: rgba(27, 26, 23, 0.4);
   border-radius: 4px;
 }
 
+/* Section label: serif, sits closer to its rows than to the group above */
+.nav-section {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  color: var(--accent-strong);
+  padding: 16px 12px 4px;
+}
+
+.sidebar.collapsed .nav-section {
+  display: none;
+}
+
 .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
-  padding: 12px var(--spacing-2);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-weight: 500;
-  transition: all 0.2s ease;
+  gap: 10px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  color: var(--ink-600);
+  font-size: 14px;
+  font-weight: 400;
+  transition: var(--transition);
   flex-shrink: 0;
   white-space: nowrap;
   overflow: hidden;
   text-decoration: none;
+  width: 100%;
+  text-align: left;
+}
+
+.nav-item svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.5;
+  flex-shrink: 0;
+  color: var(--ink-500);
 }
 
 .nav-item:hover {
-  background-color: var(--bg-color);
-  color: var(--text-primary);
+  background-color: var(--surface);
+  color: var(--ink-900);
 }
 
-.student-theme .nav-item.active {
-  background-color: var(--color-dashboard-blue);
-  color: white;
-}
-
-.teacher-theme .nav-item.active {
-  background-color: var(--color-teacher-navy);
-  color: white;
-}
-
-.sidebar-footer {
-  margin-top: auto;
-  border-top: 1px solid var(--border-color);
-  padding-top: var(--spacing-2);
+/* Every row carries an empty OMR bubble; the page you are on is filled in
+   ballpoint blue — the same mark a student makes on the answer sheet. */
+.nav-item::after {
+  content: '';
+  margin-left: auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  transition: var(--transition);
 }
 
-.text-danger {
-  color: var(--color-physics-red);
+.nav-item:hover::after {
+  border-color: var(--ink-400);
+}
+
+.nav-item.active,
+.student-theme .nav-item.active,
+.teacher-theme .nav-item.active,
+.admin-theme .nav-item.active {
+  background-color: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 500;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.nav-item.active svg {
+  color: var(--accent);
+}
+
+.nav-item.active::after {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.nav-item.text-danger::after,
+.sidebar-footer .nav-item::after {
+  display: none;
+}
+
+.nav-item.text-danger,
+.nav-item.text-danger svg {
+  color: var(--negative);
+}
+
+.nav-item.text-danger:hover {
+  background-color: var(--negative-soft);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -206,13 +298,17 @@
   align-items: center;
 }
 
+.sidebar.collapsed .nav-item::after {
+  display: none;
+}
+
 .sidebar.collapsed .nav-item {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   margin: 2px auto;
   justify-content: center;
-  border-radius: var(--radius-md, 10px);
+  border-radius: var(--radius-control);
 }
 
 .sidebar.collapsed .nav-item span {
@@ -226,8 +322,8 @@
 }
 
 .sidebar.collapsed .sidebar-footer .nav-item {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   margin: 2px auto;
   justify-content: center;
@@ -240,4 +336,116 @@
 /* Enlarged Content when sidebar is collapsed */
 .sidebar-collapsed-mode .main-content {
   padding: 8px 12px !important;
+}
+
+/* ═══ The sidebar is printed in the portal's deep ink ═══════════════════════
+   Dark, saturated, high contrast — the colour that tells you which console
+   you are in before you read a word. Shared by student, teacher and admin. */
+.sidebar {
+  background-color: var(--portal-deep);
+  border-right: none;
+  color: #fff;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.sidebar-brand {
+  color: #fff;
+  border-bottom-color: rgba(255, 255, 255, 0.35);
+}
+
+.sidebar-brand-mark {
+  border-color: #fff;
+  background: radial-gradient(circle, #fff 0 3.5px, transparent 4px);
+}
+
+.sidebar-header {
+  border-bottom-color: rgba(255, 255, 255, 0.18);
+}
+
+.user-info h4 {
+  color: #fff;
+  font-weight: 600;
+}
+
+.user-info span {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.avatar {
+  background-color: #fff;
+  color: var(--portal-deep);
+  border: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+  font-weight: 700;
+}
+
+.sidebar-toggle-btn {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.sidebar-toggle-btn:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.nav-section {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+}
+
+.nav-item {
+  color: rgba(255, 255, 255, 0.86);
+  font-weight: 500;
+}
+
+.nav-item svg {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.nav-item::after {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.nav-item:hover::after {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+/* Active: a sheet of paper on the dark ink, the bubble filled */
+.nav-item.active,
+.student-theme .nav-item.active,
+.teacher-theme .nav-item.active,
+.admin-theme .nav-item.active {
+  background-color: var(--surface);
+  color: var(--accent-strong);
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.nav-item.active svg {
+  color: var(--accent);
+}
+
+.nav-item.active::after {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.sidebar-footer {
+  border-top-color: rgba(255, 255, 255, 0.18);
+}
+
+.nav-item.text-danger,
+.nav-item.text-danger svg {
+  color: #ffb3a7;
+}
+
+.nav-item.text-danger:hover {
+  background-color: rgba(255, 179, 167, 0.14);
 }

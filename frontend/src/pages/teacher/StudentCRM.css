@@ -49,7 +49,7 @@
 .search-bar input:focus {
   outline: none;
   border-color: var(--color-teacher-accent);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: var(--focus-ring);
 }
 
 .filters {
@@ -76,8 +76,8 @@
 }
 
 .bulk-actions-bar {
-  background-color: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  background-color: rgba(43, 68, 166, 0.1);
+  border: 1px solid rgba(43, 68, 166, 0.2);
   border-radius: var(--radius-md);
   padding: var(--spacing-2) var(--spacing-3);
   display: flex;
@@ -108,27 +108,27 @@
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--transition);
 }
 
 .btn-outline {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--color-teacher-accent);
   color: var(--color-teacher-accent);
 }
 
 .btn-outline:hover {
-  background: rgba(99, 102, 241, 0.05);
+  background: rgba(43, 68, 166, 0.05);
 }
 
 .btn-danger-outline {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--color-danger);
   color: var(--color-danger);
 }
 
 .btn-danger-outline:hover {
-  background: rgba(239, 68, 68, 0.05);
+  background: rgba(179, 53, 43, 0.05);
 }
 
 /* Table */
@@ -152,12 +152,12 @@
 }
 
 .crm-table th {
-  background-color: #f8fafc;
-  font-weight: 600;
+  background-color: var(--surface-raised);
+  font-weight: 500;
   color: var(--text-secondary);
   font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .crm-table tbody tr {
@@ -166,11 +166,11 @@
 }
 
 .crm-table tbody tr:hover {
-  background-color: #f8fafc;
+  background-color: var(--surface-raised);
 }
 
 .crm-table tbody tr.selected {
-  background-color: rgba(99, 102, 241, 0.05);
+  background-color: rgba(43, 68, 166, 0.05);
 }
 
 .checkbox-cell {
@@ -183,7 +183,7 @@
 }
 
 .font-medium { font-weight: 500; color: var(--text-primary); }
-.font-semibold { font-weight: 600; color: var(--text-primary); }
+.font-semibold { font-weight: 500; color: var(--text-primary); }
 .text-muted { color: var(--text-secondary); font-size: 0.9rem; }
 
 .batch-chip {
@@ -200,12 +200,12 @@
   border-radius: var(--radius-pill);
   font-size: 0.8rem;
   font-weight: 600;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
-.status-badge.active { background-color: rgba(34, 197, 94, 0.1); color: var(--color-success); }
-.status-badge.at-risk { background-color: rgba(245, 158, 11, 0.1); color: var(--color-warning); }
-.status-badge.inactive { background-color: rgba(100, 116, 139, 0.1); color: var(--text-secondary); }
+.status-badge.active { background-color: rgba(47, 107, 58, 0.1); color: var(--color-success); }
+.status-badge.at-risk { background-color: rgba(143, 92, 14, 0.1); color: var(--color-warning); }
+.status-badge.inactive { background-color: rgba(27, 26, 23, 0.1); color: var(--text-secondary); }
 
 .actions-cell {
   width: 50px;
@@ -230,7 +230,7 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-3) var(--spacing-4);
-  background-color: #f8fafc;
+  background-color: var(--surface-raised);
   border-top: 1px solid var(--border-color);
 }
 
@@ -243,7 +243,7 @@
   padding: 0 8px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  background: white;
+  background: var(--surface);
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-secondary);
@@ -251,7 +251,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  transition: var(--transition);
 }
 .page-btn-crm:hover:not(:disabled) { background: var(--bg-color); color: var(--text-primary); }
 .page-btn-crm:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -260,7 +260,7 @@
 .total-count {
   font-size: 0.85rem;
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: 600;
   background: var(--bg-color);
   padding: 6px 12px;
   border-radius: var(--radius-pill);
@@ -270,30 +270,30 @@
 
 /* ── Added: real filters, stats pills, states ────────────────────────────── */
 
-.crm-muted { color: var(--text-secondary, #64748b); }
+.crm-muted { color: var(--text-secondary, var(--ink-500)); }
 .crm-small { font-size: 0.76rem; }
-.crm-error { color: #dc2626; margin-bottom: 14px; }
+.crm-error { color: var(--negative); margin-bottom: 14px; }
 .crm-email { display: block; }
 
 .crm-select {
-  padding: 9px 12px; border-radius: 8px; font-size: 0.86rem; cursor: pointer;
-  border: 1px solid var(--border-color, #e2e8f0);
-  background: var(--input-bg, #fff); color: var(--text-primary, #1e293b);
+  padding: 8px 12px; border-radius: 8px; font-size: 0.86rem; cursor: pointer;
+  border: 1px solid var(--border-color, var(--line));
+  background: var(--input-bg, #fff); color: var(--text-primary, var(--ink-800));
 }
 
-.crm-state { text-align: center; padding: 34px; color: var(--text-secondary, #94a3b8); }
+.crm-state { text-align: center; padding: 32px; color: var(--text-secondary, var(--ink-400)); }
 .crm-state p { margin: 8px 0 0; }
 
 .crm-pill {
   display: inline-block; padding: 3px 10px; border-radius: 999px;
   font-size: 0.76rem; font-weight: 700;
 }
-.crm-pill.good { background: rgba(16, 185, 129, 0.12); color: #059669; }
-.crm-pill.mid  { background: rgba(245, 158, 11, 0.14); color: #b45309; }
-.crm-pill.bad  { background: rgba(239, 68, 68, 0.12);  color: #dc2626; }
+.crm-pill.good { background: rgba(47, 107, 58, 0.12); color: var(--positive); }
+.crm-pill.mid  { background: rgba(143, 92, 14, 0.14); color: var(--warning); }
+.crm-pill.bad  { background: rgba(179, 53, 43, 0.12);  color: var(--negative); }
 
-.status-dot.at-risk { background: #ef4444; }
-.status-dot.active  { background: #10b981; }
+.status-dot.at-risk { background: var(--negative); }
+.status-dot.active  { background: var(--positive); }
 
 .table-container { overflow-x: auto; }
 .crm-table { min-width: 720px; }

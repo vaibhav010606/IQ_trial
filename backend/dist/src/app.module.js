@@ -35,7 +35,9 @@ exports.AppModule = AppModule = __decorate([
         imports: [
             config_1.ConfigModule.forRoot({ isGlobal: true }),
             throttler_1.ThrottlerModule.forRoot({
-                throttlers: [{ ttl: DEFAULT_THROTTLE_TTL_MS, limit: DEFAULT_THROTTLE_LIMIT }],
+                throttlers: [
+                    { ttl: DEFAULT_THROTTLE_TTL_MS, limit: DEFAULT_THROTTLE_LIMIT },
+                ],
             }),
             cache_module_1.CacheModule,
             auth_module_1.AuthModule,

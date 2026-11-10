@@ -39,7 +39,7 @@
   align-items: center;
   gap: 8px;
   color: var(--color-teacher-accent);
-  font-weight: 600;
+  font-weight: 500;
 }
 .download-link:hover { text-decoration: underline; }
 
@@ -59,14 +59,14 @@
   height: 300px;
   border: 2px dashed var(--border-color);
   border-radius: var(--radius-lg);
-  background-color: #f8fafc;
+  background-color: var(--surface-raised);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition);
 }
 
 #label-file-upload.drag-active, #label-file-upload:hover {
   border-color: var(--color-teacher-accent);
-  background-color: rgba(99, 102, 241, 0.05);
+  background-color: rgba(43, 68, 166, 0.05);
 }
 
 .drag-file-element {
@@ -91,7 +91,7 @@
 .upload-icon-wrapper {
   color: var(--color-teacher-accent);
   margin-bottom: var(--spacing-3);
-  background-color: white;
+  background-color: var(--surface);
   padding: var(--spacing-3);
   border-radius: 50%;
   box-shadow: var(--shadow-sm);
@@ -146,7 +146,7 @@
 .btn-outline-small {
   padding: 6px 12px;
   border: 1px solid var(--border-color);
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
   color: var(--text-secondary);
@@ -186,13 +186,13 @@
 }
 
 .preview-table th {
-  background-color: #f8fafc;
+  background-color: var(--surface-raised);
   color: var(--text-secondary);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .row-invalid {
-  background-color: rgba(239, 68, 68, 0.05);
+  background-color: rgba(179, 53, 43, 0.05);
 }
 
 .text-success { color: var(--color-success); }
@@ -200,7 +200,7 @@
 
 .status-cell { width: 40px; text-align: center; }
 .q-cell { max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
-.correct-cell { font-weight: 700; color: var(--color-teacher-accent); text-align: center; }
+.correct-cell { font-weight: 600; color: var(--color-teacher-accent); text-align: center; }
 
 .bottom-actions {
   display: flex;
@@ -214,15 +214,15 @@
   text-align: center; padding: 48px 24px; max-width: 560px; margin: 0 auto;
 }
 .upload-progress-panel h2 { margin: 0 0 8px; font-size: 1.35rem; }
-.upload-progress-msg { color: #475569; font-size: 1rem; font-weight: 500; min-height: 1.5rem; margin-bottom: 20px; }
+.upload-progress-msg { color: var(--ink-600); font-size: 1rem; font-weight: 500; min-height: 1.5rem; margin-bottom: 20px; }
 
 .upload-progress-track {
   width: 100%; height: 10px; border-radius: 999px; overflow: hidden;
-  background: #e2e8f0;
+  background: var(--line);
 }
 .upload-progress-fill {
   height: 100%; border-radius: 999px;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  background: var(--accent);
   transition: width 0.4s ease;
 }
 /* Stages without a meaningful percentage sweep instead of sitting at zero. */
@@ -235,37 +235,37 @@
   100% { margin-left: 100%; }
 }
 
-.upload-progress-pct { display: inline-block; margin-top: 10px; font-size: 0.85rem; font-weight: 700; color: #6366f1; }
-.upload-progress-note { color: #94a3b8; font-size: 0.85rem; margin-top: 14px; }
+.upload-progress-pct { display: inline-block; margin-top: 10px; font-size: 0.85rem; font-weight: 600; color: var(--accent); }
+.upload-progress-note { color: var(--ink-400); font-size: 0.85rem; margin-top: 14px; }
 
 .upload-alert {
   display: flex; align-items: center; gap: 10px;
-  padding: 12px 16px; border-radius: 10px; margin-bottom: 18px; font-size: 0.88rem;
+  padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; font-size: 0.88rem;
 }
-.upload-alert.error { background: rgba(220, 38, 38, 0.09); color: #b91c1c; border: 1px solid rgba(220, 38, 38, 0.25); }
+.upload-alert.error { background: rgba(179, 53, 43, 0.09); color: var(--negative); border: 1px solid rgba(179, 53, 43, 0.25); }
 .upload-alert button { margin-left: auto; background: none; border: none; cursor: pointer; color: inherit; display: flex; }
 
 .template-download .download-link {
   display: inline-flex; align-items: center; gap: 6px;
   background: none; border: none; cursor: pointer; padding: 0;
-  color: #6366f1; font-weight: 600; font-size: 0.88rem;
+  color: var(--accent); font-weight: 500; font-size: 0.88rem;
 }
 
-.csv-preview-wrap { overflow-x: auto; margin: 16px 0; border: 1px solid #e2e8f0; border-radius: 10px; }
+.csv-preview-wrap { overflow-x: auto; margin: 16px 0; border: 1px solid var(--line); border-radius: 10px; }
 .csv-preview-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 720px; }
 .csv-preview-table th {
-  text-align: left; padding: 10px 12px; background: #f8fafc; white-space: nowrap;
-  font-size: 0.73rem; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b;
-  border-bottom: 1px solid #e2e8f0;
+  text-align: left; padding: 10px 12px; background: var(--surface-raised); white-space: nowrap;
+  font-size: 0.73rem; text-transform: none; letter-spacing: 0; color: var(--ink-500);
+  border-bottom: 1px solid var(--line);
 }
-.csv-preview-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.csv-preview-table td { padding: 10px 12px; border-bottom: 1px solid var(--surface-sunken); vertical-align: top; }
 .csv-preview-table tr:last-child td { border-bottom: none; }
-.csv-row-invalid { background: rgba(220, 38, 38, 0.05); }
+.csv-row-invalid { background: rgba(179, 53, 43, 0.05); }
 .csv-qtext { max-width: 340px; }
-.csv-ok   { color: #059669; }
-.csv-warn { color: #d97706; }
-.csv-invalid { color: #b91c1c; }
-.csv-note { font-size: 0.83rem; color: #64748b; margin: 0 0 14px; }
+.csv-ok   { color: var(--positive); }
+.csv-warn { color: var(--warning); }
+.csv-invalid { color: var(--negative); }
+.csv-note { font-size: 0.83rem; color: var(--ink-500); margin: 0 0 14px; }
 
 .upload-success { padding: 28px; text-align: center; }
 .upload-success h2 { margin-bottom: 10px; }

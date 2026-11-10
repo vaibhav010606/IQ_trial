@@ -42,10 +42,25 @@ class SupabaseMock {
                     currentOp = 'count';
                 return builder;
             },
-            insert: (rows) => { currentOp = 'insert'; payload = rows; return builder; },
-            update: (row) => { currentOp = 'update'; payload = row; return builder; },
-            upsert: (rows) => { currentOp = 'upsert'; payload = rows; return builder; },
-            delete: () => { currentOp = 'delete'; return builder; },
+            insert: (rows) => {
+                currentOp = 'insert';
+                payload = rows;
+                return builder;
+            },
+            update: (row) => {
+                currentOp = 'update';
+                payload = row;
+                return builder;
+            },
+            upsert: (rows) => {
+                currentOp = 'upsert';
+                payload = rows;
+                return builder;
+            },
+            delete: () => {
+                currentOp = 'delete';
+                return builder;
+            },
             eq: () => builder,
             neq: () => builder,
             in: () => builder,
@@ -69,14 +84,18 @@ class SupabaseMock {
     storage = {
         from: () => ({
             upload: jest.fn().mockResolvedValue({ data: { path: 'x' }, error: null }),
-            getPublicUrl: jest.fn().mockReturnValue({ data: { publicUrl: 'https://cdn.test/x.png' } }),
+            getPublicUrl: jest
+                .fn()
+                .mockReturnValue({ data: { publicUrl: 'https://cdn.test/x.png' } }),
         }),
     };
     auth = {
         admin: {
             signOut: jest.fn().mockResolvedValue({ error: null }),
             updateUserById: jest.fn().mockResolvedValue({ error: null }),
-            createUser: jest.fn().mockResolvedValue({ data: { user: { id: 'u1' } }, error: null }),
+            createUser: jest
+                .fn()
+                .mockResolvedValue({ data: { user: { id: 'u1' } }, error: null }),
             deleteUser: jest.fn().mockResolvedValue({ error: null }),
         },
         signInWithPassword: jest.fn(),

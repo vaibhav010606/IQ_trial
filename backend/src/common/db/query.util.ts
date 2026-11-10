@@ -33,10 +33,14 @@ const DEFAULT_MAX_ROWS = 200_000;
 type QueryResult<T> = { data: T[] | null; error: any };
 
 /** Splits `items` into consecutive slices of at most `size`. */
-export function chunk<T>(items: readonly T[], size: number = ID_CHUNK_SIZE): T[][] {
+export function chunk<T>(
+  items: readonly T[],
+  size: number = ID_CHUNK_SIZE,
+): T[][] {
   if (size <= 0) throw new Error('chunk size must be positive');
   const out: T[][] = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  for (let i = 0; i < items.length; i += size)
+    out.push(items.slice(i, i + size));
   return out;
 }
 
@@ -47,7 +51,9 @@ export function chunk<T>(items: readonly T[], size: number = ID_CHUNK_SIZE): T[]
  * `buildQuery` must return a *fresh* builder on each call.
  */
 export async function fetchAll<T>(
-  buildQuery: () => PromiseLike<QueryResult<T>> & { range(from: number, to: number): any },
+  buildQuery: () => PromiseLike<QueryResult<T>> & {
+    range(from: number, to: number): any;
+  },
   options: { pageSize?: number; maxRows?: number } = {},
 ): Promise<T[]> {
   const pageSize = options.pageSize ?? PAGE_SIZE;
@@ -75,7 +81,9 @@ export async function fetchAll<T>(
  */
 export async function fetchAllIn<T>(
   ids: readonly string[],
-  buildQuery: (idChunk: string[]) => PromiseLike<QueryResult<T>> & { range(from: number, to: number): any },
+  buildQuery: (
+    idChunk: string[],
+  ) => PromiseLike<QueryResult<T>> & { range(from: number, to: number): any },
   options: { chunkSize?: number; pageSize?: number; maxRows?: number } = {},
 ): Promise<T[]> {
   if (!ids.length) return [];

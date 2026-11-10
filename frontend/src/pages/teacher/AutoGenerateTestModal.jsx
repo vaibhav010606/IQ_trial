@@ -1,126 +1,174 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Sparkles, X, Check, Sliders, BookOpen, RefreshCw, Layers, ChevronRight, Search 
+import {
+  X, Check, Sliders, BookOpen, RefreshCw, Layers, ChevronRight, Search, ListChecks
 } from 'lucide-react';
 import { apiClient } from '../../api/client';
+import {
+  getQuestionType, norm, selectQuestions, topicStats,
+} from '../../utils/autoFill';
+import {
+  getPattern, canonicalSubject, subjectQuota, kindOfQuestion, KINDS, KIND_LABEL,
+} from '../../utils/examPatterns';
 import './AutoGenerateTestModal.css';
 
 const DIFFICULTY_PRESETS = [
   { id: 'balanced', label: 'Balanced', sub: '30% E · 50% M · 20% H', easy: 30, medium: 50, hard: 20 },
-  { id: 'rigor', label: 'High Rigor / Advanced', sub: '10% E · 40% M · 50% H', easy: 10, medium: 40, hard: 50 },
+  { id: 'rigor', label: 'High rigor / advanced', sub: '10% E · 40% M · 50% H', easy: 10, medium: 40, hard: 50 },
   { id: 'jeemain', label: 'Standard', sub: '20% E · 60% M · 20% H', easy: 20, medium: 60, hard: 20 },
   { id: 'foundation', label: 'Foundation', sub: '60% E · 30% M · 10% H', easy: 60, medium: 30, hard: 10 },
 ];
 
+const SUBJECTS = ['Physics', 'Chemistry', 'Mathematics', 'Biology'];
+
+// The list endpoint caps `limit` at 200. 25 pages = 5,000 questions per
+// subject, far above the current bank, and still a bounded number of requests.
+const BANK_PAGE_SIZE = 200;
+const MAX_BANK_PAGES = 25;
+
+/** Loads every active question of one subject, across all pages. */
+async function fetchSubjectBank(subject) {
+  const query = (page) =>
+    `/questions?subject=${encodeURIComponent(subject)}&review_status=all&limit=${BANK_PAGE_SIZE}&page=${page}`;
+  const first = await apiClient.get(query(1));
+  const rows = Array.isArray(first) ? first : (first?.data ?? []);
+  const totalPages = Math.min(Number(first?.totalPages) || 1, MAX_BANK_PAGES);
+  if (totalPages > 1) {
+    const rest = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, i) => apiClient.get(query(i + 2))),
+    );
+    rest.forEach((r) => rows.push(...(Array.isArray(r) ? r : (r?.data ?? []))));
+  }
+  // The API filters by subject already; this guards against a loose match.
+  return rows.filter((q) => norm(q.subject) === norm(subject));
+}
+
+/**
+ * Rendered only while open (the parent mounts it conditionally), so every
+ * open starts from fresh state and the hooks below always run in the same
+ * order.
+ */
 export default function AutoGenerateTestModal({
-  isOpen,
   onClose,
   subject = 'Physics',
   userSubject = null,
   availableTopics = [],
   currentSelected = [],
   targetTotal = 25,
-  targetMcq = 20,
   targetNat = 5,
   patternName = 'JEE Main Pattern',
+  /** Official pattern id (jee_main, jee_advanced, ...) — null for a custom paper. */
+  patternId = null,
   onApply,
   showToast
 }) {
-  if (!isOpen) return null;
+  // A subject-scoped teacher is locked to their subject; an admin can fill
+  // each subject of a mixed paper in turn.
+  const initialSubject = userSubject || (subject && subject !== 'Mixed' ? subject : 'Physics');
+  const [targetSub, setTargetSub] = useState(initialSubject);
 
-  const targetSub = userSubject || (subject && subject !== 'Mixed' ? subject : 'Physics');
+  // ── Question counts (default to the paper's quota) ──
+  const [customCount, setQuestionCount] = useState(targetTotal || 25);
+  const [customNat, setNatCount] = useState(Math.min(targetNat ?? 5, targetTotal || 25));
 
-  // Question count state (defaults to paper's target quota)
-  const [questionCount, setQuestionCount] = useState(targetTotal || 25);
-  const [natCount, setNatCount] = useState(targetNat || 5);
+  // Under an official pattern the counts are not a choice: they are the
+  // subject's share of the paper, kind by kind (JEE Advanced Paper 1 Physics:
+  // 7 single-correct, 3 one-or-more-correct, 6 numerical).
+  const pattern = getPattern(patternId);
+  const patternSubject = pattern ? canonicalSubject(targetSub, pattern) : null;
+  const officialQuota = pattern && patternSubject ? subjectQuota(pattern, patternSubject) : null;
+  const kindOf = (q) => (pattern ? kindOfQuestion(q, pattern) : null);
+
+  const questionCount = officialQuota ? officialQuota.total : customCount;
+  const natCount = officialQuota ? officialQuota.numerical : customNat;
   const mcqCount = Math.max(0, questionCount - natCount);
 
-  // Update if props change
-  useEffect(() => {
-    if (targetTotal) {
-      setQuestionCount(targetTotal);
-      setNatCount(targetNat);
-    }
-  }, [targetTotal, targetNat]);
+  // ── Question bank for the subject ──
+  const [bank, setBank] = useState([]);
+  const [bankLoading, setBankLoading] = useState(true);
+  const [bankError, setBankError] = useState(null);
 
-  // Topic selection & search state
-  const [topicSearch, setTopicSearch] = useState('');
-  const [selectedTopics, setSelectedTopics] = useState(() => {
-    if (availableTopics.length >= 3) return [availableTopics[0], availableTopics[1], availableTopics[2]];
-    if (availableTopics.length > 0) return [availableTopics[0]];
-    return ['Kinematics', 'Dynamics of a Particle', 'Work, Power and Energy'];
-  });
-
-  // Sync topics when availableTopics prop loads or changes
   useEffect(() => {
-    if (availableTopics.length > 0) {
-      setSelectedTopics(prev => {
-        if (prev.length === 0 || !prev.some(t => availableTopics.includes(t))) {
-          return availableTopics.slice(0, Math.min(3, availableTopics.length));
+    let cancelled = false;
+    setBankLoading(true);
+    setBankError(null);
+    fetchSubjectBank(targetSub)
+      .then((rows) => { if (!cancelled) setBank(rows); })
+      .catch((err) => {
+        if (!cancelled) {
+          setBank([]);
+          setBankError(err.message || 'Failed to load the question bank');
         }
-        return prev;
-      });
-    }
-  }, [availableTopics]);
+      })
+      .finally(() => { if (!cancelled) setBankLoading(false); });
+    return () => { cancelled = true; };
+  }, [targetSub]);
 
-  // Topic weights (map of topicName -> integer percent)
-  const [topicWeights, setTopicWeights] = useState({});
+  // Topics = syllabus chapters ∪ topics that actually exist in the bank,
+  // ordered by how many usable questions each has.
+  const stats = useMemo(() => topicStats(bank), [bank]);
+  const allTopics = useMemo(() => {
+    const syllabus = norm(targetSub) === norm(initialSubject) ? availableTopics : [];
+    const names = [...new Set([...stats.keys(), ...syllabus])];
+    const usable = (t) => (stats.get(t)?.mcq || 0) + (stats.get(t)?.nat || 0);
+    return names.sort((a, b) => usable(b) - usable(a) || a.localeCompare(b));
+  }, [stats, availableTopics, targetSub, initialSubject]);
+  const topicCount = (t) => (stats.get(t)?.mcq || 0) + (stats.get(t)?.nat || 0);
 
-  // Recalculate weights when selectedTopics changes
+  // ── Topic selection & weights ──
+  const [topicSearch, setTopicSearch] = useState('');
+  const [selectedTopics, setSelectedTopics] = useState([]);
+  const [topicsTouched, setTopicsTouched] = useState(false);
+
+  // Until the user picks topics, preselect the three best-stocked ones.
   useEffect(() => {
-    if (selectedTopics.length === 0) {
-      setTopicWeights({});
-      return;
-    }
-    const count = selectedTopics.length;
-    const base = Math.floor(100 / count);
-    const remainder = 100 - base * count;
-    const nextWeights = {};
-    selectedTopics.forEach((t, idx) => {
-      nextWeights[t] = base + (idx === 0 ? remainder : 0);
-    });
-    setTopicWeights(nextWeights);
-  }, [selectedTopics]);
+    if (topicsTouched || bankLoading) return;
+    const stocked = allTopics.filter((t) => topicCount(t) > 0);
+    setSelectedTopics((stocked.length ? stocked : allTopics).slice(0, 3));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allTopics, bankLoading, topicsTouched]);
 
-  const handleEqualizeWeights = () => {
-    if (selectedTopics.length === 0) return;
-    const count = selectedTopics.length;
-    const base = Math.floor(100 / count);
-    const remainder = 100 - base * count;
-    const nextWeights = {};
-    selectedTopics.forEach((t, idx) => {
-      nextWeights[t] = base + (idx === 0 ? remainder : 0);
-    });
-    setTopicWeights(nextWeights);
+  const changeSubject = (next) => {
+    setTargetSub(next);
+    setTopicsTouched(false);
+    setSelectedTopics([]);
   };
+
+  const [topicWeights, setTopicWeights] = useState({});
+  const equalWeights = (topics) => {
+    const base = Math.floor(100 / (topics.length || 1));
+    const remainder = 100 - base * topics.length;
+    return Object.fromEntries(topics.map((t, i) => [t, base + (i === 0 ? remainder : 0)]));
+  };
+  useEffect(() => { setTopicWeights(equalWeights(selectedTopics)); }, [selectedTopics]);
 
   const handleWeightChange = (topic, val) => {
     const num = Math.max(0, Math.min(100, Number(val) || 0));
     setTopicWeights(prev => ({ ...prev, [topic]: num }));
   };
 
+  const setTopics = (topics) => { setTopicsTouched(true); setSelectedTopics(topics); };
   const toggleTopic = (topic) => {
     if (selectedTopics.includes(topic)) {
       if (selectedTopics.length === 1) {
         showToast('At least 1 topic must remain selected.');
         return;
       }
-      setSelectedTopics(selectedTopics.filter(t => t !== topic));
+      setTopics(selectedTopics.filter(t => t !== topic));
     } else {
-      setSelectedTopics([...selectedTopics, topic]);
+      setTopics([...selectedTopics, topic]);
     }
   };
 
   const filteredTopics = useMemo(() => {
-    if (!topicSearch.trim()) return availableTopics;
-    return availableTopics.filter(t => t.toLowerCase().includes(topicSearch.toLowerCase()));
-  }, [availableTopics, topicSearch]);
+    if (!topicSearch.trim()) return allTopics;
+    return allTopics.filter(t => t.toLowerCase().includes(topicSearch.toLowerCase()));
+  }, [allTopics, topicSearch]);
 
-  // Difficulty state
-  const [diffPreset, setDiffPreset] = useState('rigor');
-  const [easyPct, setEasyPct] = useState(10);
-  const [medPct, setMedPct] = useState(40);
-  const [hardPct, setHardPct] = useState(50);
+  // ── Difficulty ──
+  const [diffPreset, setDiffPreset] = useState('jeemain');
+  const [easyPct, setEasyPct] = useState(20);
+  const [medPct, setMedPct] = useState(60);
+  const [hardPct, setHardPct] = useState(20);
 
   const applyDiffPreset = (preset) => {
     setDiffPreset(preset.id);
@@ -129,204 +177,75 @@ export default function AutoGenerateTestModal({
     setHardPct(preset.hard);
   };
 
-  // Mode: Replace vs Append
+  // ── Mode: Replace vs Top-up ──
   const [replaceExisting, setReplaceExisting] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Helper to extract integer
-  const extractRealInteger = (val) => {
-    if (val === null || val === undefined) return null;
-    const raw = String(typeof val === 'object' ? (val.value ?? '') : val).trim();
-    if (!raw) return null;
-    if (/^-?\d+$/.test(raw)) return raw;
-    const cleaned = raw
-      .replace(/\\text\{[^}]*\}/g, '')
-      .replace(/\\mathrm\{[^}]*\}/g, '')
-      .replace(/[\$\s]/g, '')
-      .replace(/(km\/h|m\/s|cm\/s|m\/s\^2|cm|mm|km|m|s|min|h|kg|g|N|J|W|V|A|C|T|Hz|rad\/s|rad|deg|degrees)/gi, '');
-    if (/^-?\d+$/.test(cleaned)) return cleaned;
-    return null;
-  };
+  const bankMcq = bank.filter(q => getQuestionType(q) === 'mcq').length;
+  const bankNat = bank.filter(q => getQuestionType(q) === 'nat').length;
+  const bankByKind = officialQuota
+    ? Object.fromEntries(KINDS.map(k => [k, bank.filter(q => kindOf(q) === k).length]))
+    : null;
 
-  const isNat = (q) => {
-    const key = String(q.q_type || q.type || '').trim().toLowerCase();
-    const natTypes = ['nat', 'integer', 'numerical', 'numeric', 'int'];
-    if (natTypes.includes(key) && extractRealInteger(q.correct_answer) !== null) return true;
-    return false;
-  };
-
-  const isMcq = (q) => {
-    return !isNat(q) && q.q_type !== 'subjective' && (Array.isArray(q.options) && q.options.length > 0);
-  };
-
-  // ── Generation Handler ──
-  const handleGenerate = async (proceedToReview = false) => {
+  // ── Generation ──
+  const handleGenerate = (proceedToReview = false) => {
     if (selectedTopics.length === 0) {
       showToast('Please select at least one topic.');
+      return;
+    }
+    if (!bank.length) {
+      showToast(`No questions found in the question bank for ${targetSub}.`);
       return;
     }
 
     setIsGenerating(true);
     try {
-      // 1. Fetch available questions strictly for this teacher's subject (exclude subjective questions client-side)
-      const subjectParam = targetSub && targetSub !== 'All' ? `subject=${encodeURIComponent(targetSub)}&` : '';
-      const [res1, res2] = await Promise.all([
-        apiClient.get(`/questions?${subjectParam}limit=150&page=1&review_status=all`),
-        apiClient.get(`/questions?${subjectParam}limit=150&page=2&review_status=all`).catch(() => ({ data: [] }))
-      ]);
-      const list1 = Array.isArray(res1) ? res1 : (res1?.data ?? []);
-      const list2 = Array.isArray(res2) ? res2 : (res2?.data ?? []);
-      // Filter strictly by targetSub and exclude subjective questions
-      const bank = [...list1, ...list2].filter(q => {
-        if (q.q_type === 'subjective') return false;
-        if (!targetSub || targetSub === 'All') return true;
-        return String(q.subject || '').toLowerCase() === targetSub.toLowerCase();
+      const sameSubject = (q) => norm(q.subject) === norm(targetSub);
+      // Other subjects on a mixed paper are never touched.
+      const otherSubjects = currentSelected.filter(q => !sameSubject(q));
+      const kept = replaceExisting ? [] : currentSelected.filter(sameSubject);
+
+      // Top-up mode fills the gap to the target instead of adding a full set.
+      const keptNat = kept.filter(q => getQuestionType(q) === 'nat').length;
+      const keptMcq = kept.filter(q => getQuestionType(q) === 'mcq').length;
+      const wantNat = Math.max(0, natCount - keptNat);
+      const wantMcq = Math.max(0, mcqCount - keptMcq);
+
+      // Official pattern: fill each section kind to exactly its quota.
+      const wantKinds = officialQuota
+        ? Object.fromEntries(KINDS.map(k => [k, Math.max(0, officialQuota[k] - kept.filter(q => kindOf(q) === k).length)]))
+        : null;
+
+      const { chosen, short } = selectQuestions(bank, {
+        topics: selectedTopics,
+        weights: topicWeights,
+        ...(wantKinds ? { kinds: wantKinds, kindOf } : { mcq: wantMcq, nat: wantNat }),
+        mix: { easy: easyPct, medium: medPct, hard: hardPct },
+        excludeIds: new Set(currentSelected.map(q => q.id)),
       });
 
-      if (!bank || bank.length === 0) {
-        showToast('No questions found in question bank for ' + targetSub);
-        setIsGenerating(false);
+      const totalWanted = wantKinds ? Object.values(wantKinds).reduce((a, b) => a + b, 0) : wantMcq + wantNat;
+      if (chosen.length === 0 && totalWanted > 0) {
+        showToast(`No usable ${targetSub} questions left to add.`);
         return;
       }
 
-      // Existing already chosen IDs of THIS subject if appending
-      const existingIds = replaceExisting 
-        ? new Set() 
-        : new Set(
-            currentSelected
-              .filter(q => !targetSub || String(q.subject || '').toLowerCase() === targetSub.toLowerCase())
-              .map(q => q.id)
-          );
+      const added = chosen.map(q => ({ ...q, subject: q.subject || targetSub, marks: q.marks || 4 }));
+      onApply([...otherSubjects, ...kept, ...added], proceedToReview);
 
-      const targetTotalNum = questionCount;
-      const targetNatNum   = natCount;
-      const targetMcqNum   = mcqCount;
-
-      // Classify pool
-      const availablePool = bank.filter(q => !existingIds.has(q.id));
-
-      const norm = s => String(s || '').trim().toLowerCase();
-      const isTopicMatch = (qTopic, t) => {
-        if (!qTopic) return false;
-        const a = norm(qTopic);
-        const b = norm(t);
-        return a === b || a.includes(b) || b.includes(a);
-      };
-
-      // Group questions by topic & type
-      const questionsByTopic = {};
-      selectedTopics.forEach(t => {
-        questionsByTopic[t] = {
-          mcq: availablePool.filter(q => (isTopicMatch(q.topic, t) || (!q.topic && t === selectedTopics[0])) && isMcq(q)),
-          nat: availablePool.filter(q => (isTopicMatch(q.topic, t) || (!q.topic && t === selectedTopics[0])) && isNat(q)),
-        };
-      });
-
-      // Subject-level fallback pools
-      const subjectMcqs = availablePool.filter(q => isMcq(q));
-      const subjectNats = availablePool.filter(q => isNat(q));
-
-      // Calculate question allocation per topic
-      const totalWeight = Object.values(topicWeights).reduce((a, b) => a + b, 0) || 100;
-      const chosen = [];
-      const chosenIds = new Set();
-
-      // Allocate numericals first across topics
-      let natsNeeded = targetNatNum;
-      for (const topic of selectedTopics) {
-        if (natsNeeded <= 0) break;
-        const weight = topicWeights[topic] || 0;
-        const topicNatQuota = Math.max(1, Math.round(targetNatNum * (weight / totalWeight)));
-
-        const pool = questionsByTopic[topic]?.nat || [];
-        for (const q of pool) {
-          if (!chosenIds.has(q.id) && natsNeeded > 0 && chosen.filter(x => isNat(x)).length < targetNatNum) {
-            chosen.push({ ...q, subject: q.subject || targetSub, marks: 4 });
-            chosenIds.add(q.id);
-            natsNeeded--;
-          }
+      const pending = added.filter(q => q.review_status && q.review_status !== 'approved').length;
+      const notes = [];
+      for (const [kind, missing] of Object.entries(short || {})) {
+        if (missing > 0) {
+          const label = KIND_LABEL[kind] || (kind === 'nat' ? 'Numerical' : 'MCQ');
+          notes.push(`${missing} ${label.toLowerCase()} short`);
         }
       }
-
-      // If still need numericals, take from general subject pool
-      if (natsNeeded > 0) {
-        for (const q of subjectNats) {
-          if (!chosenIds.has(q.id) && natsNeeded > 0) {
-            chosen.push({ ...q, subject: q.subject || targetSub, marks: 4 });
-            chosenIds.add(q.id);
-            natsNeeded--;
-          }
-        }
-      }
-
-      // Allocate MCQs across topics based on weightage
-      let mcqsNeeded = targetMcqNum;
-      for (const topic of selectedTopics) {
-        if (mcqsNeeded <= 0) break;
-        const weight = topicWeights[topic] || 0;
-        const topicMcqQuota = Math.round(targetMcqNum * (weight / totalWeight));
-
-        const pool = questionsByTopic[topic]?.mcq || [];
-        // Sort pool with difficulty bias (hard vs med vs easy)
-        pool.sort((a, b) => {
-          const diffScore = { hard: 3, medium: 2, easy: 1 };
-          return (diffScore[b.difficulty] || 2) - (diffScore[a.difficulty] || 2);
-        });
-
-        let topicTaken = 0;
-        for (const q of pool) {
-          if (!chosenIds.has(q.id) && mcqsNeeded > 0 && topicTaken < topicMcqQuota) {
-            const isMulti = q.q_type === 'multi_correct';
-            const marks = isMulti ? 4 : (q.marks || 4);
-            chosen.push({ ...q, subject: q.subject || targetSub, marks });
-            chosenIds.add(q.id);
-            mcqsNeeded--;
-            topicTaken++;
-          }
-        }
-      }
-
-      // If still need MCQs, fill from subject MCQs pool
-      if (mcqsNeeded > 0) {
-        for (const q of subjectMcqs) {
-          if (!chosenIds.has(q.id) && mcqsNeeded > 0) {
-            chosen.push({ ...q, subject: q.subject || targetSub, marks: q.marks || 4 });
-            chosenIds.add(q.id);
-            mcqsNeeded--;
-          }
-        }
-      }
-
-      // If still need questions to reach targetTotalNum, take any available valid questions
-      let remaining = targetTotalNum - chosen.length;
-      if (remaining > 0) {
-        for (const q of availablePool) {
-          if (!chosenIds.has(q.id) && remaining > 0 && (isMcq(q) || isNat(q))) {
-            chosen.push({ ...q, subject: q.subject || targetSub, marks: q.marks || 4 });
-            chosenIds.add(q.id);
-            remaining--;
-          }
-        }
-      }
-
-      if (chosen.length === 0) {
-        showToast('No matching questions could be found in question bank.');
-        setIsGenerating(false);
-        return;
-      }
-
-      // Build strictly scoped question list for this teacher
-      const currentSubjectQuestions = currentSelected.filter(
-        q => !targetSub || String(q.subject || '').toLowerCase() === targetSub.toLowerCase()
+      if (pending > 0) notes.push(`${pending} still pending review`);
+      showToast(
+        `Added ${added.length} ${targetSub} questions` +
+        (notes.length ? ` — ${notes.join(', ')} (not enough in the bank).` : '.'),
       );
-
-      const finalSelection = replaceExisting
-        ? chosen
-        : [...currentSubjectQuestions, ...chosen];
-
-      // Send to parent TestConstructor
-      onApply(finalSelection, proceedToReview);
-      showToast(`✨ Successfully auto-filled ${chosen.length} ${targetSub} questions into paper!`);
       onClose();
     } catch (err) {
       console.error('Auto-generation failed:', err);
@@ -336,6 +255,8 @@ export default function AutoGenerateTestModal({
     }
   };
 
+  const busy = isGenerating || bankLoading;
+
   return (
     <div className="agm-overlay" onClick={onClose}>
       <div className="agm-modal" onClick={e => e.stopPropagation()}>
@@ -343,11 +264,27 @@ export default function AutoGenerateTestModal({
         <div className="agm-header">
           <div className="agm-header-left">
             <div className="agm-badge-icon">
-              <Sparkles size={24} />
+              <ListChecks size={22} />
             </div>
             <div>
               <h2>Auto-Generate Test Questions</h2>
-              <p>Automate question selection for {subject} based on topic weightage & difficulty</p>
+              <p>
+                Automate question selection for{' '}
+                {userSubject ? (
+                  <strong>{targetSub}</strong>
+                ) : (
+                  <select
+                    value={targetSub}
+                    onChange={e => changeSubject(e.target.value)}
+                    disabled={busy}
+                    aria-label="Subject to auto-fill"
+                    style={{ padding: '2px 6px', borderRadius: '6px', border: '1px solid #c6b99e', fontWeight: 600 }}
+                  >
+                    {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                )}{' '}
+                based on topic weightage & difficulty
+              </p>
             </div>
           </div>
           <button className="agm-close-btn" onClick={onClose} title="Close">
@@ -361,24 +298,36 @@ export default function AutoGenerateTestModal({
           <div className="agm-section" style={{ padding: '12px 18px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Layers size={18} color="#6366f1" />
-                <span style={{ fontSize: '0.88rem', fontWeight: '700', color: '#1e293b' }}>
-                  Target Format: <span style={{ color: '#6366f1' }}>{patternName}</span>
+                <Layers size={18} color="var(--accent)" />
+                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#2a2722' }}>
+                  Target Format: <span style={{ color: 'var(--accent)' }}>{patternName}</span>
                 </span>
               </div>
+              {officialQuota ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', fontSize: '0.82rem', color: '#56504a' }}>
+                  <span><strong>{patternSubject}</strong> · {officialQuota.total} questions (official, fixed)</span>
+                  {KINDS.filter(k => officialQuota[k] > 0).map(k => (
+                    <span key={k} className="num">{KIND_LABEL[k]}: <strong>{officialQuota[k]}</strong></span>
+                  ))}
+                </div>
+              ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: '600', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 500, color: '#56504a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   Total Questions:
                   <input
                     type="number"
                     min="1"
-                    max="100"
+                    max="200"
                     value={questionCount}
-                    onChange={e => setQuestionCount(Math.max(1, Number(e.target.value) || 1))}
-                    style={{ width: '56px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: '700', textAlign: 'center' }}
+                    onChange={e => {
+                      const next = Math.max(1, Math.min(200, Number(e.target.value) || 1));
+                      setQuestionCount(next);
+                      setNatCount(n => Math.min(n, next));
+                    }}
+                    style={{ width: '56px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #c6b99e', fontWeight: 600, textAlign: 'center' }}
                   />
                 </label>
-                <label style={{ fontSize: '0.82rem', fontWeight: '600', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 500, color: '#56504a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   Numericals:
                   <input
                     type="number"
@@ -386,13 +335,23 @@ export default function AutoGenerateTestModal({
                     max={questionCount}
                     value={natCount}
                     onChange={e => setNatCount(Math.max(0, Math.min(questionCount, Number(e.target.value) || 0)))}
-                    style={{ width: '50px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: '700', textAlign: 'center' }}
+                    style={{ width: '50px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #c6b99e', fontWeight: 600, textAlign: 'center' }}
                   />
                 </label>
-                <span style={{ fontSize: '0.82rem', fontWeight: '600', color: '#64748b' }}>
-                  (MCQs: <strong style={{ color: '#1e293b' }}>{mcqCount}</strong>)
+                <span style={{ fontSize: '0.82rem', fontWeight: 500, color: '#736b5f' }}>
+                  (MCQs: <strong style={{ color: '#2a2722' }}>{mcqCount}</strong>)
                 </span>
               </div>
+              )}
+            </div>
+            <div style={{ marginTop: '8px', fontSize: '0.78rem', color: bankError ? '#b3352b' : '#736b5f' }}>
+              {bankLoading
+                ? `Loading the ${targetSub} question bank…`
+                : bankError
+                  ? `Could not load the question bank: ${bankError}`
+                  : bankByKind
+                    ? `${targetSub} bank: ${KINDS.map(k => `${bankByKind[k]} ${KIND_LABEL[k].toLowerCase()}`).join(', ')} usable for ${pattern.label}.`
+                    : `${targetSub} bank: ${bankMcq} MCQs and ${bankNat} integer numericals available.`}
             </div>
           </div>
 
@@ -400,7 +359,7 @@ export default function AutoGenerateTestModal({
           <div className="agm-section">
             <div className="agm-section-title">
               <h3>
-                <BookOpen size={20} color="#6366f1" />
+                <BookOpen size={20} color="var(--accent)" />
                 <span>1. Syllabus Topics & Weightage Distribution</span>
               </h3>
               <div className="agm-title-actions">
@@ -408,16 +367,19 @@ export default function AutoGenerateTestModal({
                 <button
                   type="button"
                   className="agm-btn-quick-topic"
-                  onClick={() => setSelectedTopics(availableTopics)}
-                  title="Select all chapters in syllabus"
+                  onClick={() => {
+                    const stocked = allTopics.filter(t => topicCount(t) > 0);
+                    setTopics(stocked.length ? stocked : allTopics);
+                  }}
+                  title="Select every chapter that has questions in the bank"
                 >
-                  Select All
+                  Select all
                 </button>
                 <button
                   type="button"
                   className="agm-btn-quick-topic"
                   onClick={() => {
-                    if (availableTopics.length > 0) setSelectedTopics([availableTopics[0]]);
+                    if (allTopics.length > 0) setTopics([allTopics[0]]);
                   }}
                   title="Reset to 1 chapter"
                 >
@@ -451,15 +413,19 @@ export default function AutoGenerateTestModal({
             <div className="agm-topics-scroll">
               {filteredTopics.map(topic => {
                 const isSelected = selectedTopics.includes(topic);
+                const count = topicCount(topic);
                 return (
                   <button
                     key={topic}
                     type="button"
                     className={`agm-topic-chip ${isSelected ? 'selected' : ''}`}
                     onClick={() => toggleTopic(topic)}
+                    title={`${stats.get(topic)?.mcq || 0} MCQs · ${stats.get(topic)?.nat || 0} numericals`}
+                    style={count === 0 && !isSelected ? { opacity: 0.55 } : undefined}
                   >
                     {isSelected && <Check size={14} className="agm-chip-check-icon" />}
                     <span>{topic}</span>
+                    {!bankLoading && <span style={{ marginLeft: 6, opacity: 0.7 }}>({count})</span>}
                   </button>
                 );
               })}
@@ -473,17 +439,18 @@ export default function AutoGenerateTestModal({
                   <button
                     type="button"
                     className="agm-btn-equalize"
-                    onClick={handleEqualizeWeights}
+                    onClick={() => setTopicWeights(equalWeights(selectedTopics))}
                     title="Split 100% equally among selected topics"
                   >
                     <RefreshCw size={12} />
-                    <span>Equalize Weightage</span>
+                    <span>Equalize weightage</span>
                   </button>
                 </div>
 
                 {selectedTopics.map(topic => {
                   const weight = topicWeights[topic] || 0;
-                  const estimatedQs = Math.round(questionCount * (weight / 100));
+                  const totalWeight = Object.values(topicWeights).reduce((a, b) => a + b, 0) || 100;
+                  const estimatedQs = Math.round(questionCount * (weight / totalWeight));
                   return (
                     <div key={topic} className="agm-weight-row">
                       <div className="agm-weight-topic-name" title={topic}>
@@ -512,7 +479,7 @@ export default function AutoGenerateTestModal({
           <div className="agm-section">
             <div className="agm-section-title">
               <h3>
-                <Sliders size={18} color="#6366f1" />
+                <Sliders size={18} color="var(--accent)" />
                 <span>2. Question Difficulty Target</span>
               </h3>
             </div>
@@ -535,68 +502,43 @@ export default function AutoGenerateTestModal({
             </div>
 
             <div className="agm-diff-sliders">
-              <div className="agm-diff-slider-item">
-                <div className="agm-diff-slider-label">
-                  <span>Easy</span>
-                  <span>{easyPct}%</span>
+              {[
+                ['Easy', easyPct, setEasyPct],
+                ['Medium', medPct, setMedPct],
+                ['Hard', hardPct, setHardPct],
+              ].map(([label, value, setValue]) => (
+                <div key={label} className="agm-diff-slider-item">
+                  <div className="agm-diff-slider-label">
+                    <span>{label}</span>
+                    <span>{value}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={value}
+                    onChange={e => {
+                      setValue(Number(e.target.value));
+                      setDiffPreset('custom');
+                    }}
+                  />
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={easyPct}
-                  onChange={e => {
-                    setEasyPct(Number(e.target.value));
-                    setDiffPreset('custom');
-                  }}
-                />
-              </div>
-
-              <div className="agm-diff-slider-item">
-                <div className="agm-diff-slider-label">
-                  <span>Medium</span>
-                  <span>{medPct}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={medPct}
-                  onChange={e => {
-                    setMedPct(Number(e.target.value));
-                    setDiffPreset('custom');
-                  }}
-                />
-              </div>
-
-              <div className="agm-diff-slider-item">
-                <div className="agm-diff-slider-label">
-                  <span>Hard</span>
-                  <span>{hardPct}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={hardPct}
-                  onChange={e => {
-                    setHardPct(Number(e.target.value));
-                    setDiffPreset('custom');
-                  }}
-                />
-              </div>
+              ))}
+            </div>
+            <div style={{ marginTop: '6px', fontSize: '0.75rem', color: '#736b5f' }}>
+              The mix is a target: when the bank has too few questions at a level, the rest are filled from other levels.
             </div>
           </div>
 
           {/* Live Summary Bar */}
           <div className="agm-summary-box">
             <div className="agm-summary-stat">
-              <span className="label">Exam Pattern</span>
+              <span className="label">Exam pattern</span>
               <span className="val">{patternName}</span>
             </div>
             <div className="agm-summary-divider" />
             <div className="agm-summary-stat">
-              <span className="label">Total Questions</span>
+              <span className="label">Total questions</span>
               <span className="val">{questionCount} Qs</span>
             </div>
             <div className="agm-summary-divider" />
@@ -606,13 +548,13 @@ export default function AutoGenerateTestModal({
             </div>
             <div className="agm-summary-divider" />
             <div className="agm-summary-stat">
-              <span className="label">Topics Selected</span>
+              <span className="label">Topics selected</span>
               <span className="val">{selectedTopics.length} Chapters</span>
             </div>
             <div className="agm-summary-divider" />
             <div className="agm-summary-stat">
-              <span className="label">Estimated Marks</span>
-              <span className="val">{questionCount * 4} pts</span>
+              <span className="label">Estimated marks</span>
+              <span className="val">{officialQuota ? (pattern.subjects[patternSubject] || []).reduce((t, sec) => t + sec.count * sec.marks, 0) : questionCount * 4} pts</span>
             </div>
           </div>
         </div>
@@ -625,7 +567,11 @@ export default function AutoGenerateTestModal({
               checked={replaceExisting}
               onChange={e => setReplaceExisting(e.target.checked)}
             />
-            <span>Clear existing {targetSub} questions & replace with new auto-fill</span>
+            <span>
+              {replaceExisting
+                ? `Clear existing ${targetSub} questions & replace with new auto-fill`
+                : `Keep existing ${targetSub} questions & top up to the target`}
+            </span>
           </label>
 
           <div className="agm-footer-actions">
@@ -636,17 +582,17 @@ export default function AutoGenerateTestModal({
               type="button"
               className="agm-btn-submit"
               onClick={() => handleGenerate(false)}
-              disabled={isGenerating || selectedTopics.length === 0}
+              disabled={busy || selectedTopics.length === 0}
               title="Auto-fill questions and stay on current step"
             >
-              {isGenerating ? (
+              {busy ? (
                 <>
                   <RefreshCw size={16} className="spin" />
-                  <span>Selecting...</span>
+                  <span>{bankLoading ? 'Loading bank...' : 'Selecting...'}</span>
                 </>
               ) : (
                 <>
-                  <Sparkles size={16} />
+                  <ListChecks size={16} />
                   <span>Auto-Fill Questions</span>
                 </>
               )}
@@ -655,13 +601,13 @@ export default function AutoGenerateTestModal({
               type="button"
               className="agm-btn-submit agm-btn-review"
               onClick={() => handleGenerate(true)}
-              disabled={isGenerating || selectedTopics.length === 0}
+              disabled={busy || selectedTopics.length === 0}
               title="Auto-fill questions and immediately proceed to Step 3 Review"
             >
-              {isGenerating ? (
+              {busy ? (
                 <>
                   <RefreshCw size={16} className="spin" />
-                  <span>Selecting...</span>
+                  <span>{bankLoading ? 'Loading bank...' : 'Selecting...'}</span>
                 </>
               ) : (
                 <>

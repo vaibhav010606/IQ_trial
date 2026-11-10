@@ -83,9 +83,9 @@ const StudentProfileDetail = () => {
   }));
 
   const kpis = [
-    { label: 'Tests Taken', value: analytics?.testsAttempted ?? 0, icon: Calendar },
-    { label: 'Avg Accuracy', value: `${analytics?.avgAccuracy ?? 0}%`, icon: Target },
-    { label: 'Total Score', value: analytics?.totalScore ?? 0, icon: TrendingUp },
+    { label: 'Tests taken', value: analytics?.testsAttempted ?? 0, icon: Calendar },
+    { label: 'Avg accuracy', value: `${analytics?.avgAccuracy ?? 0}%`, icon: Target },
+    { label: 'Total score', value: analytics?.totalScore ?? 0, icon: TrendingUp },
   ];
 
   return (
@@ -117,7 +117,7 @@ const StudentProfileDetail = () => {
         </div>
       </div>
 
-      <div className="sp-kpi-grid">
+      <div className="sp-kpi-grid ink-cycle ink-stats">
         {kpis.map((k) => {
           const Icon = k.icon;
           return (
@@ -134,19 +134,19 @@ const StudentProfileDetail = () => {
 
       <div className="sp-grid">
         <div className="sp-card">
-          <h3>Score Trend</h3>
+          <h3>Score trend</h3>
           {performanceData.length < 2 ? (
             <p className="sp-muted sp-inline-empty">Needs at least two completed tests to plot a trend.</p>
           ) : (
             <ResponsiveContainer width="100%" height={230}>
               <LineChart data={performanceData} margin={{ top: 8, right: 20, left: -18, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="test" tick={{ fontSize: 11 }} stroke="#64748b" />
-                <YAxis domain={[0, 100]} stroke="#64748b" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ded4bf" />
+                <XAxis dataKey="test" tick={{ fontSize: 11 }} stroke="#736b5f" />
+                <YAxis domain={[0, 100]} stroke="#736b5f" />
                 <Tooltip formatter={(v) => [`${v}%`, 'Score']} />
                 <Line
                   type="monotone" dataKey="score"
-                  stroke="var(--color-teacher-accent, #6366f1)" strokeWidth={3}
+                  stroke="var(--color-teacher-accent, #2b44a6)" strokeWidth={3}
                   dot={{ r: 4 }} activeDot={{ r: 7 }}
                 />
               </LineChart>
@@ -155,19 +155,19 @@ const StudentProfileDetail = () => {
         </div>
 
         <div className="sp-card">
-          <h3>Subject Strength</h3>
+          <h3>Subject strength</h3>
           {radarData.length < 3 ? (
             <p className="sp-muted sp-inline-empty">Needs answers across at least three subjects.</p>
           ) : (
             <ResponsiveContainer width="100%" height={230}>
               <RadarChart cx="50%" cy="50%" outerRadius="72%" data={radarData}>
-                <PolarGrid stroke="#e2e8f0" />
-                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fontWeight: 600 }} />
+                <PolarGrid stroke="#ded4bf" />
+                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fontWeight: 500 }} />
                 <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
                 <Radar
                   name="Accuracy" dataKey="score"
-                  stroke="var(--color-teacher-accent, #6366f1)" strokeWidth={2}
-                  fill="var(--color-teacher-accent, #6366f1)" fillOpacity={0.35}
+                  stroke="var(--color-teacher-accent, #2b44a6)" strokeWidth={2}
+                  fill="var(--color-teacher-accent, #2b44a6)" fillOpacity={0.35}
                 />
                 <Tooltip formatter={(v) => [`${v}%`, 'Accuracy']} />
               </RadarChart>
@@ -178,7 +178,7 @@ const StudentProfileDetail = () => {
 
       <div className="sp-grid">
         <div className="sp-card">
-          <h3>Weak Topics</h3>
+          <h3>Weak topics</h3>
           {weakTopics.length === 0 ? (
             <p className="sp-muted sp-inline-empty">Nothing flagged — not enough data per topic yet.</p>
           ) : (
@@ -197,7 +197,7 @@ const StudentProfileDetail = () => {
         </div>
 
         <div className="sp-card">
-          <h3>Recent Attempts</h3>
+          <h3>Recent attempts</h3>
           {attempts.length === 0 ? (
             <p className="sp-muted sp-inline-empty">No submitted tests yet.</p>
           ) : (

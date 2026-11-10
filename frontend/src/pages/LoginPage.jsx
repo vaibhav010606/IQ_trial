@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { setPortal } from '../utils/initials';
 import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, GraduationCap, Eye, EyeOff, Shield } from 'lucide-react';
 import './LoginPage.css';
@@ -11,6 +12,9 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // The page previews the ink of the portal you are about to enter.
+  useEffect(() => { setPortal(role); }, [role]);
 
   const MOCK_CREDENTIALS = {
     student: [
@@ -55,98 +59,93 @@ const LoginPage = () => {
         window.location.assign('/student');
       }
     } catch (err) {
-      setError(err.message || 'Invalid email or password. Please try again.');
+      setError(err.message || 'That email and password do not match an account');
     } finally {
       setLoading(false);
     }
   };
 
+  // A strip of the answer sheet students fill in: four questions, one marked
+  // bubble each. Static — it is the product's own object, not decoration.
+  const SHEET = [
+    { q: 1, pick: 1 },
+    { q: 2, pick: 3 },
+    { q: 3, pick: 0 },
+    { q: 4, pick: 2 },
+  ];
+
   return (
     <div className="login-page">
-      {/* Left Panel */}
+      {/* Left panel: what this is, and the answer sheet it revolves around */}
       <div className="login-branding">
         <div className="brand-content">
           <div className="brand-logo">
-            <BookOpen size={36} />
+            <span className="brand-mark" aria-hidden="true" />
             <span>EduCommand</span>
           </div>
-          <h1>Unlock Your Potential.</h1>
-          <p>The next-generation EdTech platform built for JEE, NEET, and competitive exam preparation. Adaptive learning powered by AI.</p>
+          <h1>Question papers, mock tests and results for JEE and NEET batches</h1>
+          <p>Teachers build papers from the question bank, students sit them in a proctored exam hall, and everyone sees where the marks were lost.</p>
 
-          <div className="feature-list">
-            <div className="feature-item">
-              <span className="feature-dot"></span>
-              <span>AI-powered predictive analytics</span>
+          <div className="omr-sheet" aria-hidden="true">
+            <div className="omr-sheet-head">
+              <span>Physics · Section A</span>
+              <span className="mono">Roll 24117</span>
             </div>
-            <div className="feature-item">
-              <span className="feature-dot"></span>
-              <span>Live doubt resolution with teachers</span>
-            </div>
-            <div className="feature-item">
-              <span className="feature-dot"></span>
-              <span>Spaced repetition question engine</span>
-            </div>
-            <div className="feature-item">
-              <span className="feature-dot"></span>
-              <span>All-India leaderboard & rankings</span>
-            </div>
+            {SHEET.map(row => (
+              <div className="omr-row" key={row.q}>
+                <span className="omr-q mono">{String(row.q).padStart(2, '0')}</span>
+                {['A', 'B', 'C', 'D'].map((opt, i) => (
+                  <span key={opt} className={`omr-option ${i === row.pick ? 'filled' : ''}`}>{opt}</span>
+                ))}
+              </div>
+            ))}
+            <div className="omr-score">12<small>/16</small></div>
           </div>
 
-          <div className="brand-stats">
-            <div className="brand-stat">
-              <strong>10,000+</strong>
-              <span>Students</span>
-            </div>
-            <div className="brand-stat">
-              <strong>500+</strong>
-              <span>Mock Tests</span>
-            </div>
-            <div className="brand-stat">
-              <strong>98%</strong>
-              <span>Satisfaction</span>
-            </div>
-          </div>
+          <ul className="feature-list">
+            <li>Predicted scores and risk flags by topic</li>
+            <li>Live doubt chat with teachers</li>
+            <li>Spaced-repetition practice from past mistakes</li>
+            <li>Batch leaderboards and ranks</li>
+          </ul>
         </div>
       </div>
 
-      {/* Right Panel */}
+      {/* Right panel: sign in */}
       <div className="login-form-panel">
         <div className="login-form-card">
-          <h2>Welcome back 👋</h2>
-          <p className="login-subtitle">Sign in to continue to your portal.</p>
+          <h2>Sign in</h2>
+          <p className="login-subtitle">Use the account your institute set up for you</p>
 
-          {/* Role Selector */}
-          <div className="role-selector">
-            <button
-              className={`role-btn ${role === 'student' ? 'active' : ''}`}
-              onClick={() => setRole('student')}
-            >
-              <GraduationCap size={20} />
-              Student
-            </button>
-            <button
-              className={`role-btn ${role === 'teacher' ? 'active' : ''}`}
-              onClick={() => setRole('teacher')}
-            >
-              <BookOpen size={20} />
-              Teacher
-            </button>
-            <button
-              className={`role-btn ${role === 'admin' ? 'active' : ''}`}
-              onClick={() => setRole('admin')}
-              style={role === 'admin' ? { background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', color: 'white', borderColor: '#7c3aed' } : {}}
-            >
-              <Shield size={20} />
-              Admin
-            </button>
+          {/* Role selector */}
+          <div className="role-selector" role="tablist" aria-label="Sign in as">
+            {[
+              { id: 'student', label: 'Student', Icon: GraduationCap },
+              { id: 'teacher', label: 'Teacher', Icon: BookOpen },
+              { id: 'admin', label: 'Admin', Icon: Shield },
+            ].map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={role === id}
+                className={`role-btn ${role === id ? 'active' : ''}`}
+                onClick={() => setRole(id)}
+              >
+                <Icon size={16} />
+                {label}
+              </button>
+            ))}
           </div>
 
           <form onSubmit={handleLogin} className="login-form">
             <div className="form-group">
-              <label>Email Address</label>
+              <label htmlFor="login-email">Email</label>
               <input
+                id="login-email"
                 type="email"
-                placeholder={`e.g. ${(MOCK_CREDENTIALS[role] || MOCK_CREDENTIALS.student)[0].email}`}
+                autoComplete="username"
+                placeholder={(MOCK_CREDENTIALS[role] || MOCK_CREDENTIALS.student)[0].email}
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
@@ -154,46 +153,52 @@ const LoginPage = () => {
             </div>
 
             <div className="form-group">
-              <label>Password</label>
+              <div className="form-label-row">
+                <label htmlFor="login-password">Password</label>
+                <Link to="/forgot-password" className="forgot-link">Forgot password?</Link>
+              </div>
               <div className="password-wrapper">
                 <input
+                  id="login-password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
                 />
-                <button type="button" className="toggle-password" onClick={() => setShowPassword(!showPassword)}>
+                <button
+                  type="button"
+                  className="toggle-password"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
-            {error && <div className="error-msg">{error}</div>}
+            {error && <div className="error-msg" role="alert">{error}</div>}
 
-            <button type="submit" className="login-btn" disabled={loading} style={role === 'admin' ? { background: 'linear-gradient(135deg,#7c3aed,#4f46e5)' } : {}}>
-              {loading ? <span className="spinner"></span> : `Sign In as ${role === 'student' ? 'Student' : role === 'teacher' ? 'Teacher' : 'Admin'}`}
+            <button type="submit" className="login-btn" disabled={loading}>
+              {loading ? <span className="spinner"></span> : `Sign in as ${role}`}
             </button>
-
-            <Link
-              to="/forgot-password"
-              style={{ display: 'block', textAlign: 'center', marginTop: '14px', fontSize: '0.87rem', color: '#64748b', textDecoration: 'none' }}
-            >
-              Forgot your password?
-            </Link>
           </form>
 
-          {/* Demo Credentials */}
+          {/* Demo credentials */}
           <div className="demo-creds">
-            <p>Demo credentials for <strong>{role}</strong>:</p>
+            <p>Demo accounts · {role}</p>
             {(MOCK_CREDENTIALS[role] || []).map((cred, i) => (
-              <div key={i} className="demo-cred-row" style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px',flexWrap:'wrap'}}>
-                <code style={{flex:1,minWidth:0,fontSize:'0.8rem'}}>{cred.label} — {cred.email} / {cred.password}</code>
-                <button className="autofill-btn" style={role === 'admin' ? { background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', color: 'white' } : {}} onClick={() => {
-                  setEmail(cred.email);
-                  setPassword(cred.password);
-                }}>
-                  Auto-fill
+              <div key={i} className="demo-cred-row">
+                <code>{cred.label} · {cred.email} / {cred.password}</code>
+                <button
+                  type="button"
+                  className="autofill-btn"
+                  onClick={() => {
+                    setEmail(cred.email);
+                    setPassword(cred.password);
+                  }}
+                >
+                  Use
                 </button>
               </div>
             ))}

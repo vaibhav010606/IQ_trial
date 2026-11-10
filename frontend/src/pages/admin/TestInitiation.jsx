@@ -3,34 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, ClipboardList, Trash2, X, CheckCircle, Clock, ChevronRight,
          Settings, Zap, Trophy, UserCheck, Users, Search, Check, Send, Calendar, Stethoscope, FileDown, Layers } from 'lucide-react';
 import { apiClient } from '../../api/client';
+import { toPreset, getPattern, patternIdOf, canonicalSubject, subjectQuota } from '../../utils/examPatterns';
 import TestPDFExportModal from '../teacher/TestPDFExportModal';
 import './TestInitiation.css';
 
-/* ─── Exam preset definitions ─────────────────────────────────────────── */
-const JEE_MAIN_PRESET = {
-  label: 'JEE Main', duration_minutes: 180, totalQuestions: 75, totalMarks: 300, negativeMarking: true,
-  subjects: [
-    { name: 'Physics',    sections: [{ label: 'Section A — Single MCQ', q_type: 'single_correct', count: 20, marks: 4, negative: -1 }, { label: 'Section B — Integer', q_type: 'integer', count: 5, marks: 4, negative: -1 }] },
-    { name: 'Chemistry',  sections: [{ label: 'Section A — Single MCQ', q_type: 'single_correct', count: 20, marks: 4, negative: -1 }, { label: 'Section B — Integer', q_type: 'integer', count: 5, marks: 4, negative: -1 }] },
-    { name: 'Mathematics',sections: [{ label: 'Section A — Single MCQ', q_type: 'single_correct', count: 20, marks: 4, negative: -1 }, { label: 'Section B — Integer', q_type: 'integer', count: 5, marks: 4, negative: -1 }] },
-  ],
-};
-const JEE_ADVANCED_PRESET = {
-  label: 'JEE Advanced', duration_minutes: 180, totalQuestions: 75, totalMarks: 300, negativeMarking: true,
-  subjects: [
-    { name: 'Physics',    sections: [{ label: 'Section A — Single/Multi MCQ', q_type: 'single_correct', count: 20, marks: 4, negative: -1 }, { label: 'Section B — Integer', q_type: 'integer', count: 5, marks: 4, negative: -1 }] },
-    { name: 'Chemistry',  sections: [{ label: 'Section A — Single/Multi MCQ', q_type: 'single_correct', count: 20, marks: 4, negative: -1 }, { label: 'Section B — Integer', q_type: 'integer', count: 5, marks: 4, negative: -1 }] },
-    { name: 'Mathematics',sections: [{ label: 'Section A — Single/Multi MCQ', q_type: 'single_correct', count: 20, marks: 4, negative: -1 }, { label: 'Section B — Integer', q_type: 'integer', count: 5, marks: 4, negative: -1 }] },
-  ],
-};
-const NEET_PRESET = {
-  label: 'NEET', duration_minutes: 200, totalQuestions: 180, totalMarks: 720, negativeMarking: true,
-  subjects: [
-    { name: 'Physics',   sections: [{ label: 'Section A — Single MCQ', q_type: 'single_correct', count: 35, marks: 4, negative: -1 }, { label: 'Section B — Single MCQ', q_type: 'single_correct', count: 10, marks: 4, negative: -1 }] },
-    { name: 'Chemistry', sections: [{ label: 'Section A — Single MCQ', q_type: 'single_correct', count: 35, marks: 4, negative: -1 }, { label: 'Section B — Single MCQ', q_type: 'single_correct', count: 10, marks: 4, negative: -1 }] },
-    { name: 'Biology',   sections: [{ label: 'Section A — Botany & Zoology', q_type: 'single_correct', count: 70, marks: 4, negative: -1 }, { label: 'Section B — Botany & Zoology', q_type: 'single_correct', count: 20, marks: 4, negative: -1 }] },
-  ],
-};
+/* ─── Exam presets ─────────────────────────────────────────────────────
+   From the shared official blueprints (utils/examPatterns.json) — the same
+   definitions the server validates and grades against. Never hand-write counts
+   here. */
+const PRESET_IDS = ['jee_main', 'jee_advanced', 'jee_advanced_p2', 'neet'];
+const PRESETS = Object.fromEntries(PRESET_IDS.map((id) => [id, toPreset(id)]));
 
 const SUBJECTS = ['Physics', 'Chemistry', 'Mathematics', 'Biology'];
 const Q_TYPES  = ['single_correct', 'multi_correct', 'integer', 'mixed'];
@@ -44,7 +26,7 @@ function presetInstructions(preset) {
     '',
     ...preset.subjects.flatMap(sub => [
       `${sub.name}:`,
-      ...sub.sections.map(s => `  • ${s.label} — ${s.count}Q × ${s.marks}m${s.negative < 0 ? ` (${s.negative} per wrong)` : ' (no negative)'}`),
+      ...sub.sections.map(s => `  • ${s.label} — ${s.count}Q × ${s.marks}m${s.partial ? ' (partial marking)' : ''}${s.negative < 0 ? ` (${s.negative} per wrong)` : ' (no negative)'}`),
     ]),
   ].join('\n');
 }
@@ -53,7 +35,7 @@ function presetInstructions(preset) {
 const Avatar = ({ name = '?', size = 28 }) => {
   const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
   return (
-    <div style={{ width: size, height: size, borderRadius: '50%', background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.36, fontWeight: 700, flexShrink: 0 }}>
+    <div style={{ width: size, height: size, borderRadius: '50%', background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.36, fontWeight: 600, flexShrink: 0 }}>
       {initials}
     </div>
   );
@@ -87,7 +69,7 @@ const MultiTeacherPicker = ({ teachers, selected, onChange, loading }) => {
       {selectedTeachers.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {selectedTeachers.map(t => (
-            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px 4px 6px', background: 'var(--color-admin-purple-light)', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 20, fontSize: 12, fontWeight: 500, color: 'var(--color-admin-purple)' }}>
+            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px 4px 6px', background: 'var(--color-admin-purple-light)', border: '1px solid rgba(43, 68, 166,0.3)', borderRadius: 20, fontSize: 12, fontWeight: 500, color: 'var(--color-admin-purple)' }}>
               <Avatar name={t.full_name} size={20} />
               <span>{t.full_name}</span>
               <button onClick={() => toggle(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-admin-purple)', padding: 0, display: 'flex', alignItems: 'center', marginLeft: 2 }}>
@@ -114,7 +96,7 @@ const MultiTeacherPicker = ({ teachers, selected, onChange, loading }) => {
 
       {/* Dropdown */}
       {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 200, background: '#ffffff', border: '1.5px solid var(--color-admin-purple)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.14)', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 200, background: '#fbf8f1', border: '1.5px solid var(--color-admin-purple)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.14)', overflow: 'hidden' }}>
           {/* Search */}
           <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Search size={14} color="var(--text-secondary)" />
@@ -126,7 +108,7 @@ const MultiTeacherPicker = ({ teachers, selected, onChange, loading }) => {
               style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, width: '100%', color: 'var(--text-primary)' }}
             />
             {selected.length > 0 && (
-              <button onClick={() => onChange([])} style={{ fontSize: 11, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <button onClick={() => onChange([])} style={{ fontSize: 11, color: '#b3352b', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 Clear all
               </button>
             )}
@@ -148,10 +130,10 @@ const MultiTeacherPicker = ({ teachers, selected, onChange, loading }) => {
                 >
                   <Avatar name={t.full_name} size={32} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{t.full_name}</div>
+                    <div style={{ fontWeight: 500, fontSize: 13 }}>{t.full_name}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{t.email}</div>
                   </div>
-                  <div style={{ width: 20, height: 20, borderRadius: 5, border: `2px solid ${isSelected ? 'var(--color-admin-purple)' : 'var(--border-color)'}`, background: isSelected ? 'var(--color-admin-purple)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.12s' }}>
+                  <div style={{ width: 20, height: 20, borderRadius: 5, border: `2px solid ${isSelected ? 'var(--color-admin-purple)' : 'var(--border-color)'}`, background: isSelected ? 'var(--color-admin-purple)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'var(--transition)' }}>
                     {isSelected && <Check size={12} color="#fff" strokeWidth={3} />}
                   </div>
                 </div>
@@ -162,7 +144,7 @@ const MultiTeacherPicker = ({ teachers, selected, onChange, loading }) => {
           {/* Footer count */}
           <div style={{ padding: '8px 14px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--text-secondary)' }}>
             <span>{selected.length} selected</span>
-            <button onClick={() => setOpen(false)} style={{ padding: '4px 12px', borderRadius: 6, background: 'var(--color-admin-purple)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Done</button>
+            <button onClick={() => setOpen(false)} style={{ padding: '4px 12px', borderRadius: 6, background: 'var(--color-admin-purple)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>Done</button>
           </div>
         </div>
       )}
@@ -184,7 +166,7 @@ const TypeCard = ({ id, active, onClick, icon: Icon, title, subtitle, badge }) =
       background: active ? 'var(--color-admin-purple-light)' : 'var(--bg-card)',
       cursor: 'pointer',
       textAlign: 'left',
-      transition: 'all 0.18s ease',
+      transition: 'var(--transition)',
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
@@ -195,13 +177,13 @@ const TypeCard = ({ id, active, onClick, icon: Icon, title, subtitle, badge }) =
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <Icon size={22} color={active ? 'var(--color-admin-purple)' : 'var(--text-secondary)'} />
       {badge && (
-        <span style={{ fontSize: 10.5, fontWeight: 700, background: badge.bg, color: badge.color, borderRadius: 5, padding: '3px 8px' }}>
+        <span style={{ fontSize: 10.5, fontWeight: 600, background: badge.bg, color: badge.color, borderRadius: 5, padding: '3px 8px' }}>
           {badge.text}
         </span>
       )}
     </div>
     <div>
-      <div style={{ fontWeight: 700, fontSize: 15, color: active ? 'var(--color-admin-purple)' : 'var(--text-primary)', marginBottom: 3 }}>
+      <div style={{ fontWeight: 600, fontSize: 15, color: active ? 'var(--color-admin-purple)' : 'var(--text-primary)', marginBottom: 3 }}>
         {title}
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.45 }}>
@@ -213,46 +195,47 @@ const TypeCard = ({ id, active, onClick, icon: Icon, title, subtitle, badge }) =
 
 /* ─── Preset Preview ────────────────────────────────────────────────── */
 const PresetPanel = ({ preset }) => (
-  <div style={{ background: '#f8fafc', borderRadius: 12, padding: '16px 20px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 14 }}>
+  <div style={{ background: '#f6f1e6', borderRadius: 12, padding: '16px 20px', border: '1px solid #ded4bf', display: 'flex', flexDirection: 'column', gap: 14 }}>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
       {[
-        { label: 'Duration', value: `${preset.duration_minutes} min`, color: '#6366f1' },
-        { label: 'Total Questions', value: preset.totalQuestions, color: '#0ea5e9' },
-        { label: 'Total Marks', value: preset.totalMarks, color: '#10b981' },
-        { label: 'Negative Marking', value: 'Yes (-1)', color: '#f59e0b' },
+        { label: 'Duration', value: `${preset.duration_minutes} min`, color: 'var(--accent)' },
+        { label: 'Total questions', value: preset.totalQuestions, color: 'var(--accent)' },
+        { label: 'Total marks', value: preset.totalMarks, color: '#2f6b3a' },
+        { label: 'Set by', value: preset.authority, color: '#8f5c0e' },
       ].map(({ label, value, color }) => (
-        <div key={label} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 14px' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color, marginTop: 4 }}>{value}</div>
+        <div key={label} style={{ background: '#fbf8f1', border: '1px solid #ded4bf', borderRadius: 8, padding: '10px 14px' }}>
+          <div style={{ fontSize: 11, fontWeight: 500, color: '#736b5f', textTransform: 'none', letterSpacing: 0 }}>{label}</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color, marginTop: 4 }}>{value}</div>
         </div>
       ))}
     </div>
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${preset.subjects.length}, 1fr)`, gap: 12 }}>
       {preset.subjects.map(sub => (
-        <div key={sub.name} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 14px' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div key={sub.name} style={{ background: '#fbf8f1', border: '1px solid #ded4bf', borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#2a2722', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>{sub.name}</span>
-            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+            <span style={{ fontSize: 11, color: '#736b5f', fontWeight: 500 }}>
               {sub.sections.reduce((acc, s) => acc + s.count, 0)} Questions
             </span>
           </div>
           {sub.sections.map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#475569', marginBottom: 5 }}>
-              <ChevronRight size={12} color="#94a3b8" />
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#56504a', marginBottom: 5 }}>
+              <ChevronRight size={12} color="#998f7d" />
               <span>{s.label}</span>
-              <span style={{ marginLeft: 'auto', fontWeight: 700, color: '#0f172a' }}>{s.count}Q · {s.marks}m</span>
+              <span style={{ marginLeft: 'auto', fontWeight: 600, color: '#1b1a17', whiteSpace: 'nowrap' }}>{s.count}Q · +{s.marks}{s.negative ? `/${s.negative}` : '/0'}{s.partial ? ' partial' : ''}</span>
             </div>
           ))}
         </div>
       ))}
     </div>
+    <div style={{ fontSize: 11, color: '#736b5f' }}>Official pattern · {preset.edition}</div>
   </div>
 );
 
 /* ─── Custom section row ────────────────────────────────────────────── */
 const CustomRow = ({ row, idx, onChange, onRemove }) => (
   <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.1fr 60px 60px 70px 36px', gap: 8, alignItems: 'end' }}>
-    {['Subject','Type',"Q's",'Marks','−ve',''].map((h, i) => idx === 0 && <div key={i} style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>{h || <>&nbsp;</>}</div>)}
+    {['Subject','Type',"Q's",'Marks','−ve',''].map((h, i) => idx === 0 && <div key={i} style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'none' }}>{h || <>&nbsp;</>}</div>)}
     <select className="admin-form-select" style={{ fontSize: 12, gridRow: 2 }} value={row.subject} onChange={e => onChange(idx, 'subject', e.target.value)}>
       {SUBJECTS.map(s => <option key={s}>{s}</option>)}
     </select>
@@ -262,7 +245,7 @@ const CustomRow = ({ row, idx, onChange, onRemove }) => (
     <input className="admin-form-input" style={{ fontSize: 12, padding: '6px 8px', gridRow: 2 }} type="number" min={1} max={100} value={row.count} onChange={e => onChange(idx, 'count', Number(e.target.value))} />
     <input className="admin-form-input" style={{ fontSize: 12, padding: '6px 8px', gridRow: 2 }} type="number" min={1} max={20} value={row.marks} onChange={e => onChange(idx, 'marks', Number(e.target.value))} />
     <input className="admin-form-input" style={{ fontSize: 12, padding: '6px 8px', gridRow: 2 }} type="number" min={-5} max={0} value={row.negative} onChange={e => onChange(idx, 'negative', Number(e.target.value))} />
-    <button onClick={() => onRemove(idx)} style={{ gridRow: 2, width: 36, height: 36, borderRadius: 6, border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <button onClick={() => onRemove(idx)} style={{ gridRow: 2, width: 36, height: 36, borderRadius: 6, border: '1px solid #e2b6aa', background: '#f5e2da', color: '#b3352b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <X size={13} />
     </button>
   </div>
@@ -335,7 +318,7 @@ const TestInitiation = () => {
     if (!window.confirm(`Publish "${test.title}"? Students won't see it until you assign it to a batch.`)) return;
     try {
       await apiClient.patch(`/tests/${test.id}/publish`);
-      showToast(`"${test.title}" is now published!`);
+      showToast(`"${test.title}" is published`);
       fetchTests();
     } catch (e) { showToast(e.message || 'Failed to publish', 'error'); }
   };
@@ -352,19 +335,13 @@ const TestInitiation = () => {
         scheduled_start: new Date(scheduleStart).toISOString(),
         scheduled_end: new Date(scheduleEnd).toISOString(),
       });
-      showToast('Test successfully assigned to selected batches!');
+      showToast('Test assigned to the selected batches');
       setBatchTarget(null);
     } catch (e) { showToast(e.message || 'Failed to assign', 'error'); }
     finally { setAssigningBatches(false); }
   };
 
-  const preset = testType === 'jee_main'
-    ? JEE_MAIN_PRESET
-    : testType === 'jee_advanced'
-    ? JEE_ADVANCED_PRESET
-    : testType === 'neet'
-    ? NEET_PRESET
-    : null;
+  const preset = PRESETS[testType] || null;
 
   const showToast = (msg, type = 'ok') => {
     setToast({ msg, type });
@@ -432,7 +409,7 @@ const TestInitiation = () => {
     setSaving(true);
     try {
       await apiClient.post('/tests', payload);
-      showToast('Test shell created!');
+      showToast('Test created');
       setShowModal(false); resetModal(); fetchTests();
     } catch (e) { showToast(e.message || 'Failed to create test', 'error'); }
     finally { setSaving(false); }
@@ -473,11 +450,11 @@ const TestInitiation = () => {
 
       <div className="admin-page-header">
         <div>
-          <h1>Test Initiation</h1>
+          <h1>Test initiation</h1>
           <p>Create test shells and assign teachers to add questions per subject.</p>
         </div>
         <button className="admin-btn admin-btn-primary" onClick={() => { resetModal(); setShowModal(true); }}>
-          <Plus size={16} /> Initiate Test
+          <Plus size={16} /> Initiate test
         </button>
       </div>
 
@@ -486,7 +463,7 @@ const TestInitiation = () => {
         <div>
           <div className="admin-info-banner-title">How this works</div>
           <div className="admin-info-banner-body">
-            Create a test shell (JEE Main / Advanced / Custom), then assign one or more teachers per subject. Assigned teachers see this test in their <strong>Test Constructor</strong>.
+            Create a test shell (JEE Main / Advanced / Custom), then assign one or more teachers per subject. Assigned teachers see this test in their <strong>Test constructor</strong>.
           </div>
         </div>
       </div>
@@ -494,24 +471,24 @@ const TestInitiation = () => {
       {loading ? (
         <p style={{ color: 'var(--text-secondary)' }}>Loading tests…</p>
       ) : tests.length === 0 ? (
-        <div className="admin-empty"><ClipboardList size={40} /><p>No tests yet. Initiate your first one!</p></div>
+        <div className="admin-empty"><ClipboardList size={40} /><p>No tests yet</p></div>
       ) : (
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
-              <tr><th>Title</th><th>Subject</th><th>Duration</th><th>Status</th><th>Assigned Teachers</th><th>Created</th><th>Actions</th></tr>
+              <tr><th>Title</th><th>Subject</th><th>Duration</th><th>Status</th><th>Assigned teachers</th><th>Created</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {tests.map(t => {
                 const assigned = rowTeachers(t);
                 return (
                   <tr key={t.id}>
-                    <td style={{ fontWeight: 600 }}>{t.title}</td>
+                    <td style={{ fontWeight: 500 }}>{t.title}</td>
                     <td>{t.subject || '—'}</td>
                     <td>{t.duration_minutes ? `${t.duration_minutes} min` : '—'}</td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        {t.status === 'published' ? <CheckCircle size={13} color="#059669" /> : <Clock size={13} color="#d97706" />}
+                        {t.status === 'published' ? <CheckCircle size={13} color="#2f6b3a" /> : <Clock size={13} color="#8f5c0e" />}
                         <span className={`admin-badge admin-badge-${t.status === 'published' ? 'published' : 'draft'}`}>{t.status || 'draft'}</span>
                       </div>
                     </td>
@@ -530,37 +507,28 @@ const TestInitiation = () => {
                           </div>
                           
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4, padding: '8px', background: 'var(--bg-surface)', borderRadius: 6, border: '1px solid var(--border-color)' }}>
-                             <div style={{ width: '100%', fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 2, letterSpacing: '0.05em' }}>Questions Progress:</div>
-                             {['Physics', 'Chemistry', 'Mathematics', 'Biology'].map(sub => {
-                                const count = (t.test_questions || []).filter(tq => tq.questions?.subject === sub).length;
-                                // `paper_pattern` is the real home for this; `t_type` is the
-                                // fallback for rows created before migration 007.
-                                const pattern = String(t.paper_pattern || t.t_type || '').toLowerCase();
-                                const titleLower = String(t.title || '').toLowerCase();
-                                const isNeet = pattern.includes('neet') || titleLower.includes('neet');
-                                const isAdv = pattern.includes('jee_advanced') || pattern.includes('jee adv') || titleLower.includes('jee adv');
-                                const isCustom = pattern === 'custom';
-
-                                if (sub === 'Biology' && !isNeet && !isCustom) return null;
-                                if (sub === 'Mathematics' && isNeet) return null;
-                                if (isCustom && count === 0) return null;
-
-                                // Present exam norms:
-                                // JEE Main & JEE Advanced: 25 Qs per subject (20 MCQ + 5 Numerical, no optional questions) = 75 total
-                                // NEET: Biology 90 Qs, Physics/Chemistry 45 Qs = 180 total
-                                let target = 25;
-                                if (isNeet) target = sub === 'Biology' ? 90 : 45;
-                                else if (isCustom) target = '?';
-                                
-                                const isComplete = typeof target === 'number' && count >= target;
-                                const color = isComplete ? '#10b981' : 'var(--text-secondary)';
-                                return (
-                                   <div key={sub} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: 40, padding: '4px', borderRadius: 4, background: isComplete ? '#ecfdf5' : '#ffffff', border: `1px solid ${isComplete ? '#a7f3d0' : '#e2e8f0'}`, color }}>
-                                     <span style={{ fontSize: 9, fontWeight: 600 }}>{sub.substring(0, 4)}</span>
-                                     <span style={{ fontSize: 11, fontWeight: 700 }}>{count}/{target}</span>
-                                   </div>
-                                )
-                             })}
+                             <div style={{ width: '100%', fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'none', marginBottom: 2, letterSpacing: 0 }}>Questions Progress:</div>
+                             {(() => {
+                                // Targets come from the official blueprint of the test's
+                                // pattern; a custom paper just shows its counts.
+                                const pattern = getPattern(patternIdOf(t));
+                                const subjects = pattern ? Object.keys(pattern.subjects) : ['Physics', 'Chemistry', 'Mathematics', 'Biology'];
+                                return subjects.map(sub => {
+                                  const count = (t.test_questions || []).filter(tq =>
+                                    pattern ? canonicalSubject(tq.questions?.subject, pattern) === sub : tq.questions?.subject === sub
+                                  ).length;
+                                  if (!pattern && count === 0) return null;
+                                  const target = pattern ? subjectQuota(pattern, sub).total : '?';
+                                  const isComplete = typeof target === 'number' && count === target;
+                                  const color = isComplete ? '#2f6b3a' : 'var(--text-secondary)';
+                                  return (
+                                    <div key={sub} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: 40, padding: '4px', borderRadius: 4, background: isComplete ? '#e3ecd9' : '#ffffff', border: `1px solid ${isComplete ? '#b6cba6' : '#ded4bf'}`, color }}>
+                                      <span style={{ fontSize: 9, fontWeight: 500 }}>{sub.substring(0, 4)}</span>
+                                      <span style={{ fontSize: 11, fontWeight: 600 }}>{count}/{target}</span>
+                                    </div>
+                                  );
+                                });
+                              })()}
                           </div>
                         </div>
                       )}
@@ -652,8 +620,8 @@ const TestInitiation = () => {
           <div className="admin-modal initiate-modal-lg" onClick={e => e.stopPropagation()}>
             <div className="admin-modal-header" style={{ marginBottom: 16 }}>
               <div>
-                <h2 className="admin-modal-title initiate-modal-title">Initiate New Test</h2>
-                <p style={{ margin: '3px 0 0 0', fontSize: 13, color: '#64748b' }}>
+                <h2 className="admin-modal-title initiate-modal-title">Initiate new test</h2>
+                <p style={{ margin: '3px 0 0 0', fontSize: 13, color: '#736b5f' }}>
                   Select an examination framework or configure custom subject quotas and assign faculty.
                 </p>
               </div>
@@ -662,11 +630,25 @@ const TestInitiation = () => {
 
             <div className="initiate-modal-body">
               <div className="admin-form-group">
-                <label className="admin-form-label">Test Format</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-                  <TypeCard id="jee_main"     active={testType === 'jee_main'}     onClick={() => setTestType('jee_main')}     icon={Zap}         title="JEE Main"     subtitle="180 min · 75 Q · 300 marks" badge={{ text: 'NTA Pattern', bg: '#dbeafe', color: '#1d4ed8' }} />
-                  <TypeCard id="jee_advanced" active={testType === 'jee_advanced'} onClick={() => setTestType('jee_advanced')} icon={Trophy}      title="JEE Advanced" subtitle="180 min · 75 Q · 300 marks" badge={{ text: 'IIT Pattern', bg: '#fef3c7', color: '#92400e' }} />
-                  <TypeCard id="neet"         active={testType === 'neet'}         onClick={() => setTestType('neet')}         icon={Stethoscope} title="NEET"         subtitle="200 min · 180 Q · 720 marks" badge={{ text: 'NTA Medical', bg: '#dcfce7', color: '#15803d' }} />
+                <label className="admin-form-label">Test format</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
+                  {[
+                    { id: 'jee_main', icon: Zap, title: 'JEE Main', badge: { text: 'NTA', bg: 'var(--accent-soft)', color: 'var(--accent-strong)' } },
+                    { id: 'jee_advanced', icon: Trophy, title: 'JEE Adv · Paper 1', badge: { text: 'IIT', bg: '#f3e6c6', color: '#8f5c0e' } },
+                    { id: 'jee_advanced_p2', icon: Trophy, title: 'JEE Adv · Paper 2', badge: { text: 'IIT', bg: '#f3e6c6', color: '#8f5c0e' } },
+                    { id: 'neet', icon: Stethoscope, title: 'NEET', badge: { text: 'NTA', bg: '#e3ecd9', color: '#2f6b3a' } },
+                  ].map(({ id, icon, title, badge }) => (
+                    <TypeCard
+                      key={id}
+                      id={id}
+                      active={testType === id}
+                      onClick={() => setTestType(id)}
+                      icon={icon}
+                      title={title}
+                      subtitle={`${PRESETS[id].duration_minutes} min · ${PRESETS[id].totalQuestions} Q · ${PRESETS[id].totalMarks} marks`}
+                      badge={badge}
+                    />
+                  ))}
                   <TypeCard id="custom"       active={testType === 'custom'}       onClick={() => setTestType('custom')}       icon={Settings}    title="Custom"       subtitle="Set your own subjects, types & time" />
                 </div>
               </div>
@@ -678,7 +660,7 @@ const TestInitiation = () => {
 
               {preset && (
                 <div className="admin-form-group">
-                  <label className="admin-form-label">Pattern Preview</label>
+                  <label className="admin-form-label">Pattern preview</label>
                   <PresetPanel preset={preset} />
                 </div>
               )}
@@ -692,14 +674,14 @@ const TestInitiation = () => {
                   <div className="admin-form-group">
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                       <label className="admin-form-label" style={{ marginBottom: 0 }}>Sections</label>
-                      <button id="add-section-btn" onClick={addSection} style={{ fontSize: 12, color: 'var(--color-admin-purple)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}><Plus size={13} /> Add Section</button>
+                      <button id="add-section-btn" onClick={addSection} style={{ fontSize: 12, color: 'var(--color-admin-purple)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}><Plus size={13} /> Add section</button>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {customSections.map((row, idx) => <CustomRow key={idx} row={row} idx={idx} onChange={updateSection} onRemove={removeSection} />)}
                     </div>
                     <div style={{ marginTop: 12, padding: '12px 16px', background: 'var(--color-admin-purple-light)', borderRadius: 10, display: 'flex', gap: 28 }}>
-                      {[{ label: 'Total Questions', value: customTotalQ }, { label: 'Total Marks', value: customTotalM }, { label: 'Duration', value: `${customDuration} min` }, { label: 'Negative Marking', value: hasNegative ? 'Yes' : 'No' }].map(({ label, value }) => (
-                        <div key={label}><div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--color-admin-purple)', textTransform: 'uppercase' }}>{label}</div><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>{value}</div></div>
+                      {[{ label: 'Total questions', value: customTotalQ }, { label: 'Total marks', value: customTotalM }, { label: 'Duration', value: `${customDuration} min` }, { label: 'Negative marking', value: hasNegative ? 'Yes' : 'No' }].map(({ label, value }) => (
+                        <div key={label}><div style={{ fontSize: 10.5, fontWeight: 500, color: 'var(--color-admin-purple)', textTransform: 'none' }}>{label}</div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2 }}>{value}</div></div>
                       ))}
                     </div>
                   </div>
@@ -737,20 +719,20 @@ const TestInitiation = () => {
         <div className="admin-modal-overlay" onClick={() => setAssignTarget(null)}>
           <div className="admin-modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
             <div className="admin-modal-header">
-              <h2 className="admin-modal-title">Assign Teachers</h2>
+              <h2 className="admin-modal-title">Assign teachers</h2>
               <button className="admin-modal-close" onClick={() => setAssignTarget(null)} aria-label="Close dialog" title="Close"><X size={18} /></button>
             </div>
 
             {/* test strip */}
             <div style={{ padding: '12px 14px', background: 'var(--bg-surface)', borderRadius: 10, border: '1px solid var(--border-color)', marginBottom: 20 }}>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Test</div>
-              <div style={{ fontWeight: 700, fontSize: 15, marginTop: 2 }}>{assignTarget.title}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'none', fontWeight: 500, letterSpacing: 0 }}>Test</div>
+              <div style={{ fontWeight: 600, fontSize: 15, marginTop: 2 }}>{assignTarget.title}</div>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{assignTarget.subject} · {assignTarget.duration_minutes} min · {assignTarget.total_marks} marks</div>
             </div>
 
             <div className="admin-form-group">
               <label className="admin-form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Users size={14} /> Select Teachers
+                <Users size={14} /> Select teachers
                 <span style={{ fontWeight: 400, fontSize: 11, color: 'var(--text-secondary)' }}> — one per subject or more</span>
               </label>
               <MultiTeacherPicker teachers={teachers} selected={assignSelected} onChange={setAssignSelected} loading={teachersLoading} />
@@ -758,16 +740,16 @@ const TestInitiation = () => {
 
             {/* preview of selected */}
             {assignSelected.length > 0 && (
-              <div style={{ marginTop: 4, marginBottom: 16, padding: '12px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#15803d', marginBottom: 8, textTransform: 'uppercase' }}>
+              <div style={{ marginTop: 4, marginBottom: 16, padding: '12px 14px', background: '#e3ecd9', border: '1px solid #b6cba6', borderRadius: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 500, color: '#2f6b3a', marginBottom: 8, textTransform: 'none' }}>
                   {assignSelected.length} teacher{assignSelected.length > 1 ? 's' : ''} will have access
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {teachers.filter(t => assignSelected.includes(t.id)).map(t => (
                     <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Avatar name={t.full_name} size={24} />
-                      <span style={{ fontSize: 12, color: '#166534', fontWeight: 500 }}>{t.full_name}</span>
-                      <span style={{ fontSize: 11, color: '#4ade80' }}>{t.email}</span>
+                      <span style={{ fontSize: 12, color: '#2f6b3a', fontWeight: 500 }}>{t.full_name}</span>
+                      <span style={{ fontSize: 11, color: '#2f6b3a' }}>{t.email}</span>
                     </div>
                   ))}
                 </div>
@@ -775,7 +757,7 @@ const TestInitiation = () => {
             )}
 
             {assignSelected.length === 0 && assignTarget.test_teachers?.length > 0 && (
-              <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 12, color: '#dc2626', marginBottom: 16 }}>
+              <div style={{ padding: '10px 14px', background: '#f5e2da', border: '1px solid #e2b6aa', borderRadius: 8, fontSize: 12, color: '#b3352b', marginBottom: 16 }}>
                 All existing teachers will be removed from this test.
               </div>
             )}
@@ -799,12 +781,12 @@ const TestInitiation = () => {
             </div>
 
             <div style={{ padding: '12px 14px', background: 'var(--bg-surface)', borderRadius: 10, border: '1px solid var(--border-color)', marginBottom: 20 }}>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Published Test</div>
-              <div style={{ fontWeight: 700, fontSize: 15, marginTop: 2 }}>{batchTarget.title}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'none', fontWeight: 500, letterSpacing: 0 }}>Published test</div>
+              <div style={{ fontWeight: 600, fontSize: 15, marginTop: 2 }}>{batchTarget.title}</div>
             </div>
 
             <div className="admin-form-group">
-              <label className="admin-form-label">Select Batches</label>
+              <label className="admin-form-label">Select batches</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 200, overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 8, padding: 10 }}>
                 {batches.length === 0 ? (
                   <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>No batches available</span>
@@ -814,7 +796,7 @@ const TestInitiation = () => {
                       if (e.target.checked) setBatchSelected([...batchSelected, b.id]);
                       else setBatchSelected(batchSelected.filter(id => id !== b.id));
                     }} />
-                    <span style={{ fontWeight: 600 }}>{b.name}</span>
+                    <span style={{ fontWeight: 500 }}>{b.name}</span>
                     {b.subject_focus && <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>({b.subject_focus})</span>}
                   </label>
                 ))}
@@ -823,7 +805,7 @@ const TestInitiation = () => {
 
             <div className="admin-form-group" style={{ display: 'flex', gap: 16 }}>
               <div style={{ flex: 1 }}>
-                <label className="admin-form-label">Scheduled Start</label>
+                <label className="admin-form-label">Scheduled start</label>
                 <input type="datetime-local" className="admin-form-input" value={scheduleStart} onChange={e => {
                   const val = e.target.value;
                   setScheduleStart(val);
@@ -836,7 +818,7 @@ const TestInitiation = () => {
                 }} />
               </div>
               <div style={{ flex: 1 }}>
-                <label className="admin-form-label">Scheduled End</label>
+                <label className="admin-form-label">Scheduled end</label>
                 <input type="datetime-local" className="admin-form-input" value={scheduleEnd} onChange={e => setScheduleEnd(e.target.value)} />
               </div>
             </div>

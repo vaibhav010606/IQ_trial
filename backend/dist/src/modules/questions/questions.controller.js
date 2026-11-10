@@ -25,7 +25,12 @@ const current_user_decorator_1 = require("../../common/decorators/current-user.d
 const question_dto_1 = require("./dto/question.dto");
 const MAX_CSV_BYTES = 5 * 1024 * 1024;
 const MAX_PDF_BYTES = 50 * 1024 * 1024;
-const CSV_MIME = ['text/csv', 'application/vnd.ms-excel', 'text/plain', 'application/csv'];
+const CSV_MIME = [
+    'text/csv',
+    'application/vnd.ms-excel',
+    'text/plain',
+    'application/csv',
+];
 const PDF_MIME = ['application/pdf'];
 const mimeFilter = (allowed, label) => (_req, file, cb) => {
     if (!allowed.includes(file.mimetype)) {
@@ -92,7 +97,9 @@ let QuestionsController = class QuestionsController {
 };
 exports.QuestionsController = QuestionsController;
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: 'List all questions with filters (server-side pagination)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'List all questions with filters (server-side pagination)',
+    }),
     (0, common_1.Get)(),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Query)()),
@@ -101,7 +108,9 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], QuestionsController.prototype, "findAll", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: 'QA queue — AI-extracted questions awaiting verification' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'QA queue — AI-extracted questions awaiting verification',
+    }),
     (0, common_1.Get)('review-queue'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Query)()),
@@ -159,7 +168,9 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], QuestionsController.prototype, "bulkConfirm", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: 'Upload PDF to extract and classify image questions' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Upload PDF to extract and classify image questions',
+    }),
     (0, swagger_1.ApiConsumes)('multipart/form-data'),
     (0, common_1.Post)('bulk-upload-pdf'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
@@ -225,7 +236,9 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], QuestionsController.prototype, "duplicate", null);
 __decorate([
-    (0, swagger_1.ApiOperation)({ summary: 'Approve a question from the QA queue (optionally with corrections)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Approve a question from the QA queue (optionally with corrections)',
+    }),
     (0, common_1.Patch)(':id/approve'),
     __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
     __param(1, (0, common_1.Body)()),

@@ -17,8 +17,10 @@ const spaced_repetition_service_1 = require("../analytics/spaced-repetition.serv
 const cache_service_1 = require("../../common/cache/cache.service");
 const query_util_1 = require("../../common/db/query.util");
 const tests_service_1 = require("../tests/tests.service");
+const exam_patterns_1 = require("../tests/exam-patterns");
 const CLOCK_GRACE_SECONDS = 30;
 const VIOLATION_LIMIT = 3;
+const ALREADY_SUBMITTED = 'You have already submitted this test. Each test can be taken only once.';
 const ANSWER_STATUSES = [
     'not_visited',
     'not_answered',
@@ -43,7 +45,10 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
         if (!error)
             return false;
         const code = String(error.code || '');
-        if (code === 'PGRST204' || code === 'PGRST205' || code === '42703' || code === '42P01') {
+        if (code === 'PGRST204' ||
+            code === 'PGRST205' ||
+            code === '42703' ||
+            code === '42P01') {
             return true;
         }
         return /does not exist|schema cache/i.test(String(error.message || ''));
@@ -51,7 +56,8 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
     isUniqueViolation(error) {
         if (!error)
             return false;
-        return String(error.code || '') === '23505' || /duplicate key value/i.test(String(error.message || ''));
+        return (String(error.code || '') === '23505' ||
+            /duplicate key value/i.test(String(error.message || '')));
     }
     warnMigrationMissing(what) {
         this.logger.warn(`${what} is missing — run backend/migrations/005_exam_session_sync.sql. ` +
@@ -87,12 +93,17 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
         return Date.now() > window.expiresAt.getTime() + CLOCK_GRACE_SECONDS * 1000;
     }
     async getMarkingScheme(testId) {
-        const { data } = await supabase_config_1.supabase.from('tests').select('*').eq('id', testId).single();
+        const { data } = await supabase_config_1.supabase
+            .from('tests')
+            .select('*')
+            .eq('id', testId)
+            .single();
         const row = data || {};
         return {
             negativeMarking: row.negative_marking === true,
             negativeMarks: Number(row.negative_marks) || 0,
             resultsPublished: (0, tests_service_1.isTestResultsPublished)(row),
+            pattern: (0, exam_patterns_1.getPattern)((0, exam_patterns_1.patternIdOf)(row)),
         };
     }
     async resolveAssignmentWindow(testId, studentId) {
@@ -136,6 +147,24 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
             throw new common_1.ForbiddenException('Time is up for this attempt. Your answers can no longer be changed.');
         }
     }
+    async attemptsFor(testId, studentId) {
+        const { data, error } = await supabase_config_1.supabase
+            .from('attempts')
+            .select('id, status, started_at')
+            .eq('test_id', testId)
+            .eq('student_id', studentId)
+            .order('started_at', { ascending: true })
+            .order('id', { ascending: true });
+        if (error)
+            throw new Error(error.message);
+        if (!data)
+            return [];
+        return Array.isArray(data) ? data : [data];
+    }
+    async hasOtherSubmittedAttempt(attempt) {
+        const all = await this.attemptsFor(attempt.test_id, attempt.student_id);
+        return all.some((a) => a.id !== attempt.id && a.status === 'submitted');
+    }
     async startAttempt(testId, studentId) {
         const assignment = await this.resolveAssignmentWindow(testId, studentId);
         if (!assignment) {
@@ -154,24 +183,21 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
                 throw new common_1.ForbiddenException('The window for this test has closed.');
             }
         }
-        const { data: existing } = await supabase_config_1.supabase
-            .from('attempts')
-            .select('id, status, started_at')
-            .eq('test_id', testId)
-            .eq('student_id', studentId)
-            .order('started_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-        if (existing?.status === 'submitted') {
-            throw new common_1.BadRequestException('You have already submitted this test');
+        const priorAttempts = await this.attemptsFor(testId, studentId);
+        if (priorAttempts.some((a) => a.status === 'submitted')) {
+            throw new common_1.BadRequestException(ALREADY_SUBMITTED);
         }
+        const existing = priorAttempts.find((a) => a.status === 'in_progress');
         const { data: test } = await supabase_config_1.supabase
             .from('tests')
-            .select('duration_minutes')
+            .select('duration_minutes, status')
             .eq('id', testId)
             .single();
         if (!test)
             throw new common_1.NotFoundException('Test not found');
+        if (test.status !== 'published') {
+            throw new common_1.ForbiddenException('This test is not available yet.');
+        }
         if (existing?.status === 'in_progress') {
             return this.resumeAttempt(existing, testId, test.duration_minutes || 60, studentId);
         }
@@ -198,9 +224,19 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
                 if (raced?.status === 'in_progress') {
                     return this.resumeAttempt(raced, testId, test.duration_minutes || 60, studentId);
                 }
-                throw new common_1.BadRequestException('You have already submitted this test');
+                throw new common_1.BadRequestException(ALREADY_SUBMITTED);
             }
             throw new Error(error.message);
+        }
+        const all = await this.attemptsFor(testId, studentId);
+        const canonical = all[0];
+        if (canonical && canonical.id !== attempt.id) {
+            await supabase_config_1.supabase.from('attempts').delete().eq('id', attempt.id).eq('status', 'in_progress');
+            this.logger.warn(`Duplicate start for test ${testId} by ${studentId}; kept attempt ${canonical.id}.`);
+            if (canonical.status === 'submitted') {
+                throw new common_1.BadRequestException(ALREADY_SUBMITTED);
+            }
+            return this.resumeAttempt(canonical, testId, test.duration_minutes || 60, studentId);
         }
         return {
             attemptId: attempt.id,
@@ -245,7 +281,10 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
             this.hasAnswerStatus = false;
             this.warnMigrationMissing('answers.status');
         }
-        const { data, error } = await supabase_config_1.supabase.from('answers').select(columns).eq('attempt_id', attemptId);
+        const { data, error } = await supabase_config_1.supabase
+            .from('answers')
+            .select(columns)
+            .eq('attempt_id', attemptId);
         if (error)
             throw new Error(error.message);
         return data || [];
@@ -291,7 +330,11 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
         if (!attempt)
             throw new common_1.NotFoundException('Attempt not found');
         if (attempt.status === 'submitted') {
-            return { terminated: true, strikes: VIOLATION_LIMIT, limit: VIOLATION_LIMIT };
+            return {
+                terminated: true,
+                strikes: VIOLATION_LIMIT,
+                limit: VIOLATION_LIMIT,
+            };
         }
         const { error } = await supabase_config_1.supabase.from('attempt_violations').insert({
             attempt_id: attemptId,
@@ -305,7 +348,12 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
                     this.hasViolationsTable = false;
                     this.warnMigrationMissing('attempt_violations');
                 }
-                return { terminated: false, strikes: 0, limit: VIOLATION_LIMIT, degraded: true };
+                return {
+                    terminated: false,
+                    strikes: 0,
+                    limit: VIOLATION_LIMIT,
+                    degraded: true,
+                };
             }
             throw new Error(error.message);
         }
@@ -318,6 +366,9 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
         const terminated = strikes >= VIOLATION_LIMIT;
         if (terminated) {
             this.logger.warn(`Attempt ${attemptId} terminated after ${strikes} violations.`);
+            const duplicate = await this.hasOtherSubmittedAttempt(attempt).catch(() => false);
+            if (duplicate)
+                return { terminated, strikes, limit: VIOLATION_LIMIT };
             await this.gradeAndFinalise(attempt, true).catch((e) => this.logger.error(`Failed to finalise terminated attempt ${attemptId}: ${e?.message}`));
         }
         return { terminated, strikes, limit: VIOLATION_LIMIT };
@@ -345,6 +396,9 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
             throw new common_1.NotFoundException('Attempt not found');
         if (attempt.status === 'submitted')
             throw new common_1.BadRequestException('Already submitted');
+        if (await this.hasOtherSubmittedAttempt(attempt)) {
+            throw new common_1.BadRequestException(ALREADY_SUBMITTED);
+        }
         return this.gradeAndFinalise(attempt, autoSubmitted);
     }
     async gradeAndFinalise(attempt, autoSubmitted) {
@@ -362,9 +416,22 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
         const scheme = await this.getMarkingScheme(attempt.test_id);
         const testQuestions = await (0, query_util_1.fetchAll)(() => supabase_config_1.supabase
             .from('test_questions')
-            .select('question_id, marks_override, questions(correct_answer, marks)')
+            .select('question_id, question_order, marks_override, questions(correct_answer, marks, subject, q_type, options)')
             .eq('test_id', attempt.test_id));
-        const studentAnswers = await (0, query_util_1.fetchAll)(() => supabase_config_1.supabase.from('answers').select('question_id, selected_answer').eq('attempt_id', attemptId));
+        const pattern = scheme.pattern;
+        const sections = pattern
+            ? (0, exam_patterns_1.resolveSections)(pattern, testQuestions.map((tq) => ({
+                question_id: tq.question_id,
+                question_order: tq.question_order,
+                subject: tq.questions?.subject,
+                q_type: tq.questions?.q_type,
+                options: tq.questions?.options,
+            })))
+            : new Map();
+        const studentAnswers = await (0, query_util_1.fetchAll)(() => supabase_config_1.supabase
+            .from('answers')
+            .select('question_id, selected_answer')
+            .eq('attempt_id', attemptId));
         const answerMap = new Map(studentAnswers.map((a) => [a.question_id, a.selected_answer]));
         let totalScore = 0;
         const answerUpdates = [];
@@ -373,13 +440,24 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
             const correctAnswer = tq.questions?.correct_answer;
             const marks = Number(tq.marks_override || tq.questions?.marks || 4);
             const studentAnswer = answerMap.get(questionId);
-            const attempted = studentAnswer !== undefined && studentAnswer !== null;
-            const isCorrect = attempted && this.answersMatch(studentAnswer, correctAnswer);
-            if (isCorrect) {
-                totalScore += marks;
+            const attempted = !this.isEmptyAnswer(studentAnswer);
+            const section = sections.get(questionId);
+            let isCorrect = false;
+            if (section && pattern) {
+                if (attempted) {
+                    const scored = (0, exam_patterns_1.scoreInSection)(section, studentAnswer, correctAnswer, pattern.numericAnswer);
+                    totalScore += scored.score;
+                    isCorrect = scored.full;
+                }
             }
-            else if (attempted && scheme.negativeMarking) {
-                totalScore -= scheme.negativeMarks;
+            else {
+                isCorrect = attempted && this.answersMatch(studentAnswer, correctAnswer);
+                if (isCorrect) {
+                    totalScore += marks;
+                }
+                else if (attempted && scheme.negativeMarking) {
+                    totalScore -= scheme.negativeMarks;
+                }
             }
             answerUpdates.push({
                 attempt_id: attemptId,
@@ -418,7 +496,9 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
                 .catch((e) => this.logger.error(`Spaced-repetition update failed for ${attemptId}: ${e?.message}`));
             await this.cache.invalidate('leaderboard:').catch(() => undefined);
             await this.cache.invalidate('analytics:cohort:').catch(() => undefined);
-            await this.cache.invalidate(`attempt-cohort:${attempt.test_id}`).catch(() => undefined);
+            await this.cache
+                .invalidate(`attempt-cohort:${attempt.test_id}`)
+                .catch(() => undefined);
         }
         else {
             this.logger.log(`Attempt ${attemptId} was already finalised by a concurrent submit.`);
@@ -427,7 +507,10 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
         const incorrect = answerUpdates.filter((a) => a.is_correct === false).length;
         const unattempted = answerUpdates.filter((a) => a.is_correct === null).length;
         const total = testQuestions.length || 1;
-        const maxScore = testQuestions.reduce((sum, tq) => sum + Number(tq.marks_override || tq.questions?.marks || 4), 0);
+        const maxScore = testQuestions.reduce((sum, tq) => {
+            const section = sections.get(tq.question_id);
+            return sum + (section ? section.marks : Number(tq.marks_override || tq.questions?.marks || 4));
+        }, 0);
         if (!scheme.resultsPublished) {
             return {
                 attemptId,
@@ -436,7 +519,7 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
                 results_published: false,
                 autoSubmitted: effectiveAutoSubmit,
                 timeTakenSeconds,
-                message: 'Exam submitted successfully. Results will be released once approved by the administrator.',
+                message: 'Your attempt has been noted and securely recorded. Results will be released once approved by the administrator.',
             };
         }
         return {
@@ -454,6 +537,21 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
             negativeMarking: scheme.negativeMarking,
             negativeMarks: scheme.negativeMarks,
         };
+    }
+    isEmptyAnswer(answer) {
+        if (answer === undefined || answer === null)
+            return true;
+        if (typeof answer !== 'object')
+            return String(answer).trim() === '';
+        if (Array.isArray(answer.indices))
+            return answer.indices.length === 0;
+        if ('value' in answer)
+            return answer.value === null || String(answer.value).trim() === '';
+        if ('index' in answer)
+            return (answer.index === null ||
+                answer.index === undefined ||
+                answer.index === '');
+        return Object.keys(answer).filter((k) => k !== 'status').length === 0;
     }
     answersMatch(submitted, correct) {
         if (submitted == null || correct == null)
@@ -506,6 +604,16 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
             if (Date.now() <= expiresAt + CLOCK_GRACE_SECONDS * 1000)
                 continue;
             try {
+                if (await this.hasOtherSubmittedAttempt(attempt)) {
+                    await supabase_config_1.supabase.from('answers').delete().eq('attempt_id', attempt.id);
+                    await supabase_config_1.supabase
+                        .from('attempts')
+                        .delete()
+                        .eq('id', attempt.id)
+                        .eq('status', 'in_progress');
+                    this.logger.warn(`Discarded duplicate attempt ${attempt.id}: test already submitted by this student.`);
+                    continue;
+                }
                 await this.gradeAndFinalise({
                     id: attempt.id,
                     test_id: attempt.test_id,
@@ -526,7 +634,7 @@ let AttemptsService = AttemptsService_1 = class AttemptsService {
     async getMyAttempts(studentId) {
         const { data, error } = await supabase_config_1.supabase
             .from('attempts')
-            .select('id, status, total_score, started_at, submitted_at, tests(id, title, total_marks, instructions, description)')
+            .select('id, test_id, status, total_score, started_at, submitted_at, tests(id, title, total_marks, instructions, description)')
             .eq('student_id', studentId)
             .order('started_at', { ascending: false })
             .limit(200);
