@@ -53,13 +53,20 @@ jobs:
             fi
           fi
 
-          TARGET_USER="${EC2_USER:-ubuntu}"
-          TARGET_DIR="${APP_DIR:-$HOME/IQ}"
+          echo "🔑 Deploy key fingerprint:"
+          ssh-keygen -l -f ~/.ssh/deploy_key || echo "::warning::Could not read key fingerprint"
 
-          ssh-keyscan -H -T 10 "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          TARGET_USER="${EC2_USER:-ubuntu}"
+          TARGET_DIR="${APP_DIR:-$HOME/IQ_trial}"
 
           echo "🚀 Connecting to $TARGET_USER@$EC2_HOST..."
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=30 "$TARGET_USER@$EC2_HOST" "bash -s" << EOF
+          ssh -v -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o PubkeyAcceptedKeyTypes=+ssh-rsa \
+            -o PubkeyAcceptedAlgorithms=+ssh-rsa \
+            -o ConnectTimeout=30 \
+            "$TARGET_USER@$EC2_HOST" "bash -s" << EOF
             APP_DIR="$TARGET_DIR"
             echo "🚀 Deploying in directory: \$APP_DIR"
             cd "\$APP_DIR" || cd "\$HOME"/IQ_trial || cd "\$HOME"/*IQ* || exit 1
